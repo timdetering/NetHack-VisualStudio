@@ -7,8 +7,6 @@
 #include "common\TextGrid.h"
 
 #ifdef NEWCODE
-#include "TextGrid.h"
-
 #include <list>
 #endif
 
@@ -62,8 +60,6 @@ namespace Nethack
 
         // Rendering loop timer.
         DX::StepTimer m_timer;
-
-        TextGrid m_textGrid;
 
 #ifdef NEWCODE
         Direction m_flickDirection;

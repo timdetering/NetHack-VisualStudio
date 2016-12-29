@@ -58,6 +58,7 @@ void App::Initialize(CoreApplicationView^ applicationView)
     m_gestureRecognizer = ref new Windows::UI::Input::GestureRecognizer();
 
     Attach(m_gestureRecognizer);
+#endif
 
     // Start worker thread which will run the nethack main loop
     auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction^)
@@ -66,7 +67,6 @@ void App::Initialize(CoreApplicationView^ applicationView)
     });
 
     m_nethackWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
-#endif
 }
 
 // Called when the CoreWindow object is created (or re-created).
@@ -376,12 +376,13 @@ void App::OnManipulationCompleted(Windows::UI::Input::GestureRecognizer^ sender,
     if (m_main != nullptr)
         m_main->OnManipulationCompleted(sender, args);
 }
+#endif
 
 //
 //
 //
 
-extern "C" { void NethackMain(const char * localDir, const char * installDir); }
+extern "C" { void mainloop(const char * localDir, const char * installDir); }
 
 void App::RunNethackMainLoop(void)
 {
@@ -395,7 +396,6 @@ void App::RunNethackMainLoop(void)
     {
         // We can't exit a metro application ... so we should just reload the player again
         // Loop forever.
-        NethackMain(localDir.c_str(), installDir.c_str());
+        mainloop(localDir.c_str(), installDir.c_str());
     }
 }
-#endif

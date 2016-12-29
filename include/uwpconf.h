@@ -227,4 +227,7 @@ extern int FDECL(alternative_palette, (char *));
 /* Windows declares terminate */
 #define terminate xxxterminate
 
+/* Include window headers that conflict with nethack macros */
+#include <windows.h>
+
 #endif /* UWPCONF_H */

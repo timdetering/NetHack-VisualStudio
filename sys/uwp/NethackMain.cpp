@@ -34,15 +34,15 @@ using namespace Windows::Foundation;
 using namespace Windows::System::Threading;
 using namespace Concurrency;
 
+extern Nethack::TextGrid g_textGrid;
+
+
 // Loads and initializes application assets when the application is loaded.
 NethackMain::NethackMain(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
-    m_deviceResources(deviceResources), m_textGrid(Int2D(80, 28))
+    m_deviceResources(deviceResources)
 {
     // Register to be notified if the Device is lost or recreated
     m_deviceResources->RegisterDeviceNotify(this);
-
-    // TODO: Replace this with your app's content initialization.
-//	m_sceneRenderer = std::unique_ptr<Sample3DSceneRenderer>(new Sample3DSceneRenderer(m_deviceResources));
 
     m_fpsTextRenderer = std::unique_ptr<SampleFpsTextRenderer>(new SampleFpsTextRenderer(m_deviceResources));
 
@@ -60,19 +60,12 @@ NethackMain::NethackMain(const std::shared_ptr<DX::DeviceResources>& deviceResou
     float xScale = outputSize.Width / (float)(80 * glyphPixelDimensions.m_x);
     float yScale = outputSize.Height / (float)(28 * glyphPixelDimensions.m_y);
 
-    m_textGrid.SetScale((xScale < yScale) ? xScale : yScale);
+    g_textGrid.SetDeviceResources();
+
+    g_textGrid.SetScale((xScale < yScale) ? xScale : yScale);
 
     Nethack::Int2D gridOffset(0, 0);
-    m_textGrid.SetGridOffset(gridOffset);
-
-    m_textGrid.Clear();
-
-    Nethack::TextCell textCell(Nethack::TextColor::Black, Nethack::TextAttribute::None, 'X');
-
-    m_textGrid.Put(1, 1, textCell);
-    m_textGrid.Put(2, 2, textCell);
-    m_textGrid.Put(3, 3, textCell);
-
+    g_textGrid.SetGridOffset(gridOffset);
 
 }
 
@@ -85,8 +78,6 @@ NethackMain::~NethackMain()
 // Updates application state when the window size changes (e.g. device orientation change)
 void NethackMain::CreateWindowSizeDependentResources() 
 {
-    // TODO: Replace this with the size-dependent initialization of your app's content.
-//	m_sceneRenderer->CreateWindowSizeDependentResources();
 
 #ifdef NEWCODE
     Window::s_windowListLock.AcquireShared();
@@ -105,8 +96,6 @@ void NethackMain::Update()
     // Update scene objects.
     m_timer.Tick([&]()
     {
-        // TODO: Replace this with your app's content update functions.
-//		m_sceneRenderer->Update(m_timer);
         m_fpsTextRenderer->Update(m_timer);
 
 #ifdef NEWCODE
@@ -117,6 +106,8 @@ void NethackMain::Update()
 
         Window::s_windowListLock.ReleaseShared();
 #endif
+
+        
 
     });
 }
@@ -145,16 +136,9 @@ bool NethackMain::Render()
     context->ClearRenderTargetView(m_deviceResources->GetBackBufferRenderTargetView(), DirectX::Colors::CornflowerBlue);
     context->ClearDepthStencilView(m_deviceResources->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-#ifdef NEWCODE
-    w8_render();
-#endif
-
-    // Render the scene objects.
-    // TODO: Replace this with your app's content rendering functions.
-//	m_sceneRenderer->Render();
     m_fpsTextRenderer->Render();
 
-    m_textGrid.Render();
+    g_textGrid.Render();
 
     return true;
 }
@@ -171,8 +155,8 @@ void NethackMain::OnDeviceLost()
     Window::s_windowListLock.ReleaseShared();
 #endif
 
-//	m_sceneRenderer->ReleaseDeviceDependentResources();
     m_fpsTextRenderer->ReleaseDeviceDependentResources();
+    g_textGrid.ReleaseDeviceDependentResources();
 }
 
 // Notifies renderers that device resources may now be recreated.
@@ -187,8 +171,8 @@ void NethackMain::OnDeviceRestored()
     Window::s_windowListLock.ReleaseShared();
 #endif
 
-//	m_sceneRenderer->CreateDeviceDependentResources();
     m_fpsTextRenderer->CreateDeviceDependentResources();
+    g_textGrid.CreateDeviceDependentResources();
     CreateWindowSizeDependentResources();
 }
 

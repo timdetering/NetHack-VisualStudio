@@ -67,6 +67,8 @@ namespace Nethack
         TextGrid(const Int2D & inGridDimensions);
         ~TextGrid(void);
 
+        void SetDeviceResources();
+
         const TextCell & GetCell(int inX, int inY) const;
         TextCell & EditCell(int inX, int inY);
 

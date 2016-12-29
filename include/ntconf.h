@@ -241,4 +241,8 @@ extern int FDECL(set_win32_option, (const char *, const char *));
 extern int FDECL(alternative_palette, (char *));
 #endif
 
+/* Windows declares terminate */
+#define terminate xxxterminate
+
+
 #endif /* NTCONF_H */

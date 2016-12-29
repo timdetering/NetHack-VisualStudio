@@ -19,6 +19,8 @@
 #include <memory.h>
 #include <assert.h>
 
+/* https://en.wikipedia.org/wiki/ANSI_escape_code */
+
 namespace Nethack
 {
     #define RGB_TO_XMFLOAT3(r,g,b) { (float) r / (float) 0xff, (float) g / (float) 0xff, (float) b / (float) 0xff }
@@ -49,8 +51,6 @@ namespace Nethack
         m_gridScreenCenter(0.0f, 0.0f),
         m_scale(1.0f)
     {
-        m_deviceResources = DX::DeviceResources::s_deviceResources;
-
         assert(inGridDimensions.m_x > 0);
         assert(inGridDimensions.m_y > 0);
 
@@ -62,6 +62,12 @@ namespace Nethack
 
         m_vertexCount = m_cellCount * 6;
         m_vertices = new VertexPositionColor[m_vertexCount];
+
+    }
+
+    void TextGrid::SetDeviceResources(void)
+    {
+        m_deviceResources = DX::DeviceResources::s_deviceResources;
 
         CreateWindowSizeDependentResources();
         CreateDeviceDependentResources();
@@ -130,6 +136,8 @@ namespace Nethack
     void TextGrid::Render(void)
     {
         UpdateVertcies();
+
+        assert(m_deviceResources != nullptr);
 
         auto context = m_deviceResources->GetD3DDeviceContext();
 
@@ -216,6 +224,8 @@ namespace Nethack
 
     void TextGrid::CreateWindowSizeDependentResources(void)
     {
+        assert(m_deviceResources != nullptr);
+
         m_gridPixelDimensions = m_gridDimensions * m_deviceResources->GetGlyphPixelDimensions();
 
         Windows::Foundation::Size outputSize = m_deviceResources->GetOutputSize();
@@ -227,6 +237,8 @@ namespace Nethack
 
     void TextGrid::CalculateScreenValues(void)
     {
+        assert(m_deviceResources != nullptr);
+
         m_gridScreenDimensions = m_pixelScreenDimensions * m_gridPixelDimensions;
         m_gridScreenDimensions *= m_scale;
 
@@ -250,6 +262,8 @@ namespace Nethack
 
     void TextGrid::CreateDeviceDependentResources(void)
     {
+        assert(m_deviceResources != nullptr);
+
         // Load shaders asynchronously.
         auto loadVSTask = DX::ReadDataAsync(L"SampleVertexShader.cso");
         auto loadPSTask = DX::ReadDataAsync(L"SamplePixelShader.cso");
