@@ -129,6 +129,11 @@
 #define USE_STDARG
 #define NEED_VARARGS
 
+/* Window headers define a boolean to be an unsigned char */
+#define SKIP_BOOLEAN
+#define BOOLEAN_P boolean
+typedef unsigned char boolean;
+
 #ifndef WIN_CE
 #define STRNCMPI
 #define STRCMPI

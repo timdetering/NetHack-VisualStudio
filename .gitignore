@@ -35,6 +35,7 @@ Makefile
 Debug/
 Release/
 binary/
+bin/
 build/
 ipch/
 Nethack.sln

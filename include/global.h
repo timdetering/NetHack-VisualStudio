@@ -144,7 +144,11 @@ typedef uchar nhsym;
 #ifdef WIN_CE
 #include "wceconf.h"
 #else
+#if (WINAPI_FAMILY==2)
+#include "uwpconf.h"
+#else
 #include "ntconf.h"
+#endif
 #endif
 #endif
 
