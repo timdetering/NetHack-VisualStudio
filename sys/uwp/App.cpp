@@ -31,7 +31,8 @@ IFrameworkView^ Direct3DApplicationSource::CreateView()
 
 App::App() :
     m_windowClosed(false),
-    m_windowVisible(true)
+    m_windowVisible(true),
+    m_exit(false)
 {
 }
 
@@ -104,6 +105,7 @@ void App::SetWindow(CoreWindow^ window)
 
     window->PointerWheelChanged +=
         ref new TypedEventHandler<CoreWindow^, Windows::UI::Core::PointerEventArgs^>(this, &App::OnPointerWheelChanged);
+#endif
 
     // keyboard event handlers
     window->KeyDown +=
@@ -113,6 +115,7 @@ void App::SetWindow(CoreWindow^ window)
     window->CharacterReceived +=
         ref new TypedEventHandler<CoreWindow^, CharacterReceivedEventArgs^>(this, &App::OnCharacterReceived);
 
+#ifdef NEWCODE
     // Disable all pointer visual feedback for better performance when touching.
     auto pointerVisualizationSettings = PointerVisualizationSettings::GetForCurrentView();
     pointerVisualizationSettings->IsContactFeedbackEnabled = false;
@@ -151,6 +154,9 @@ void App::Run()
         {
             CoreWindow::GetForCurrentThread()->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessOneAndAllPending);
         }
+
+        // TODO: Find out the graceful way to exit
+        if (m_exit) exit(0);
     }
 }
 
@@ -265,6 +271,7 @@ void App::OnPointerWheelChanged(Windows::UI::Core::CoreWindow^, Windows::UI::Cor
     if (m_main != nullptr)
         m_main->OnPointerWheelChanged(m_gestureRecognizer, args);
 }
+#endif
 
 //
 // Keyboard support
@@ -290,6 +297,7 @@ void App::OnCharacterReceived(Windows::UI::Core::CoreWindow^ sender, Windows::UI
 
 
 
+#ifdef NEWCODE
 //
 // Gesture support
 //
@@ -392,10 +400,9 @@ void App::RunNethackMainLoop(void)
     std::wstring installDirW = Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data();
     std::string installDir(installDirW.begin(), installDirW.end());
 
-    while (1)
-    {
-        // We can't exit a metro application ... so we should just reload the player again
-        // Loop forever.
-        mainloop(localDir.c_str(), installDir.c_str());
-    }
+    mainloop(localDir.c_str(), installDir.c_str());
+
+    // TODO: We should just call back into mainloop again but Nethack can not handle getting started again ... need to force exit
+    m_exit = true;
+    while (1) Sleep(1000);
 }

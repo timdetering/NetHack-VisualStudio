@@ -155,16 +155,23 @@ void DX::DeviceResources::GetGlyphRect(unsigned char c, Nethack::FloatRect & out
 
 void DX::DeviceResources::CreateAsciiTexture(void)
 {
+    static const int glyphRowCount = 16;
+    static const int glyphColumnCount = 16;
 
-    static const int glyphWidth = 22;
-    static const int glyphHeight = 42;
+    static const int gutter = 1;
 
-    // Create a Direct3D texture and view, which will be used to texture a spinning cube.
+    // glyphs have a one pixel wide gutter
+
+    static const int glyphWidth = 22 + (2 * gutter);
+    static const int glyphHeight = 42 + (2 * gutter);
+
+    static const int textureWidth = glyphWidth * glyphColumnCount;
+    static const int textureHeight = glyphHeight * glyphRowCount;
 
     CD3D11_TEXTURE2D_DESC textureDesc(
         DXGI_FORMAT_B8G8R8A8_UNORM,
-        glyphWidth * 16,        // Width
-        glyphHeight * 16,        // Height
+        textureWidth,        // Width
+        textureHeight,        // Height
         1,          // MipLevels
         1,          // ArraySize
         D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET
@@ -190,10 +197,6 @@ void DX::DeviceResources::CreateAsciiTexture(void)
             &m_asciiTextureShaderResourceView
         )
     );
-
-    // Use D2D to attach to and draw some text to the cube texture.  Note that the cube
-    // texture is DPI-independent, so when drawing content to it using D2D, a fixed DPI
-    // value should be used.
 
     const float dxgiDpi = 96.0f;
 
@@ -277,7 +280,8 @@ void DX::DeviceResources::CreateAsciiTexture(void)
                 &wc,
                 1,
                 textFormat.Get(),
-                D2D1::RectF((float)x * glyphWidth, (float)y * glyphHeight, (float)(x + 1) * glyphWidth, (float)(y + 1) * glyphHeight),
+                D2D1::RectF((float)((x * glyphWidth) + gutter), (float)((y * glyphHeight) + gutter),
+                            (float)(((x + 1) * glyphWidth) - gutter), (float)(((y + 1) * glyphHeight) - gutter)),
                 whiteBrush.Get()
             );
         }

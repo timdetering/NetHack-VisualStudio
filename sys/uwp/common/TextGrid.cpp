@@ -116,23 +116,6 @@ namespace Nethack
         delete[] m_vertices;
     }
 
-    const TextCell & TextGrid::GetCell(int inX, int inY) const
-    {
-        assert(inX >= 0 && inX < m_gridDimensions.m_x);
-        assert(inY >= 0 && inY < m_gridDimensions.m_y);
-
-        return m_cells[(inY * m_gridDimensions.m_x) + inX];
-    }
-
-    TextCell & TextGrid::EditCell(int inX, int inY)
-    {
-        assert(inX >= 0 && inX < m_gridDimensions.m_x);
-        assert(inY >= 0 && inY < m_gridDimensions.m_y);
-
-        m_dirty = true;
-        return m_cells[(inY * m_gridDimensions.m_x) + inX];
-    }
-
     void TextGrid::Render(void)
     {
         UpdateVertcies();
@@ -315,6 +298,8 @@ namespace Nethack
 
     void TextGrid::UpdateVertcies(void)
     {
+        m_cellsLock.AcquireShared();
+
         if (m_dirty)
         {
             VertexPositionColor * v = m_vertices;
@@ -330,7 +315,7 @@ namespace Nethack
                 for (int x = 0; x < m_gridDimensions.m_x; x++)
                 {
                     FloatRect glyphRect;
-                    auto const & textCell = GetCell(x, y);
+                    auto const & textCell = m_cells[(y * m_gridDimensions.m_x) + x];
                     unsigned char c = textCell.m_char;
                     m_deviceResources->GetGlyphRect(c, glyphRect);
                     DirectX::XMFLOAT3 color = s_colorTable[(int) textCell.m_color];
@@ -387,6 +372,8 @@ namespace Nethack
 
             m_dirty = false;
         }
+
+        m_cellsLock.ReleaseShared();
     }
 
     // Called once per frame, rotates the cube and calculates the model and view matrices.
@@ -429,16 +416,22 @@ namespace Nethack
 
     void TextGrid::Clear(void)
     {
+        m_cellsLock.AcquireExclusive();
+
         TextCell clearCell;
 
         for (auto & c : m_cells)
             c = clearCell;
 
         m_dirty = true;
+
+        m_cellsLock.ReleaseExclusive();
     }
 
     void TextGrid::Scroll(int amount)
     {
+        m_cellsLock.AcquireExclusive();
+
         int width = m_gridDimensions.m_x;
         int height = m_gridDimensions.m_y;
 
@@ -452,10 +445,14 @@ namespace Nethack
             m_cells[i] = defaultCell;
 
         m_dirty = true;
+
+        m_cellsLock.ReleaseExclusive();
     }
 
     void TextGrid::Put(int x, int y, const TextCell & textCell, int len)
     {
+        m_cellsLock.AcquireExclusive();
+
         int width = m_gridDimensions.m_x;
         int height = m_gridDimensions.m_y;
 
@@ -469,10 +466,14 @@ namespace Nethack
         }
 
         m_dirty = true;
+
+        m_cellsLock.ReleaseExclusive();
     }
 
     void TextGrid::Putstr(int x, int y, TextColor color, TextAttribute attribute, const char * text)
     {
+        m_cellsLock.AcquireExclusive();
+
         int width = m_gridDimensions.m_x;
         int height = m_gridDimensions.m_y;
 
@@ -489,6 +490,8 @@ namespace Nethack
         }
 
         m_dirty = true;
+
+        m_cellsLock.ReleaseExclusive();
     }
 
 }

@@ -22,6 +22,7 @@
 
 #include "NethackMain.h"
 #include "Common\DirectXHelper.h"
+#include "common\uwpglobals.h"
 
 #ifdef NEWCODE
 #include "..\..\win\w8\w8_console.h"
@@ -33,9 +34,6 @@ using namespace Nethack;
 using namespace Windows::Foundation;
 using namespace Windows::System::Threading;
 using namespace Concurrency;
-
-extern Nethack::TextGrid g_textGrid;
-
 
 // Loads and initializes application assets when the application is loaded.
 NethackMain::NethackMain(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
@@ -176,7 +174,6 @@ void NethackMain::OnDeviceRestored()
     CreateWindowSizeDependentResources();
 }
 
-#ifdef NEWCODE
 
 //
 // Keyboard Handlers
@@ -194,10 +191,13 @@ void NethackMain::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Co
 
 void NethackMain::OnCharacterReceived(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::CharacterReceivedEventArgs^ args)
 {
-    w8_key_input((char)args->KeyCode);
+    char c = args->KeyCode;
+    if (c == '\r') c = '\n';
+    g_eventQueue.Push(Event(c));
 }
 
 
+#ifdef NEWCODE
 //
 // Gesture Event Handlers
 //

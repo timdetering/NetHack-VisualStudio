@@ -54,12 +54,14 @@ namespace Nethack
         void OnPointerMoved(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args);
         void OnPointerReleased(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args);
         void OnPointerWheelChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args);
+#endif
 
         // Keyboard event handlers
         void OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
         void OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
         void OnCharacterReceived(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::CharacterReceivedEventArgs^ args);
 
+#ifdef NEWCODE
         // gesture support
         void Attach(_In_ Windows::UI::Input::GestureRecognizer^ gestureRecognizer);
 
@@ -69,6 +71,8 @@ namespace Nethack
         void RunNethackMainLoop(void);
 
     private:
+        bool m_exit;
+
         std::shared_ptr<DX::DeviceResources> m_deviceResources;
         std::unique_ptr<NethackMain> m_main;
         bool m_windowClosed;

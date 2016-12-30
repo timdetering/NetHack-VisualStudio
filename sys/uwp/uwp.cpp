@@ -15,11 +15,11 @@
 #include <agile.h>
 #include <concrt.h>
 
+#include "common\uwpglobals.h"
 #include "common\CellBuffer.h"
 #include "common\TextGrid.h"
 
 CellBuffer g_cellBuffer;
-Nethack::TextGrid g_textGrid(Nethack::Int2D(80, 28));
 
 extern "C"  {
 
@@ -42,6 +42,35 @@ struct console_t {
     { 0, 0 }
 };
 
+void really_move_cursor()
+{
+    if (ttyDisplay) {
+        console.cursor.X = ttyDisplay->curx;
+        console.cursor.Y = ttyDisplay->cury;
+    }
+
+#if 0
+#ifdef PORT_DEBUG
+    char oldtitle[BUFSZ], newtitle[BUFSZ];
+    if (display_cursor_info && wizard) {
+        oldtitle[0] = '\0';
+        if (GetConsoleTitle(oldtitle, BUFSZ)) {
+            oldtitle[39] = '\0';
+        }
+        Sprintf(newtitle, "%-55s tty=(%02d,%02d) nttty=(%02d,%02d)", oldtitle,
+            ttyDisplay->curx, ttyDisplay->cury, console.cursor.X, console.cursor.Y);
+        (void)SetConsoleTitle(newtitle);
+    }
+#endif
+    if (ttyDisplay) {
+        console.cursor.X = ttyDisplay->curx;
+        console.cursor.Y = ttyDisplay->cury;
+    }
+    SetConsoleCursorPosition(hConOut, console.cursor);
+#endif
+
+}
+
 
 void
     chdrive(char *str)
@@ -52,7 +81,8 @@ void
 void
 nttty_open(int mode)
 {
-    return;
+    LI = Nethack::g_textGrid.GetDimensions().m_y;
+    CO = Nethack::g_textGrid.GetDimensions().m_x;
 }
 
 void
@@ -81,21 +111,47 @@ getreturn(const char *str)
 void msmsg
 VA_DECL(const char *, fmt)
 {
-    assert(0);
+    char buf[ROWNO * COLNO]; /* worst case scenario */
     VA_START(fmt);
     VA_INIT(fmt, const char *);
+    Vsprintf(buf, fmt, VA_ARGS);
+
+    xputs(buf);
+
+    if (ttyDisplay)
+        curs(BASE_WINDOW, console.cursor.X + 1, console.cursor.Y);
+
     VA_END();
     return;
 }
     
 int kbhit(void)
 {
+    assert(0);
     return 0;
 }
 
-void error(const char * fmt, ...)
+void error VA_DECL(const char *, s)
 {
-    assert(0);
+    char buf[BUFSZ];
+    VA_START(s);
+    VA_INIT(s, const char *);
+    /* error() may get called before tty is initialized */
+    if (iflags.window_inited)
+        end_screen();
+    if (!strncmpi(windowprocs.name, "tty", 3)) {
+        buf[0] = '\n';
+        (void)vsprintf(&buf[1], s, VA_ARGS);
+        Strcat(buf, "\n");
+        msmsg(buf);
+    }
+    else {
+        (void)vsprintf(buf, s, VA_ARGS);
+        Strcat(buf, "\n");
+        raw_printf(buf);
+    }
+    VA_END();
+    exit(EXIT_FAILURE);
 }
 
 #ifdef PORT_DEBUG
@@ -130,7 +186,7 @@ void win32_abort(void)
 
 void nethack_exit(int result)
 {
-    assert(0);
+    longjmp(Nethack::g_mainLoopJmpBuf, -1);
 }
 
 HANDLE ffhandle = (HANDLE)0;
@@ -207,8 +263,8 @@ void tty_number_pad(int state)
 void
 tty_startup(int * wid, int * hgt)
 {
-    *wid = g_cellBuffer.GetWidth();
-    *hgt = g_cellBuffer.GetHeight();
+    *wid = Nethack::g_textGrid.GetDimensions().m_x;
+    *hgt = Nethack::g_textGrid.GetDimensions().m_y;
 
     set_option_mod_status("mouse_support", SET_IN_GAME);
 }
@@ -228,21 +284,16 @@ home()
 }
 
 void
-backsp()
-{
-    assert(0);
-}
-
-void
 tty_nhbell()
 {
-    assert(0);
+    // do nothing
 }
 
 void
 tty_end_screen()
 {
-    assert(0);
+    clear_screen();
+    really_move_cursor();
 }
 
 void
@@ -302,19 +353,34 @@ term_end_attr(int attrib)
 void
 cl_eos()
 {
-    assert(0);
+    int x = ttyDisplay->curx;
+    int y = ttyDisplay->cury;
+
+    int cx = Nethack::g_textGrid.GetDimensions().m_x - x;
+    int cy = (Nethack::g_textGrid.GetDimensions().m_y - (y + 1)) * Nethack::g_textGrid.GetDimensions().m_x;
+
+    Nethack::g_textGrid.Put(x, y, Nethack::TextCell(), cx + cy);
+
+    tty_curs(BASE_WINDOW, x + 1, y);
 }
 
 void
 cl_end()
 {
-    assert(0);
+    int cx;
+    console.cursor.X = ttyDisplay->curx;
+    console.cursor.Y = ttyDisplay->cury;
+    cx = Nethack::g_textGrid.GetDimensions().m_x - console.cursor.X;
+
+    Nethack::g_textGrid.Put(console.cursor.X, console.cursor.Y, Nethack::TextCell(), cx);
+
+    tty_curs(BASE_WINDOW, (int)ttyDisplay->curx + 1, (int)ttyDisplay->cury);
 }
 
 void
 raw_clear_screen()
 {
-    g_cellBuffer.Clear();
+    Nethack::g_textGrid.Clear();
 }
 
 void
@@ -329,7 +395,9 @@ char erase_char, kill_char;
 int
 has_color(int color)
 {
-    assert(0);
+    if ((color >= 0) && (color < (int) Nethack::TextColor::Count))
+        return 1;
+
     return 0;
 }
 
@@ -362,7 +430,12 @@ standoutend()
 void
 g_putch(int in_ch)
 {
-    assert(0);
+    console.cursor.X = ttyDisplay->curx;
+    console.cursor.Y = ttyDisplay->cury;
+
+    Nethack::TextCell textCell((Nethack::TextColor) console.current_nhcolor, (Nethack::TextAttribute) console.current_nhattr, in_ch);
+
+    Nethack::g_textGrid.Put(console.cursor.X, console.cursor.Y, textCell, 1);
 }
 
 #ifdef USER_SOUNDS
@@ -384,7 +457,6 @@ append_port_id(char *buf)
 void
 xputc_core(char ch)
 {
-    boolean inverse = FALSE;
     switch (ch) {
     case '\n':
         console.cursor.Y++;
@@ -397,14 +469,9 @@ xputc_core(char ch)
         break;
     default:
 
-        ConsoleColor color = (ConsoleColor) console.current_nhcolor;
-        ConsoleAttribute attribute = (ConsoleAttribute) console.current_nhattr;
-
-        g_cellBuffer.Put(console.cursor.X, console.cursor.Y, CellAttribute(color, attribute), ch, 1);
-
         Nethack::TextCell textCell((Nethack::TextColor) console.current_nhcolor, (Nethack::TextAttribute) console.current_nhattr, ch);
 
-        g_textGrid.Put(console.cursor.X, console.cursor.Y, textCell, 1);
+        Nethack::g_textGrid.Put(console.cursor.X, console.cursor.Y, textCell, 1);
 
         console.cursor.X++;
     }
@@ -436,6 +503,16 @@ xputs(const char *s)
 }
 
 void
+backsp()
+{
+    console.cursor.X = ttyDisplay->curx;
+    console.cursor.Y = ttyDisplay->cury;
+    xputc_core('\b');
+}
+
+
+
+void
 tty_delay_output()
 {
     assert(0);
@@ -447,52 +524,40 @@ nttty_preference_update(const char * pref)
     assert(0);
 }
 
-static void
-really_move_cursor()
-{
-
-#if 0
-#ifdef PORT_DEBUG
-    char oldtitle[BUFSZ], newtitle[BUFSZ];
-    if (display_cursor_info && wizard) {
-        oldtitle[0] = '\0';
-        if (GetConsoleTitle(oldtitle, BUFSZ)) {
-            oldtitle[39] = '\0';
-        }
-        Sprintf(newtitle, "%-55s tty=(%02d,%02d) nttty=(%02d,%02d)", oldtitle,
-            ttyDisplay->curx, ttyDisplay->cury, console.cursor.X, console.cursor.Y);
-        (void)SetConsoleTitle(newtitle);
-    }
-#endif
-    if (ttyDisplay) {
-        console.cursor.X = ttyDisplay->curx;
-        console.cursor.Y = ttyDisplay->cury;
-    }
-    SetConsoleCursorPosition(hConOut, console.cursor);
-#endif
-
-}
-
 int
 tgetch()
 {
-    int mod;
-    coord cc;
-    DWORD count;
     really_move_cursor();
 
     if (program_state.done_hup)
         return '\033';
 
-    boolean done = false;
-    while (!done)
-    {
-        // wait for character to show up
-        Sleep(1000);
+    Nethack::Event e = Nethack::g_eventQueue.Pop();
+
+    assert(e.m_type == Nethack::Event::Type::Char);
+
+    return e.m_char;
+
+}
+
+int
+ntposkey(int *x, int *y, int * mod)
+{
+    really_move_cursor();
+
+    if (program_state.done_hup)
+        return '\033';
+
+    Nethack::Event e = Nethack::g_eventQueue.Pop();
+
+    assert(e.m_type == Nethack::Event::Type::Char);
+
+    if (!e.m_char) {
+        *x = e.m_x;
+        *y = e.m_y;
     }
 
-    return 0;
-
+    return e.m_char;
 }
 
 void
@@ -506,7 +571,10 @@ gettty()
 void
 settty(const char *s)
 {
-    assert(0);
+    cmov(ttyDisplay->curx, ttyDisplay->cury);
+    end_screen();
+    if (s)
+        raw_print(s);
 }
 
 void
@@ -528,29 +596,16 @@ extern boolean FDECL(uwpmain, (const char *, const char *));
 
 void mainloop(const char * localDir, const char * installDir)
 {
-    boolean resuming;
-
-    //    g_localDir = strdup(localDir);
-    //    g_installDir = strdup(installDir);
-
-    //    CopyInstallFile("nhdat");
-    //    CopyInstallFile("defaults.nh");
-
-    sys_early_init();
-
-//    Strcpy(default_window_sys, "tty");
-
-    resuming = uwpmain(localDir, installDir);
-
-    moveloop(resuming);
-
-#if 0
-    if (setjmp(g_mainLoopJumpBuf) == 0)
+    if (setjmp(Nethack::g_mainLoopJmpBuf) == 0)
     {
-        moveloop();
-    }
-#endif
+        boolean resuming;
 
+        sys_early_init();
+
+        resuming = uwpmain(localDir, installDir);
+
+        moveloop(resuming);
+    }
 }
 
 

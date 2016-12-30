@@ -3,6 +3,7 @@
 #include "StepTimer.h"
 #include "DeviceResources.h"
 #include "MyMath.h"
+#include "uwplock.h"
 
 #include <memory>
 #include <vector>
@@ -38,7 +39,8 @@ namespace Nethack
         BrightBlue,
         BrightMagenta,
         BrightCyan,
-        White
+        White,
+        Count
     };
 
     class TextCell
@@ -69,8 +71,8 @@ namespace Nethack
 
         void SetDeviceResources();
 
-        const TextCell & GetCell(int inX, int inY) const;
-        TextCell & EditCell(int inX, int inY);
+//        const TextCell & GetCell(int inX, int inY) const;
+//        TextCell & EditCell(int inX, int inY);
 
         void Render();
         void Update(DX::StepTimer const& timer);
@@ -101,6 +103,8 @@ namespace Nethack
         void Put(int x, int y, const TextCell & textCell, int len = 1);
         void Putstr(int x, int y, TextColor color, TextAttribute attribute, const char * text);
 
+        const Int2D & GetDimensions() { return m_gridDimensions; }
+
     private:
 
         void UpdateVertcies(void);
@@ -113,6 +117,7 @@ namespace Nethack
 
         int m_cellCount;
 
+        Lock                  m_cellsLock;
         std::vector<TextCell> m_cells;
 
         bool m_dirty;
