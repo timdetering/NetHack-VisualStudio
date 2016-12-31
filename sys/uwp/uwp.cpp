@@ -420,28 +420,6 @@ g_putch(int in_ch)
     Nethack::g_textGrid.Put(console.cursor.X, console.cursor.Y, textCell, 1);
 }
 
-#ifdef USER_SOUNDS
-
-void
-play_usersound(const char *filename, int volume)
-{
-    // TODO: Find out how to play a sound in UWP
-#if 0
-    (void)sndPlaySound(filename, SND_ASYNC | SND_NODEFAULT);
-#endif
-}
-
-#endif /*USER_SOUNDS*/
-
-#ifdef RUNTIME_PORT_ID
-void
-append_port_id(char *buf)
-{
-    char *portstr = "(uwp)";
-    Sprintf(eos(buf), " %s", portstr);
-}
-#endif /* RUNTIME_PORT_ID */
-
 void
 xputc_core(char ch)
 {
@@ -525,9 +503,10 @@ tgetch()
     if (program_state.done_hup)
         return '\033';
 
-    Nethack::Event e = Nethack::g_eventQueue.PopFront();
+    Nethack::Event e;
 
-    assert(e.m_type == Nethack::Event::Type::Char);
+    while (e.m_type != Nethack::Event::Type::Char)
+        e = Nethack::g_eventQueue.PopFront();
 
     return e.m_char;
 
@@ -543,14 +522,20 @@ ntposkey(int *x, int *y, int * mod)
 
     Nethack::Event e = Nethack::g_eventQueue.PopFront();
 
-    assert(e.m_type == Nethack::Event::Type::Char);
+    if (e.m_type == Nethack::Event::Type::Char)
+    {
+        return e.m_char;
+    }
+    else
+    {
+        *x = e.m_pos.m_x;
+        *y = e.m_pos.m_y;
+        *mod = (e.m_tap == Nethack::Event::Tap::Left ? CLICK_1 : CLICK_2);
 
-    if (!e.m_char) {
-        *x = e.m_x;
-        *y = e.m_y;
+        return 0;
     }
 
-    return e.m_char;
+
 }
 
 void

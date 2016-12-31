@@ -1,0 +1,6 @@
+Notes
+
+- We can't get user name without adding the capability to application.  It seems intrusive to require
+  the user to give the application access to his/her user name.  We will allow the user to enter his/her
+  name at launch and we will not leverage the network user name capabilities of Nethack.
+- We will not support user sounds initially

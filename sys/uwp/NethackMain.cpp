@@ -1,6 +1,4 @@
-#ifdef NEWCODE
 #define _USE_MATH_DEFINES
-#endif
 
 #include <wrl.h>
 #include <wrl/client.h>
@@ -15,14 +13,12 @@
 #include <memory>
 #include <agile.h>
 #include <concrt.h>
-
-#ifdef NEWCODE
 #include <math.h>
-#endif
 
 #include "NethackMain.h"
 #include "Common\DirectXHelper.h"
 #include "common\uwpglobals.h"
+#include "common\uwpeventqueue.h"
 
 #ifdef NEWCODE
 #include "..\..\win\w8\w8_console.h"
@@ -184,8 +180,6 @@ void NethackMain::OnDeviceRestored()
 // Keyboard Handlers
 //
 
-extern "C" { extern void wt_input(char c);  }
-
 void NethackMain::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
 {
 }
@@ -202,7 +196,6 @@ void NethackMain::OnCharacterReceived(Windows::UI::Core::CoreWindow^ sender, Win
 }
 
 
-#ifdef NEWCODE
 //
 // Gesture Event Handlers
 //
@@ -230,7 +223,12 @@ void NethackMain::OnPointerPressed(Windows::UI::Input::GestureRecognizer^ gestur
 
     Windows::UI::Input::PointerPoint^ pointerPoint = Windows::UI::Input::PointerPoint::GetCurrentPoint(pointerId);
 
-    gestureRecognizer->ProcessDownEvent(pointerPoint);
+    Float2D screenPosition(pointerPoint->RawPosition.X, pointerPoint->RawPosition.Y);
+
+    if (Nethack::g_textGrid.HitTest(screenPosition))
+    {
+        gestureRecognizer->ProcessDownEvent(pointerPoint);
+    }
 #endif
 
 }
@@ -286,20 +284,34 @@ void NethackMain::OnHolding(Windows::UI::Input::GestureRecognizer^ sender, Windo
 
 }
 
+void NethackMain::ProcessTap(Float2D &screenPosition, Event::Tap tap)
+{
+    Int2D gridPosition;
+
+    if (Nethack::g_textGrid.HitTest(screenPosition, gridPosition))
+    {
+        gridPosition.m_x++;
+        gridPosition.m_y--;
+        Nethack::g_eventQueue.PushBack(Nethack::Event(gridPosition, tap));
+        // TODO: we should get passed down whether it it a left, right or middle click
+        // NHEVENT_MS(CLICK_1, gridPosition.m_x + 1, gridPosition.m_y - 4);
+    }
+}
+
 void NethackMain::OnRightTapped(Windows::UI::Input::GestureRecognizer^ sender, Windows::UI::Input::RightTappedEventArgs^ args)
 {
+    Float2D screenPosition(DX::ConvertDipsToPixels(args->Position.X, m_deviceResources->GetDpi()),
+        DX::ConvertDipsToPixels(args->Position.Y, m_deviceResources->GetDpi()));
 
+    ProcessTap(screenPosition, Event::Tap::Right);
 }
 
 void NethackMain::OnTapped(Windows::UI::Input::GestureRecognizer^ sender, Windows::UI::Input::TappedEventArgs^ args)
 {
-    int x = DX::ConvertDipsToPixels(args->Position.X, m_deviceResources->GetDpi());
-    int y = DX::ConvertDipsToPixels(args->Position.Y, m_deviceResources->GetDpi());
+    Float2D screenPosition(DX::ConvertDipsToPixels(args->Position.X, m_deviceResources->GetDpi()),
+        DX::ConvertDipsToPixels(args->Position.Y, m_deviceResources->GetDpi()));
 
-    Float2D screenPosition(x, y);
-
-    w8_mouse_input(screenPosition);
-
+    ProcessTap(screenPosition, Event::Tap::Left);
 }
 
 void NethackMain::OnManipulationStarted(Windows::UI::Input::GestureRecognizer^ sender, Windows::UI::Input::ManipulationStartedEventArgs^ args)
@@ -344,7 +356,7 @@ void NethackMain::OnManipulationCompleted(Windows::UI::Input::GestureRecognizer^
     {
         static char directionToKey[] = { '4', '7', '8', '9', '6', '3', '2', '1' };
         char key = directionToKey[(int)m_flickDirection];
-        w8_key_input(key);
+
+        Nethack::g_eventQueue.PushBack(Nethack::Event(key));
     }
 }
-#endif

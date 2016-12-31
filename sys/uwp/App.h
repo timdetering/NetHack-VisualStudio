@@ -48,24 +48,19 @@ namespace Nethack
         void OnOrientationChanged(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
         void OnDisplayContentsInvalidated(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
 
-#ifdef NEWCODE
         // Pointer event handlers
         void OnPointerPressed(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args);
         void OnPointerMoved(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args);
         void OnPointerReleased(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args);
         void OnPointerWheelChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::PointerEventArgs^ args);
-#endif
 
         // Keyboard event handlers
         void OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
         void OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
         void OnCharacterReceived(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::CharacterReceivedEventArgs^ args);
 
-#ifdef NEWCODE
         // gesture support
         void Attach(_In_ Windows::UI::Input::GestureRecognizer^ gestureRecognizer);
-
-#endif
 
         // Nethack main loop
         void RunNethackMainLoop(void);
@@ -80,8 +75,6 @@ namespace Nethack
 
         // worker thread which runs nethack main loop
         Windows::Foundation::IAsyncAction^     m_nethackWorker;
-
-#ifdef NEWCODE
 
         // gesture support
         Windows::UI::Input::GestureRecognizer^ m_gestureRecognizer;
@@ -101,7 +94,6 @@ namespace Nethack
         void OnManipulationUpdated(Windows::UI::Input::GestureRecognizer^ sender, Windows::UI::Input::ManipulationUpdatedEventArgs^ args);
         void OnManipulationInertiaStarting(Windows::UI::Input::GestureRecognizer^ sender, Windows::UI::Input::ManipulationInertiaStartingEventArgs^ args);
         void OnManipulationCompleted(Windows::UI::Input::GestureRecognizer^ sender, Windows::UI::Input::ManipulationCompletedEventArgs^ args);
-#endif
 
     };
 }

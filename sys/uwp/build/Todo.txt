@@ -1,0 +1,11 @@
+12/31/2016
+
+- add start menu before game start allowing player to edit persistent configuration settings
+- decide whether options which are set persist
+- fix ability to re-enter game without exiting application
+- add mouse support and ability to toggle mouse support on/off
+- add support for NETHACKOPTIONS
+- remove SYSCF support
+- add ability to store options to a file and thus allow us to ensure changed options are persistent
+- add cursor rendering
+

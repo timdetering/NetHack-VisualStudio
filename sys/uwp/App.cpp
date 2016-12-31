@@ -55,11 +55,9 @@ void App::Initialize(CoreApplicationView^ applicationView)
     m_deviceResources = std::make_shared<DX::DeviceResources>();
     DX::DeviceResources::s_deviceResources = m_deviceResources;
 
-#ifdef NEWCODE
     m_gestureRecognizer = ref new Windows::UI::Input::GestureRecognizer();
 
     Attach(m_gestureRecognizer);
-#endif
 
     // Start worker thread which will run the nethack main loop
     auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction^)
@@ -93,7 +91,6 @@ void App::SetWindow(CoreWindow^ window)
     DisplayInformation::DisplayContentsInvalidated +=
         ref new TypedEventHandler<DisplayInformation^, Object^>(this, &App::OnDisplayContentsInvalidated);
 
-#ifdef NEWCODE
     window->PointerPressed +=
         ref new TypedEventHandler<CoreWindow^, Windows::UI::Core::PointerEventArgs^>(this, &App::OnPointerPressed);
 
@@ -105,7 +102,6 @@ void App::SetWindow(CoreWindow^ window)
 
     window->PointerWheelChanged +=
         ref new TypedEventHandler<CoreWindow^, Windows::UI::Core::PointerEventArgs^>(this, &App::OnPointerWheelChanged);
-#endif
 
     // keyboard event handlers
     window->KeyDown +=
@@ -115,12 +111,10 @@ void App::SetWindow(CoreWindow^ window)
     window->CharacterReceived +=
         ref new TypedEventHandler<CoreWindow^, CharacterReceivedEventArgs^>(this, &App::OnCharacterReceived);
 
-#ifdef NEWCODE
     // Disable all pointer visual feedback for better performance when touching.
     auto pointerVisualizationSettings = PointerVisualizationSettings::GetForCurrentView();
     pointerVisualizationSettings->IsContactFeedbackEnabled = false;
     pointerVisualizationSettings->IsBarrelButtonFeedbackEnabled = false;
-#endif
 
     m_deviceResources->SetWindow(window);
 }
@@ -243,7 +237,6 @@ void App::OnDisplayContentsInvalidated(DisplayInformation^ sender, Object^ args)
     m_deviceResources->ValidateDevice();
 }
 
-#ifdef NEWCODE
 //
 // Pointer event handlers
 //
@@ -271,7 +264,6 @@ void App::OnPointerWheelChanged(Windows::UI::Core::CoreWindow^, Windows::UI::Cor
     if (m_main != nullptr)
         m_main->OnPointerWheelChanged(m_gestureRecognizer, args);
 }
-#endif
 
 //
 // Keyboard support
@@ -297,7 +289,6 @@ void App::OnCharacterReceived(Windows::UI::Core::CoreWindow^ sender, Windows::UI
 
 
 
-#ifdef NEWCODE
 //
 // Gesture support
 //
@@ -384,7 +375,6 @@ void App::OnManipulationCompleted(Windows::UI::Input::GestureRecognizer^ sender,
     if (m_main != nullptr)
         m_main->OnManipulationCompleted(sender, args);
 }
-#endif
 
 //
 //

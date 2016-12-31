@@ -26,8 +26,6 @@
 #define SYSCF_FILE "sysconf" /* Use a file to hold the SYSCF configuration \
                                 */
 
-#define USER_SOUNDS
-
 /*#define CHANGE_COLOR*/ /* allow palette changes */
 #define SELECTSAVED /* Provide menu of saved games to choose from at start \
                        */
@@ -109,10 +107,6 @@
 #endif
 #endif /* _MSC_VER */
 
-
-#define RUNTIME_PORT_ID /* trigger run-time port identification for \
-                         * identification of exe CPU architecture   \
-                         */
 
 /* The following is needed for prototypes of certain functions */
 #if defined(_MSC_VER)

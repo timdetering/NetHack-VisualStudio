@@ -5,6 +5,7 @@
 #include "Content\Sample3DSceneRenderer.h"
 #include "Content\SampleFpsTextRenderer.h"
 #include "common\TextGrid.h"
+#include "common\uwpeventqueue.h"
 
 #ifdef NEWCODE
 #include <list>
@@ -26,7 +27,6 @@ namespace Nethack
         virtual void OnDeviceLost();
         virtual void OnDeviceRestored();
 
-#ifdef NEWCODE
         void Attach(_In_ Windows::UI::Input::GestureRecognizer^ gestureRecognizer);
 
         // Gesture event handlers
@@ -42,7 +42,6 @@ namespace Nethack
         void OnManipulationUpdated(Windows::UI::Input::GestureRecognizer^ sender, Windows::UI::Input::ManipulationUpdatedEventArgs^ args);
         void OnManipulationInertiaStarting(Windows::UI::Input::GestureRecognizer^ sender, Windows::UI::Input::ManipulationInertiaStartingEventArgs^ args);
         void OnManipulationCompleted(Windows::UI::Input::GestureRecognizer^ sender, Windows::UI::Input::ManipulationCompletedEventArgs^ args);
-#endif
 
         // Keyboard
         void OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
@@ -61,13 +60,13 @@ namespace Nethack
         // Rendering loop timer.
         DX::StepTimer m_timer;
 
-#ifdef NEWCODE
-        Direction m_flickDirection;
-
         enum class Direction { Left, LeftUp, Up, RightUp, Right, RightDown, Down, LeftDown, None };
 
+        Direction m_flickDirection;
+
         Direction AngleToDirection(float inAngle);
-#endif
+
+        void ProcessTap(Float2D &screenPosition, Nethack::Event::Tap tap);
 
     };
 }
