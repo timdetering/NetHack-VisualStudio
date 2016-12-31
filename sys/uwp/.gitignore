@@ -1,0 +1,5 @@
+!build/
+*.vcxproj.user
+*.vcxproj.filters
+*.opendb
+*.db

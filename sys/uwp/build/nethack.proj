@@ -1,0 +1,11 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="Build" 
+     Inputs="$(SysWinntDir)defaults.nh;$(DocDir)Guidebook.txt;$(DatDir)license;$(SysWinntDir)sysconf;$(DatDir)symbols;$(DatDir)opthelp"
+	 Outputs="$(BinDir)defaults.nh;$(BinDir)Guidebook.txt;$(BinDir)license;$(BinDir)sysconf;$(BinDir)symbols;$(BinDir)opthelp">
+	<Copy SourceFiles="$(SysWinntDir)defaults.nh;$(DocDir)Guidebook.txt;$(DatDir)license;$(SysWinntDir)sysconf;$(DatDir)symbols;$(DatDir)opthelp" DestinationFolder="$(BinDir)"/>
+  </Target>
+  <Target Name="Clean">
+	<Delete Files="$(BinDir)defaults.nh;$(BinDir)Guidebook.txt;$(BinDir)license;$(BinDir)sysconf;$(BinDir)symbols;$(BinDir)opthelp"/>
+  </Target>
+  <Import Project="defines.proj"/>
+</Project>
