@@ -76,15 +76,20 @@ NethackMain::~NethackMain()
 // Updates application state when the window size changes (e.g. device orientation change)
 void NethackMain::CreateWindowSizeDependentResources() 
 {
+    Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->GetGlyphPixelDimensions();
+    Windows::Foundation::Size & outputSize = DX::DeviceResources::s_deviceResources->GetOutputSize();
 
-#ifdef NEWCODE
-    Window::s_windowListLock.AcquireShared();
+    float xScale = outputSize.Width / (float)(80 * glyphPixelDimensions.m_x);
+    float yScale = outputSize.Height / (float)(28 * glyphPixelDimensions.m_y);
 
-    for (auto window : Window::s_windowList)
-        window->CreateWindowSizeDependentResources();
+    g_textGrid.SetDeviceResources();
 
-    Window::s_windowListLock.ReleaseShared();
-#endif
+    g_textGrid.SetScale((xScale < yScale) ? xScale : yScale);
+
+    Nethack::Int2D gridOffset(0, 0);
+    g_textGrid.SetGridOffset(gridOffset);
+
+    g_textGrid.CreateWindowSizeDependentResources();
 
 }
 
@@ -193,7 +198,7 @@ void NethackMain::OnCharacterReceived(Windows::UI::Core::CoreWindow^ sender, Win
 {
     char c = args->KeyCode;
     if (c == '\r') c = '\n';
-    g_eventQueue.Push(Event(c));
+    g_eventQueue.PushBack(Event(c));
 }
 
 

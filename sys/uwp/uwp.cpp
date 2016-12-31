@@ -71,13 +71,6 @@ void really_move_cursor()
 
 }
 
-
-void
-    chdrive(char *str)
-{
-    assert(0);
-}
-
 void
 nttty_open(int mode)
 {
@@ -86,23 +79,13 @@ nttty_open(int mode)
 }
 
 void
-getreturn(const char *str)
+getreturn(const char * str)
 {
-    assert(0);
-#if 0
-#ifdef WIN32
-    if (!getreturn_enabled)
-        return;
-#endif
-#ifdef TOS
-    msmsg("Hit <Return> %s.", str);
-#else
     msmsg("Hit <Enter> %s.", str);
-#endif
+
     while (pgetchar() != '\n')
         ;
     return;
-#endif
 }
 
 /* this is used as a printf() replacement when the window
@@ -127,8 +110,7 @@ VA_DECL(const char *, fmt)
     
 int kbhit(void)
 {
-    assert(0);
-    return 0;
+    return !Nethack::g_eventQueue.Empty();
 }
 
 void error VA_DECL(const char *, s)
@@ -154,34 +136,34 @@ void error VA_DECL(const char *, s)
     exit(EXIT_FAILURE);
 }
 
-#ifdef PORT_DEBUG
 void
-    win32con_debug_keystrokes()
+win32_abort()
 {
-    assert(0);
-    return;
-}
-void
-    win32con_handler_info()
-{
-    assert(0);
-    return;
-}
-#endif
+    if (wizard) {
+        int c, ci, ct;
 
-void interject_assistance(int num, int interjection_type, void * ptr1, void * ptr2)
-{
-    assert(0);
-}
-
-void interject(int interjection_type)
-{
-    assert(0);
-}
-
-void win32_abort(void)
-{
-    assert(0);
+        if (!iflags.window_inited)
+            c = 'n';
+        ct = 0;
+        msmsg("Execute debug breakpoint wizard?");
+        while ((ci = nhgetch()) != '\n') {
+            if (ct > 0) {
+                backsp(); /* \b is visible on NT */
+                (void)putchar(' ');
+                backsp();
+                ct = 0;
+                c = 'n';
+            }
+            if (ci == 'y' || ci == 'n' || ci == 'Y' || ci == 'N') {
+                ct = 1;
+                c = ci;
+                msmsg("%c", c);
+            }
+        }
+        if (c == 'y')
+            __debugbreak();
+    }
+    abort();
 }
 
 void nethack_exit(int result)
@@ -235,8 +217,7 @@ char * get_username(int * lan_username_size)
 
 void Delay(int ms)
 {
-    assert(0);
-    // (void)Sleep(ms);
+    Sleep(ms);
 }
 
 // TODO: Dangerous call ... string needs to have been allocated with enough space
@@ -401,30 +382,31 @@ has_color(int color)
     return 0;
 }
 
+// TODO: need to define
 void
 map_subkeyvalue(char *op)
 {
-    assert(0);
+    // Do nothing ... we don't support subkeyvalue
     return;
 }
 
+// TODO: we have no keyboard handlers -- we should remove need to define
 void
 load_keyboard_handler()
-{
-    assert(0);
+{ 
     return;
 }
 
 void
 standoutbeg()
 {
-    assert(0);
+    term_start_attr(ATR_BOLD);
 }
 
 void
 standoutend()
 {
-    assert(0);
+    term_end_attr(ATR_BOLD);
 }
 
 void
@@ -439,18 +421,24 @@ g_putch(int in_ch)
 }
 
 #ifdef USER_SOUNDS
+
 void
 play_usersound(const char *filename, int volume)
 {
-    assert(0);
+    // TODO: Find out how to play a sound in UWP
+#if 0
+    (void)sndPlaySound(filename, SND_ASYNC | SND_NODEFAULT);
+#endif
 }
+
 #endif /*USER_SOUNDS*/
 
 #ifdef RUNTIME_PORT_ID
 void
 append_port_id(char *buf)
 {
-    assert(0);
+    char *portstr = "(uwp)";
+    Sprintf(eos(buf), " %s", portstr);
 }
 #endif /* RUNTIME_PORT_ID */
 
@@ -515,13 +503,18 @@ backsp()
 void
 tty_delay_output()
 {
-    assert(0);
+    // Delay 50ms
+    Sleep(50);
 }
 
 void
 nttty_preference_update(const char * pref)
 {
-    assert(0);
+    if (stricmp(pref, "mouse_support") == 0) {
+#ifndef NO_MOUSE_ALLOWED
+        toggle_mouse_support();
+#endif
+    }
 }
 
 int
@@ -532,7 +525,7 @@ tgetch()
     if (program_state.done_hup)
         return '\033';
 
-    Nethack::Event e = Nethack::g_eventQueue.Pop();
+    Nethack::Event e = Nethack::g_eventQueue.PopFront();
 
     assert(e.m_type == Nethack::Event::Type::Char);
 
@@ -548,7 +541,7 @@ ntposkey(int *x, int *y, int * mod)
     if (program_state.done_hup)
         return '\033';
 
-    Nethack::Event e = Nethack::g_eventQueue.Pop();
+    Nethack::Event e = Nethack::g_eventQueue.PopFront();
 
     assert(e.m_type == Nethack::Event::Type::Char);
 
@@ -587,6 +580,7 @@ setftty()
 void
 toggle_mouse_support()
 {
+    // TODO: toggle reporting mouse events
     return;
 }
 #endif

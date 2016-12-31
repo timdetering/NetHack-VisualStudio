@@ -16,47 +16,20 @@
 
 #include <ctype.h>
 
-#if !defined(AMIGA) && !defined(GNUDOS)
 #include <sys\stat.h>
-#else
-#ifdef GNUDOS
-#include <sys/stat.h>
-#endif
-#endif
 
 #ifdef WIN32
 #include "win32api.h" /* for GetModuleFileName */
 #endif
 
-#ifdef __DJGPP__
-#include <unistd.h> /* for getcwd() prototype */
-#endif
-
 char * orgdir = NULL;
-
-#ifdef TOS
-boolean run_from_desktop = TRUE; /* should we pause before exiting?? */
-#ifdef __GNUC__
-long _stksize = 16 * 1024;
-#endif
-#endif
-
-#ifdef AMIGA
-extern int bigscreen;
-void NDECL(preserve_icon);
-#endif
 
 STATIC_DCL void FDECL(process_options, (int argc, char **argv));
 STATIC_DCL void NDECL(nhusage);
 
-#if defined(MICRO) || defined(WIN32) || defined(OS2)
 extern void FDECL(nethack_exit, (int));
-#else
-#define nethack_exit exit
-#endif
 
 #ifdef WIN32
-//extern boolean getreturn_enabled; /* from sys/share/pcsys.c */
 extern int redirect_stdout;       /* from sys/share/pcsys.c */
 extern int GUILaunched;
 HANDLE hStdOut;
@@ -64,10 +37,6 @@ char *NDECL(exename);
 char default_window_sys[] = "tty";
 boolean NDECL(fakeconsole);
 void NDECL(freefakeconsole);
-#endif
-
-#if defined(MSWIN_GRAPHICS)
-extern void NDECL(mswin_destroy_reg);
 #endif
 
 #ifdef EXEPATH
@@ -85,7 +54,6 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
 #endif
 #if defined(WIN32)
     char fnamebuf[BUFSZ], encodedfnamebuf[BUFSZ];
-//    boolean save_getreturn_status = getreturn_enabled;
 #endif
 #ifdef NOCWD_ASSUMPTIONS
     char failbuf[BUFSZ];
@@ -96,78 +64,14 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
 # ifdef DEBUG
                               /* set these appropriately for VS debugging */
     _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG);
-    _CrtSetReportMode(_CRT_ERROR,
-        _CRTDBG_MODE_DEBUG); /* | _CRTDBG_MODE_FILE);*/
+    _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG); 
     _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG);
-    /*| _CRTDBG_MODE_FILE | _CRTDBG_MODE_WNDW);*/
-    /* use STDERR by default
-    _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
-    _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);*/
 # endif
 #endif
 
-#if defined(__BORLANDC__) && !defined(_WIN32)
-    startup();
-#endif
-
-#ifdef TOS
-    long clock_time;
-    if (*argv[0]) { /* only a CLI can give us argv[0] */
-        hname = argv[0];
-        run_from_desktop = FALSE;
-    }
-    else
-#endif
-        hname = "NetHack"; /* used for syntax messages */
+    hname = "NetHack"; /* used for syntax messages */
 
     choose_windows(default_window_sys);
-
-#if 0
-    // TODO: Is orgdir needed?
-    orgdir = _getcwd(NULL, 0);
-    assert(orgdir != NULL);
-#endif
-
-
-    // TODO: Chase down whether we have to support the use of environment variables
-    //       Not sure if it makes sense to use these overrides for UWP application.
-#if 0
-    dir = nh_getenv("NETHACKDIR");
-    if (dir == (char *)0)
-        dir = nh_getenv("HACKDIR");
-#ifdef EXEPATH
-    if (dir == (char *)0)
-        dir = exepath(argv[0]);
-#endif
-#else
-//    dir = localDir;
-#endif
-
-#if 0
-#ifdef _MSC_VER
-    if (IsDebuggerPresent()) {
-        static char exepath[_MAX_PATH];
-        /* check if we're running under the debugger so we can get to the right folder anyway */
-        if (dir != (char *)0) {
-            char *top = (char *)0;
-
-            if (strlen(dir) < (_MAX_PATH - 1))
-                strcpy(exepath, dir);
-            top = strstr(exepath, "\\build\\.\\Debug");
-            if (!top) top = strstr(exepath, "\\build\\.\\Release");
-            if (top) {
-                *top = '\0';
-                if (strlen(exepath) < (_MAX_PATH - (strlen("\\binary\\") + 1))) {
-                    Strcat(exepath, "\\binary\\");
-                    if (strlen(exepath) < (PATHLEN - 1)) {
-                        dir = exepath;
-                    }
-                }
-            }
-        }
-    }
-#endif
-#endif
 
     Strcpy(hackdir, inInstallDir);
 
@@ -192,39 +96,13 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     fqn_prefix[CONFIGPREFIX] = installDir;
     fqn_prefix[TROUBLEPREFIX] = localDir;
 
-//    if (dir != (char *)0)
     {
         int fd;
         boolean have_syscf = FALSE;
-        // TODO: unclear if hackdir is needed
-//        (void)strncpy(hackdir, dir, PATHLEN - 1);
-//        hackdir[PATHLEN - 1] = '\0';
 #ifdef NOCWD_ASSUMPTIONS
         {
-//            int prefcnt;
-
-//            fqn_prefix[0] = (char *)alloc(strlen(hackdir) + 2);
-//            Strcpy(fqn_prefix[0], hackdir);
-//            append_slash(fqn_prefix[0]);
-//            for (prefcnt = 1; prefcnt < PREFIX_COUNT; prefcnt++)
-//               fqn_prefix[prefcnt] = fqn_prefix[0];
 
 #if defined(WIN32) || defined(MSDOS)
-#if 0
-            /* sysconf should be searched for in this location */
-            envp = nh_getenv("COMMONPROGRAMFILES");
-            if (envp) {
-                if ((sptr = index(envp, ';')) != 0)
-                    *sptr = '\0';
-                if (strlen(envp) > 0) {
-                    fqn_prefix[SYSCONFPREFIX] =
-                        (char *)alloc(strlen(envp) + 10);
-                    Strcpy(fqn_prefix[SYSCONFPREFIX], envp);
-                    append_slash(fqn_prefix[SYSCONFPREFIX]);
-                    Strcat(fqn_prefix[SYSCONFPREFIX], "NetHack\\");
-                }
-            }
-#endif
 
             /* okay so we have the overriding and definitive locaton
             for sysconf, but only in the event that there is not a
@@ -270,26 +148,9 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
 #endif
         }
 #endif
-#if defined(CHDIR) && !defined(NOCWD_ASSUMPTIONS)
-        chdirx(dir, 1);
-#endif
     }
-#ifdef AMIGA
-#ifdef CHDIR
-    /*
-    * If we're dealing with workbench, change the directory.  Otherwise
-    * we could get "Insert disk in drive 0" messages. (Must be done
-    * before initoptions())....
-    */
-    if (argc == 0)
-        chdirx(HACKDIR, 1);
-#endif
-    ami_wininit_data();
-#endif
 #ifdef WIN32
-//    save_getreturn_status = getreturn_enabled;
     raw_clear_screen();
-//    getreturn_enabled = TRUE;
 #endif
     initoptions();
 
@@ -301,38 +162,20 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     }
 #endif
 
-#if defined(TOS) && defined(TEXTCOLOR)
-    if (iflags.BIOS && iflags.use_color)
-        set_colors();
-#endif
     if (!hackdir[0])
-#if !defined(LATTICE) && !defined(AMIGA)
         Strcpy(hackdir, orgdir);
-#else
-        Strcpy(hackdir, HACKDIR);
-#endif
 
-#ifdef WIN32
-//    getreturn_enabled = save_getreturn_status;
-#endif
     /*
     * It seems you really want to play.
     */
-#ifdef TOS
-    if (comp_times((long)time(&clock_time)))
-        error("Your clock is incorrectly set!");
-#endif
+
     if (!dlb_init()) {
         pline(
             "%s\n%s\n%s\n%s\n\nNetHack was unable to open the required file "
             "\"%s\".%s",
             copyright_banner_line(1), copyright_banner_line(2),
             copyright_banner_line(3), copyright_banner_line(4), DLBFILE,
-#ifdef WIN32
             "\nAre you perhaps trying to run NetHack within a zip utility?");
-#else
-            "");
-#endif
         error("dlb_init failure.");
     }
 
@@ -342,9 +185,6 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
                /* chdir shouldn't be called before this point to keep the
                * code parallel to other ports.
                */
-#if defined(CHDIR) && !defined(NOCWD_ASSUMPTIONS)
-    chdirx(hackdir, 1);
-#endif
 
     /* In 3.6.0, several ports process options before they init
     * the window port. This allows settings that impact window
@@ -377,13 +217,6 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     toggle_mouse_support(); /* must come after process_options */
 #endif
 
-#ifdef MFLOPPY
-    set_lock_and_bones();
-#ifndef AMIGA
-    copybones(FROMPERM);
-#endif
-#endif
-
     /* strip role,race,&c suffix; calls askname() if plname[] is empty
     or holds a generic user name like "player" or "games" */
     plnamesuffix();
@@ -413,7 +246,6 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     * overwritten without confirmation when a user starts up
     * another game with the same player name.
     */
-#if defined(WIN32)
     /* Obtain the name of the logged on user and incorporate
     * it into the name. */
     Sprintf(fnamebuf, "%s-%s", get_username(0), plname);
@@ -422,12 +254,7 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
         fnamebuf, encodedfnamebuf, BUFSZ);
     Sprintf(lock, "%s", encodedfnamebuf);
     /* regularize(lock); */ /* we encode now, rather than substitute */
-#else
-    Strcpy(lock, plname);
-    regularize(lock);
-#endif
     getlock();
-#else        /* What follows is !PC_LOCKING */
 #endif /* PC_LOCKING */
 
                       /* Set up level 0 file to keep the game state.
@@ -437,17 +264,10 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
         raw_print("Cannot create lock file");
     }
     else {
-#ifdef WIN32
         hackpid = GetCurrentProcessId();
-#else
-        hackpid = 1;
-#endif
         write(fd, (genericptr_t)&hackpid, sizeof(hackpid));
         nhclose(fd);
     }
-#ifdef MFLOPPY
-    level_info[0].where = ACTIVE;
-#endif
 
     /*
     *  Initialize the vision system.  This must be before mklev() on a
@@ -456,9 +276,6 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     vision_init();
 
     display_gamewindows();
-#ifdef WIN32
-//    getreturn_enabled = TRUE;
-#endif
 
     /*
     * First, try to find and restore a save file for specified character.
@@ -517,9 +334,6 @@ attempt_restore:
 
 #ifndef NO_SIGNAL
     (void) signal(SIGINT, SIG_IGN);
-#endif
-#ifdef OS2
-    gettty(); /* somehow ctrl-P gets turned back on during startup ... */
 #endif
     return resuming;
 }
@@ -625,24 +439,6 @@ char *argv[];
                     flags.initrace = i;
             }
             break;
-#ifdef MFLOPPY
-#ifndef AMIGA
-            /* Player doesn't want to use a RAM disk
-            */
-        case 'R':
-            ramdisk = FALSE;
-            break;
-#endif
-#endif
-#ifdef AMIGA
-            /* interlaced and non-interlaced screens */
-        case 'L':
-            bigscreen = 1;
-            break;
-        case 'l':
-            bigscreen = -1;
-            break;
-#endif
 #ifdef WIN32
         case 'w': /* windowtype */
             if (strncmpi(&argv[0][2], "tty", 3)) {
@@ -704,49 +500,12 @@ nhusage()
 #ifndef AMIGA
     ADD_USAGE(" [-I] [-i] [-d]");
 #endif
-#ifdef MFLOPPY
-#ifndef AMIGA
-    ADD_USAGE(" [-R]");
-#endif
-#endif
-#ifdef AMIGA
-    ADD_USAGE(" [-[lL]]");
-#endif
     if (!iflags.window_inited)
         raw_printf("%s\n", buf1);
     else
         (void)printf("%s\n", buf1);
 #undef ADD_USAGE
 }
-
-#ifdef CHDIR
-void
-chdirx(dir, wr)
-char *dir;
-boolean wr;
-{
-#ifdef AMIGA
-    static char thisdir[] = "";
-#else
-    static char thisdir[] = ".";
-#endif
-    if (dir && chdir(dir) < 0) {
-        error("Cannot chdir to %s.", dir);
-    }
-
-#ifndef AMIGA
-    /* Change the default drive as well.
-    */
-    chdrive(dir);
-#endif
-
-    /* warn the player if we can't write the record file */
-    /* perhaps we should also test whether . is writable */
-    /* unfortunately the access system-call is worthless */
-    if (wr)
-        check_recordfile(dir ? dir : thisdir);
-}
-#endif /* CHDIR */
 
 #ifdef PORT_HELP
 #if defined(MSDOS) || defined(WIN32)

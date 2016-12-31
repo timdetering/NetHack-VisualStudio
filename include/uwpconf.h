@@ -60,21 +60,19 @@
 
 #define PORT_HELP "porthelp"
 
-#define PORT_DEBUG /* include ability to debug international keyboard issues \
-                      */
-
 #define SAFERHANGUP /* Define SAFERHANGUP to delay hangup processing   \
                      * until the main command loop. 'safer' because it \
                      * avoids certain cheats and also avoids losing    \
                      * objects being thrown when the hangup occurs.    \
                      */
 
-/* Stuff to help the user with some common, yet significant errors */
-#define INTERJECT_PANIC 0
-#define INTERJECTION_TYPES (INTERJECT_PANIC + 1)
-extern void FDECL(interject_assistance,
-                  (int, int, genericptr_t, genericptr_t));
-extern void FDECL(interject, (int));
+ /*
+ * 3.4.3 addition - Stuff to help the user with some common, yet significant
+ * errors
+ * Let's make it NOP for now
+ */
+#define interject_assistance(_1, _2, _3, _4)
+#define interject(_1)
 
 /*
  *===============================================

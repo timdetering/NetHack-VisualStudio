@@ -1,6 +1,6 @@
 #pragma once
 
-#include <queue>
+#include <list>
 
 #include "uwplock.h"
 #include "uwpconditionvariable.h"
@@ -41,49 +41,47 @@ namespace Nethack
             // do nothing
         }
 
-        void Push(const Event & inEvent)
+        void PushBack(const Event & inEvent)
         {
             m_lock.AcquireExclusive();
-            m_queue.push(inEvent);
+            m_list.push_back(inEvent);
             m_lock.ReleaseExclusive();
             m_conditionVariable.Wake();
         }
 
 #if 0
-        Event Front()
+        void PushFront(const Event & inEvent)
         {
-            m_lock.AcquireShared();
-            Event e = m_queue.front();
-            m_lock.ReleaseShared();
-            return e;
+            m_lock.AcquireExclusive();
+            m_list.push_front(inEvent);
+            m_lock.ReleaseExclusive();
+            m_conditionVariable.Wake();
         }
 #endif
 
-        Event Pop()
+        Event PopFront()
         {
             m_lock.AcquireExclusive();
-            while (m_queue.empty())
+            while (m_list.empty())
                 m_conditionVariable.Sleep(m_lock);
-            Event e = m_queue.front();
-            m_queue.pop();
+            Event e = m_list.front();
+            m_list.pop_front();
             m_lock.ReleaseExclusive();
 
             return e;
         }
 
-#if 0
         bool Empty()
         {
             m_lock.AcquireShared();
-            bool empty = m_queue.empty();
+            bool empty = m_list.empty();
             m_lock.ReleaseShared();
             return empty;
         }
-#endif
 
     private:
         
-        std::queue<Event>   m_queue;
+        std::list<Event>    m_list;
         Lock                m_lock;
         ConditionVariable   m_conditionVariable;
 
