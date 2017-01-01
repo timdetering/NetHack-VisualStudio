@@ -2,8 +2,6 @@
 
 #include "Common\StepTimer.h"
 #include "Common\DeviceResources.h"
-#include "Content\Sample3DSceneRenderer.h"
-#include "Content\SampleFpsTextRenderer.h"
 #include "common\TextGrid.h"
 #include "common\uwpeventqueue.h"
 
