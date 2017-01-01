@@ -3,10 +3,7 @@
 High Priority
 - fix ability to re-enter game without exiting application (stops game passing store submission)
 - add support for all platforms and configurations (x86, amd64) (release, debug)
-- look into application submission process
-- add cursor rendering
-- create icons
-- fix window sizing and drawing of background
+- add tty cursor rendering
 
 Medium Priority
 - add support for bold characters (assuming they get used)
