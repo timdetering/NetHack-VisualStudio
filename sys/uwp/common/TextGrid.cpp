@@ -51,10 +51,10 @@ namespace Nethack
         m_gridScreenCenter(0.0f, 0.0f),
         m_scale(1.0f)
     {
-        assert(inGridDimensions.m_x > 0);
-        assert(inGridDimensions.m_y > 0);
+        assert(m_gridDimensions.m_x > 0);
+        assert(m_gridDimensions.m_y > 0);
 
-        m_cellCount = inGridDimensions.m_x * inGridDimensions.m_y;
+        m_cellCount = m_gridDimensions.m_x * m_gridDimensions.m_y;
 
         m_cells.resize(m_cellCount);
         
@@ -72,6 +72,34 @@ namespace Nethack
         CreateWindowSizeDependentResources();
         CreateDeviceDependentResources();
     }
+
+    void TextGrid::ScaleAndCenter(const Nethack::IntRect & inRect)
+    {
+        Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->GetGlyphPixelDimensions();
+
+        int screenPixelWidth = inRect.m_bottomRight.m_x - inRect.m_topLeft.m_x;
+        int screenPixelHeight = inRect.m_bottomRight.m_y - inRect.m_topLeft.m_y;
+
+        int gridPixelWidth = m_gridDimensions.m_x * glyphPixelDimensions.m_x;
+        int gridPixelHeight = m_gridDimensions.m_y * glyphPixelDimensions.m_y;
+
+        float xScale = (float)screenPixelWidth / (float) gridPixelWidth;
+        float yScale = (float)screenPixelHeight / (float) gridPixelHeight;
+        float scale = (xScale < yScale) ? xScale : yScale;
+
+        SetScale(scale);
+
+        int gridScreenPixelWidth = gridPixelWidth * scale;
+        int gridScreenPixelHeight = gridPixelHeight * scale;
+
+        int extraScreenPixelsWidth = screenPixelWidth - gridScreenPixelWidth;
+        int extraScreenPixelHeight = screenPixelHeight - gridScreenPixelHeight;
+
+        Nethack::Int2D gridOffset(inRect.m_topLeft.m_x + (extraScreenPixelsWidth / 2), 
+                                  inRect.m_topLeft.m_y + (extraScreenPixelHeight / 2));
+        SetGridScreenPixelOffset(gridOffset);
+    }
+
 
     void TextGrid::SetCenterPosition(const Float2D & inScreenPosition)
     {
@@ -110,6 +138,16 @@ namespace Nethack
         CalculateScreenValues();
     }
 
+    void TextGrid::SetGridScreenPixelOffset(const Int2D & inGridOffset)
+    {
+        // move top left to correct offset
+        Float2D screenTopLeft = m_pixelScreenDimensions * inGridOffset;
+        screenTopLeft.m_x += -1.0f;
+        screenTopLeft.m_y = 1.0f - screenTopLeft.m_y;
+
+        m_gridScreenCenter += screenTopLeft - m_screenRect.m_topLeft;
+        CalculateScreenValues();
+    }
 
     TextGrid::~TextGrid(void)
     {

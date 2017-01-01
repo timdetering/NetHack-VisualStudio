@@ -49,15 +49,14 @@ NethackMain::NethackMain(const std::shared_ptr<DX::DeviceResources>& deviceResou
     Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->GetGlyphPixelDimensions();
     Windows::Foundation::Size & outputSize = DX::DeviceResources::s_deviceResources->GetOutputSize();
 
-    float xScale = outputSize.Width / (float)(80 * glyphPixelDimensions.m_x);
-    float yScale = outputSize.Height / (float)(28 * glyphPixelDimensions.m_y);
+    // TODO: Can we enforce some minimum screen size?
+    assert(outputSize.Width > k_gridBorder);
+    assert(outputSize.Height > k_gridBorder);
+
+    Nethack::IntRect outputRect(Nethack::Int2D(k_gridBorder, k_gridBorder), Nethack::Int2D((int)outputSize.Width - k_gridBorder, (int)outputSize.Height - k_gridBorder));
 
     g_textGrid.SetDeviceResources();
-
-    g_textGrid.SetScale((xScale < yScale) ? xScale : yScale);
-
-    Nethack::Int2D gridOffset(0, 0);
-    g_textGrid.SetGridOffset(gridOffset);
+    g_textGrid.ScaleAndCenter(outputRect);
 
 }
 
@@ -72,17 +71,15 @@ void NethackMain::CreateWindowSizeDependentResources()
 {
     Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->GetGlyphPixelDimensions();
     Windows::Foundation::Size & outputSize = DX::DeviceResources::s_deviceResources->GetOutputSize();
+    
+    // TODO: Can we enforce some minimum screen size?
+    assert(outputSize.Width > k_gridBorder);
+    assert(outputSize.Height > k_gridBorder);
 
-    float xScale = outputSize.Width / (float)(80 * glyphPixelDimensions.m_x);
-    float yScale = outputSize.Height / (float)(28 * glyphPixelDimensions.m_y);
+    Nethack::IntRect outputRect(Nethack::Int2D(k_gridBorder, k_gridBorder), Nethack::Int2D((int)outputSize.Width - k_gridBorder, (int)outputSize.Height - k_gridBorder));
 
     g_textGrid.SetDeviceResources();
-
-    g_textGrid.SetScale((xScale < yScale) ? xScale : yScale);
-
-    Nethack::Int2D gridOffset(0, 0);
-    g_textGrid.SetGridOffset(gridOffset);
-
+    g_textGrid.ScaleAndCenter(outputRect);
     g_textGrid.CreateWindowSizeDependentResources();
 
 }
@@ -127,7 +124,7 @@ bool NethackMain::Render()
     context->OMSetRenderTargets(1, targets, m_deviceResources->GetDepthStencilView());
 
     // Clear the back buffer and depth stencil view.
-    context->ClearRenderTargetView(m_deviceResources->GetBackBufferRenderTargetView(), DirectX::Colors::CornflowerBlue);
+    context->ClearRenderTargetView(m_deviceResources->GetBackBufferRenderTargetView(), DirectX::Colors::Black);
     context->ClearDepthStencilView(m_deviceResources->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
     g_textGrid.Render();

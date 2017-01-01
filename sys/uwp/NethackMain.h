@@ -48,6 +48,8 @@ namespace Nethack
 
     private:
 
+        const int k_gridBorder = 16;
+
         // Cached pointer to device resources.
         std::shared_ptr<DX::DeviceResources> m_deviceResources;
 

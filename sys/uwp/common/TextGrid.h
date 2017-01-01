@@ -86,7 +86,9 @@ namespace Nethack
 
         void SetWidth(float inScreenWidth);
         void SetTopLeft(const Float2D & inScreenTopLeft);
-        void SetGridOffset(const Int2D & inGridOffset);
+
+        void SetGridOffset(const Int2D & inGridOffset); // In glyphs size
+        void SetGridScreenPixelOffset(const Int2D & inGridOffset); // In screen pixels
 
         void SetScale(float inScale);
         float GetScale(void) const { return m_scale;  }
@@ -104,6 +106,8 @@ namespace Nethack
         void Putstr(int x, int y, TextColor color, TextAttribute attribute, const char * text);
 
         const Int2D & GetDimensions() { return m_gridDimensions; }
+
+        void ScaleAndCenter(const Nethack::IntRect & inRect);
 
     private:
 
