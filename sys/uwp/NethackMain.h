@@ -53,10 +53,6 @@ namespace Nethack
         // Cached pointer to device resources.
         std::shared_ptr<DX::DeviceResources> m_deviceResources;
 
-        // TODO: Replace with your own content renderers.
-//		std::unique_ptr<Sample3DSceneRenderer> m_sceneRenderer;
-        std::unique_ptr<SampleFpsTextRenderer> m_fpsTextRenderer;
-
         // Rendering loop timer.
         DX::StepTimer m_timer;
 

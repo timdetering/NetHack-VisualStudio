@@ -4,3 +4,6 @@ Notes
   the user to give the application access to his/her user name.  We will allow the user to enter his/her
   name at launch and we will not leverage the network user name capabilities of Nethack.
 - We will not support user sounds initially
+- SYSCF is not supported (no need to have additional administrator configuration settings)
+- mouse is supported including right click support
+- environment variables can be used to configure options via NETHACKOPTIONS

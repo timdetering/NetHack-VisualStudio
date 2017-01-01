@@ -485,14 +485,12 @@ tty_delay_output()
     Sleep(50);
 }
 
+
+
 void
 nttty_preference_update(const char * pref)
 {
-    if (stricmp(pref, "mouse_support") == 0) {
-#ifndef NO_MOUSE_ALLOWED
-        toggle_mouse_support();
-#endif
-    }
+    // do nothing
 }
 
 int
@@ -505,8 +503,11 @@ tgetch()
 
     Nethack::Event e;
 
-    while (e.m_type != Nethack::Event::Type::Char)
+    while (e.m_type == Nethack::Event::Type::Undefined ||
+           (e.m_type == Nethack::Event::Type::Mouse && !iflags.wc_mouse_support))
+    {
         e = Nethack::g_eventQueue.PopFront();
+    }
 
     return e.m_char;
 

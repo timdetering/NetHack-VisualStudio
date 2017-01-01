@@ -22,9 +22,6 @@
 #define SELF_RECOVER /* Allow the game itself to recover from an aborted \
                         game */
 
-#define SYSCF                /* Use a global configuration */
-#define SYSCF_FILE "sysconf" /* Use a file to hold the SYSCF configuration \
-                                */
 
 /*#define CHANGE_COLOR*/ /* allow palette changes */
 #define SELECTSAVED /* Provide menu of saved games to choose from at start \

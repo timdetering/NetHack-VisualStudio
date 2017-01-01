@@ -38,8 +38,6 @@ NethackMain::NethackMain(const std::shared_ptr<DX::DeviceResources>& deviceResou
     // Register to be notified if the Device is lost or recreated
     m_deviceResources->RegisterDeviceNotify(this);
 
-    m_fpsTextRenderer = std::unique_ptr<SampleFpsTextRenderer>(new SampleFpsTextRenderer(m_deviceResources));
-
     // TODO: Change the timer settings if you want something other than the default variable timestep mode.
     // e.g. for 60 FPS fixed timestep update logic, call:
     /*
@@ -95,7 +93,6 @@ void NethackMain::Update()
     // Update scene objects.
     m_timer.Tick([&]()
     {
-        m_fpsTextRenderer->Update(m_timer);
 
 #ifdef NEWCODE
         Window::s_windowListLock.AcquireShared();
@@ -104,9 +101,7 @@ void NethackMain::Update()
             window->Update(m_timer);
 
         Window::s_windowListLock.ReleaseShared();
-#endif
-
-        
+#endif        
 
     });
 }
@@ -135,8 +130,6 @@ bool NethackMain::Render()
     context->ClearRenderTargetView(m_deviceResources->GetBackBufferRenderTargetView(), DirectX::Colors::CornflowerBlue);
     context->ClearDepthStencilView(m_deviceResources->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-    m_fpsTextRenderer->Render();
-
     g_textGrid.Render();
 
     return true;
@@ -154,7 +147,6 @@ void NethackMain::OnDeviceLost()
     Window::s_windowListLock.ReleaseShared();
 #endif
 
-    m_fpsTextRenderer->ReleaseDeviceDependentResources();
     g_textGrid.ReleaseDeviceDependentResources();
 }
 
@@ -170,7 +162,6 @@ void NethackMain::OnDeviceRestored()
     Window::s_windowListLock.ReleaseShared();
 #endif
 
-    m_fpsTextRenderer->CreateDeviceDependentResources();
     g_textGrid.CreateDeviceDependentResources();
     CreateWindowSizeDependentResources();
 }

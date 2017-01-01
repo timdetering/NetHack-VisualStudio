@@ -206,7 +206,6 @@
     <ClInclude Include="$(SysDir)uwp\NethackMain.h" />
     <ClInclude Include="$(SysDir)uwp\common\DirectXHelper.h" />
     <ClInclude Include="$(SysDir)uwp\common\StepTimer.h" />
-    <ClInclude Include="$(SysDir)uwp\content\SampleFpsTextRenderer.h" />
     <ClInclude Include="$(SysDir)uwp\content\ShaderStructures.h" />
     <ClInclude Include="$(SysDir)uwp\uwp.h" />
     <ClInclude Include="..\..\..\include\uwpconf.h" />
@@ -227,7 +226,6 @@
     <ClCompile Include="$(SysDir)uwp\App.cpp" />
     <ClCompile Include="$(SysDir)uwp\common\DeviceResources.cpp" />
     <ClCompile Include="$(SysDir)uwp\NethackMain.cpp" />
-    <ClCompile Include="$(SysDir)uwp\content\SampleFpsTextRenderer.cpp" />
     <ClCompile Include="$(SysDir)uwp\uwp.cpp" />
     <ClCompile Include="..\..\share\nhlan.c">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsWinRT>
