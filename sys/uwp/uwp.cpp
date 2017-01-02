@@ -18,6 +18,7 @@
 #include "common\uwpglobals.h"
 #include "common\CellBuffer.h"
 #include "common\TextGrid.h"
+#include "common\ScaneCode.h"
 
 CellBuffer g_cellBuffer;
 
@@ -382,12 +383,40 @@ has_color(int color)
     return 0;
 }
 
-// TODO: need to define
+#define MAX_OVERRIDES 256
+unsigned char key_overrides[MAX_OVERRIDES];
+
 void
-map_subkeyvalue(char *op)
+map_subkeyvalue(char * op)
 {
-    // Do nothing ... we don't support subkeyvalue
-    return;
+    char digits[] = "0123456789";
+    int length, i, idx, val;
+    char *kp;
+
+    idx = -1;
+    val = -1;
+    kp = index(op, '/');
+    if (kp) {
+        *kp = '\0';
+        kp++;
+        length = strlen(kp);
+        if (length < 1 || length > 3)
+            return;
+        for (i = 0; i < length; i++)
+            if (!index(digits, kp[i]))
+                return;
+        val = atoi(kp);
+        length = strlen(op);
+        if (length < 1 || length > 3)
+            return;
+        for (i = 0; i < length; i++)
+            if (!index(digits, op[i]))
+                return;
+        idx = atoi(op);
+    }
+    if (idx >= MAX_OVERRIDES || idx < 0 || val >= MAX_OVERRIDES || val < 1)
+        return;
+    key_overrides[idx] = val;
 }
 
 // TODO: we have no keyboard handlers -- we should remove need to define
@@ -493,6 +522,66 @@ nttty_preference_update(const char * pref)
     // do nothing
 }
 
+char MapScanCode(const Nethack::Event & e)
+{
+    assert(e.m_type == Nethack::Event::Type::ScanCode);
+    assert(e.m_scanCode >= ScanCode::Home && e.m_scanCode <= ScanCode::PageDown);
+
+    typedef struct {
+        char normal, shift, control;
+    } PadMapping;
+
+    PadMapping keypad[] =
+    {
+        { 'y', 'Y', C('y') },    /* 7 */
+        { 'k', 'K', C('k') },    /* 8 */
+        { 'u', 'U', C('u') },    /* 9 */
+        { 'm', C('p'), C('p') }, /* - */
+        { 'h', 'H', C('h') },    /* 4 */
+        { 'g', 'G', 'g' },       /* 5 */
+        { 'l', 'L', C('l') },    /* 6 */
+        { '+', 'P', C('p') },    /* + */
+        { 'b', 'B', C('b') },    /* 1 */
+        { 'j', 'J', C('j') },    /* 2 */
+        { 'n', 'N', C('n') },    /* 3 */
+        { 'i', 'I', C('i') },    /* Ins */
+        { '.', ':', ':' }        /* Del */
+    };
+
+    PadMapping numpad[] = {
+        { '7', M('7'), '7' },    /* 7 */
+        { '8', M('8'), '8' },    /* 8 */
+        { '9', M('9'), '9' },    /* 9 */
+        { 'm', C('p'), C('p') }, /* - */
+        { '4', M('4'), '4' },    /* 4 */
+        { '5', M('5'), '5' },    /* 5 */
+        { '6', M('6'), '6' },    /* 6 */
+        { '+', 'P', C('p') },    /* + */
+        { '1', M('1'), '1' },    /* 1 */
+        { '2', M('2'), '2' },    /* 2 */
+        { '3', M('3'), '3' },    /* 3 */
+        { '0', M('0'), '0' },    /* Ins */
+        { '.', ':', ':' }        /* Del */
+    };
+
+    PadMapping * pad = iflags.num_pad ? numpad : keypad;
+
+    char c;
+    int i = e.m_scanCode - ScanCode::Home;
+
+    if (e.m_shift) {
+        c = pad[i].shift;
+    }
+    else if (e.m_control) {
+        c = pad[i].control;
+    }
+    else {
+        c = pad[i].normal;
+    }
+
+    return c;
+}
+
 int
 tgetch()
 {
@@ -503,13 +592,20 @@ tgetch()
 
     Nethack::Event e;
 
-    while (e.m_type == Nethack::Event::Type::Undefined ||
-           (e.m_type == Nethack::Event::Type::Mouse && !iflags.wc_mouse_support))
+    while (e.m_type != Nethack::Event::Type::Char ||
+           e.m_type == Nethack::Event::Type::ScanCode)
     {
         e = Nethack::g_eventQueue.PopFront();
     }
 
-    return e.m_char;
+    char c;
+
+    if (e.m_type == Nethack::Event::Type::ScanCode)
+        c = MapScanCode(e);
+    else
+        c = e.m_char;
+
+    return c;
 
 }
 
@@ -527,13 +623,18 @@ ntposkey(int *x, int *y, int * mod)
     {
         return e.m_char;
     }
-    else
+    else if(e.m_type == Nethack::Event::Type::Mouse)
     {
         *x = e.m_pos.m_x;
         *y = e.m_pos.m_y;
         *mod = (e.m_tap == Nethack::Event::Tap::Left ? CLICK_1 : CLICK_2);
 
         return 0;
+    }
+    else
+    {
+        assert(e.m_type == Nethack::Event::Type::ScanCode);
+        return MapScanCode(e);
     }
 
 

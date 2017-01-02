@@ -5,6 +5,7 @@
 #include "uwplock.h"
 #include "uwpconditionvariable.h"
 #include "MyMath.h"
+#include "ScaneCode.h"
 
 namespace Nethack
 {
@@ -13,20 +14,17 @@ namespace Nethack
     {
     public:
 
-        enum class Type { Undefined, Char, Mouse };
+        enum class Type { Undefined, Char, Mouse, ScanCode };
         enum class Tap { Undefined, Left, Right };
 
         Event()
         {
             m_type = Type::Undefined;
-            m_tap = Tap::Undefined;
-            m_char = 0;
         }
 
         Event(char inChar)
         {
             m_type = Type::Char;
-            m_tap = Tap::Undefined;
             m_char = inChar;
         }
 
@@ -35,13 +33,26 @@ namespace Nethack
             m_type = Type::Mouse;
             m_tap = tap;
             m_pos = pos;
-            m_char = 0;
+        }
+
+        Event(ScanCode scanCode, bool shift, bool control)
+        {
+            m_type = Type::ScanCode;
+            m_scanCode = scanCode;
+            m_shift = shift;
+            m_control = control;
         }
 
         Type m_type;
+
         Tap m_tap;
         Int2D m_pos;
+
         char m_char;
+
+        int m_scanCode;
+        bool m_shift;
+        bool m_control;
 
     };
 

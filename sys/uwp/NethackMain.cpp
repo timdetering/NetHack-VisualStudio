@@ -19,6 +19,7 @@
 #include "Common\DirectXHelper.h"
 #include "common\uwpglobals.h"
 #include "common\uwpeventqueue.h"
+#include "common\ScaneCode.h"
 
 #ifdef NEWCODE
 #include "..\..\win\w8\w8_console.h"
@@ -170,6 +171,29 @@ void NethackMain::OnDeviceRestored()
 
 void NethackMain::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
 {
+    ScanCode scanCode = (ScanCode)args->KeyStatus.ScanCode;
+
+#if 0
+    bool isExtendedKey = args->KeyStatus.IsExtendedKey;
+    int repeatCount = args->KeyStatus.RepeatCount;
+    Windows::System::VirtualKey virtualKey = args->VirtualKey;
+    bool isMenuDown = args->KeyStatus.IsMenuKeyDown;
+#endif
+
+    if (scanCode >= ScanCode::Home && scanCode <= ScanCode::PageDown)
+    {
+        Windows::UI::Core::CoreVirtualKeyStates shiftKeyState = 
+                sender->GetKeyState(Windows::System::VirtualKey::Shift);
+        Windows::UI::Core::CoreVirtualKeyStates controlKeyState =
+                sender->GetKeyState(Windows::System::VirtualKey::Control);
+
+        bool shift = (shiftKeyState == Windows::UI::Core::CoreVirtualKeyStates::Down);
+        bool control = (controlKeyState == Windows::UI::Core::CoreVirtualKeyStates::Down);
+
+        g_eventQueue.PushBack(Event(scanCode, shift, control));
+    }
+
+    
 }
 
 void NethackMain::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)

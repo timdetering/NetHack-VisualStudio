@@ -131,6 +131,9 @@ void App::Load(Platform::String^ entryPoint)
 // This method is called after the window becomes active.
 void App::Run()
 {
+    CoreWindow::GetForCurrentThread()->Dispatcher->AcceleratorKeyActivated +=
+        ref new TypedEventHandler<Windows::UI::Core::CoreDispatcher ^, Windows::UI::Core::AcceleratorKeyEventArgs ^>(this, &App::OnAcceleratorKeyActivated);
+
     while (!m_windowClosed)
     {
         if (m_windowVisible)
@@ -152,6 +155,30 @@ void App::Run()
         // TODO: Find out the graceful way to exit
         if (m_exit) exit(0);
     }
+}
+
+void App::OnAcceleratorKeyActivated(Windows::UI::Core::CoreDispatcher ^ dispatcher, Windows::UI::Core::AcceleratorKeyEventArgs ^ args)
+{
+    Windows::System::VirtualKey virtualKey = args->VirtualKey;
+    bool isExtended = args->KeyStatus.IsExtendedKey;
+    bool wasKeyDown = args->KeyStatus.WasKeyDown; ;
+    Windows::UI::Core::CoreAcceleratorKeyEventType eventType = args->EventType;
+
+    if (virtualKey == Windows::System::VirtualKey::Menu && eventType == Windows::UI::Core::CoreAcceleratorKeyEventType::SystemKeyDown)
+    {
+        args->Handled = true;
+        return;
+    }
+
+    if (virtualKey == Windows::System::VirtualKey::Menu && eventType == Windows::UI::Core::CoreAcceleratorKeyEventType::SystemKeyUp)
+    {
+        args->Handled = true;
+        return;
+    }
+
+    static int count = 0;
+    count++;
+
 }
 
 // Required for IFrameworkView.
