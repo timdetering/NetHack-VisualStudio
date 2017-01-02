@@ -69,6 +69,51 @@ verify_record_file()
         (void)nhclose(fd);
 }
 
+//
+static void copy_missing_file(const char * filename, const char * srcDir, const char * dstDir)
+{
+    // TODO(bhouse) Copy files from install dir to local dir
+    char srcPath[256];
+    sprintf(srcPath, "%s%s", srcDir, filename);
+
+    char dstPath[256];
+    sprintf(dstPath, "%s%s", dstDir, filename);
+
+    FILE * dstFp = fopen(dstPath, "rb");
+    if (dstFp != NULL)
+    {
+        fclose(dstFp);
+    }
+    else
+    {
+        dstFp = fopen(dstPath, "wb+");
+        assert(dstFp != NULL);
+
+        FILE * srcFp = fopen(srcPath, "rb");
+        assert(srcFp != NULL);
+
+        int failure = fseek(srcFp, 0, SEEK_END);
+        assert(!failure);
+
+        size_t fileSize = ftell(srcFp);
+        rewind(srcFp);
+
+        char * data = (char *)malloc(fileSize);
+        assert(data != NULL);
+
+        int readBytes = fread(data, 1, fileSize, srcFp);
+        assert(readBytes == fileSize);
+
+        int writeBytes = fwrite(data, 1, fileSize, dstFp);
+        assert(writeBytes == fileSize);
+
+        free(data);
+        fclose(srcFp);
+        fclose(dstFp);
+    }
+}
+
+
 boolean
 uwpmain(const char * inLocalDir, const char * inInstallDir)
 {
@@ -110,6 +155,8 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     append_slash(installDir);
     append_slash(localDir);
 
+    copy_missing_file("defaults.nh", installDir, localDir);
+
     orgdir = installDir;
     fqn_prefix[HACKPREFIX] = installDir;
     fqn_prefix[LEVELPREFIX] = localDir;
@@ -119,7 +166,7 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     fqn_prefix[SCOREPREFIX] = localDir;
     fqn_prefix[LOCKPREFIX] = localDir;
     fqn_prefix[SYSCONFPREFIX] = installDir;
-    fqn_prefix[CONFIGPREFIX] = installDir;
+    fqn_prefix[CONFIGPREFIX] = localDir;
     fqn_prefix[TROUBLEPREFIX] = localDir;
 
     {
