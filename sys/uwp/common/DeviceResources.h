@@ -78,7 +78,7 @@ namespace DX
         IWICImagingFactory2*		GetWicImagingFactory() const			{ return m_wicFactory.Get(); }
         D2D1::Matrix3x2F			GetOrientationTransform2D() const		{ return m_orientationTransform2D; }
 
-        Nethack::Int2D        GetGlyphPixelDimensions() const { return Nethack::Int2D(22, 36); }
+        Nethack::Int2D        GetGlyphPixelDimensions() const { return Nethack::Int2D(44, 72); }
         void                    GetGlyphRect(unsigned char c, Nethack::FloatRect & outRect) const;
 
         static std::shared_ptr<DX::DeviceResources> s_deviceResources;

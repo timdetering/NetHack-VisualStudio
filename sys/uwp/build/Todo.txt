@@ -2,8 +2,8 @@
 
 High Priority
 - fix ability to re-enter game without exiting application (stops game passing store submission)
-- add tty cursor rendering
 - need to support a way for users to specify persistent options
+- clean up lock if restore fails
 
 Medium Priority
 - add support for bold characters (assuming they get used)

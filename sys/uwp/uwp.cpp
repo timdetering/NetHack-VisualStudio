@@ -437,7 +437,7 @@ xputc_core(char ch)
         console.cursor.Y++;
         /* fall through */
     case '\r':
-        console.cursor.X = 1;
+        console.cursor.X = 0;
         break;
     case '\b':
         console.cursor.X--;
@@ -661,20 +661,13 @@ void error VA_DECL(const char *, s)
     char buf[BUFSZ];
     VA_START(s);
     VA_INIT(s, const char *);
-    /* error() may get called before tty is initialized */
-    if (iflags.window_inited)
-        end_screen();
-    if (!strncmpi(windowprocs.name, "tty", 3)) {
-        buf[0] = '\n';
-        (void)vsprintf(&buf[1], s, VA_ARGS);
-        Strcat(buf, "\n");
-        msmsg(buf);
-    }
-    else {
-        (void)vsprintf(buf, s, VA_ARGS);
-        Strcat(buf, "\n");
-        raw_printf(buf);
-    }
+
+    clear_screen();
+
+    (void)vsprintf(buf, s, VA_ARGS);
+    Strcat(buf, "\n");
+    raw_printf(buf);
+
     VA_END();
 
     nethack_exit(EXIT_FAILURE);

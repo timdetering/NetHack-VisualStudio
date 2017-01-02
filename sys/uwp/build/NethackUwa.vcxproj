@@ -256,7 +256,11 @@
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</CompileAsWinRT>
     </ClCompile>
-    <ClCompile Include="..\..\share\pcunix.c">
+    <ClCompile Include="..\common\CellBuffer.cpp" />
+    <ClCompile Include="..\common\uwpgloabls.cpp" />
+    <ClCompile Include="..\common\uwplock.cpp" />
+    <ClCompile Include="..\common\TextGrid.cpp" />
+    <ClCompile Include="..\common\uwpunix.c">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">false</CompileAsWinRT>
@@ -264,10 +268,6 @@
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</CompileAsWinRT>
     </ClCompile>
-    <ClCompile Include="..\common\CellBuffer.cpp" />
-    <ClCompile Include="..\common\uwpgloabls.cpp" />
-    <ClCompile Include="..\common\uwplock.cpp" />
-    <ClCompile Include="..\common\TextGrid.cpp" />
     <ClCompile Include="..\uwpmain.c">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsWinRT>

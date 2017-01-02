@@ -258,7 +258,7 @@ void DX::DeviceResources::CreateAsciiTexture(void)
             DWRITE_FONT_WEIGHT_NORMAL,
             DWRITE_FONT_STYLE_NORMAL,
             DWRITE_FONT_STRETCH_NORMAL,
-            36,
+            72,
             L"en-US", // locale
             &textFormat
         )

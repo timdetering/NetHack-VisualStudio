@@ -5,6 +5,7 @@
 /* uwpmain.c - Universal Windows Platform NetHack */
 
 #include "hack.h"
+#include "wintty.h"
 #include "dlb.h"
 
 #include <assert.h>
@@ -42,6 +43,31 @@ void NDECL(freefakeconsole);
 #ifdef EXEPATH
 STATIC_DCL char *FDECL(exepath, (char *));
 #endif
+
+void
+verify_record_file()
+{
+    const char *fq_record;
+    int fd;
+
+    char tmp[PATHLEN];
+
+    Strcpy(tmp, RECORD);
+    fq_record = fqname(RECORD, SCOREPREFIX, 0);
+
+    if ((fd = open(fq_record, O_RDWR)) < 0) {
+        /* try to create empty record */
+        if ((fd = open(fq_record, O_CREAT | O_RDWR, S_IREAD | S_IWRITE))
+            < 0) {
+            raw_printf("Warning: cannot write record %s", tmp);
+            wait_synch();
+        }
+        else
+            (void)nhclose(fd);
+        }
+    else /* open succeeded */
+        (void)nhclose(fd);
+}
 
 boolean
 uwpmain(const char * inLocalDir, const char * inInstallDir)
@@ -185,16 +211,13 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
                /* chdir shouldn't be called before this point to keep the
                * code parallel to other ports.
                */
+    
+    verify_record_file();
 
     /* In 3.6.0, several ports process options before they init
     * the window port. This allows settings that impact window
     * ports to be specified or read from the sys or user config files.
     */
-
-    // TODO: With a UWP application you can't specific command line options
-    //       We could pick up options from environment variable ... but is this
-    //       really needed?
-    // process_options(argc, argv);
 
     iflags.use_background_glyph = FALSE;
     nttty_open(1);
@@ -220,6 +243,8 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     /* strip role,race,&c suffix; calls askname() if plname[] is empty
     or holds a generic user name like "player" or "games" */
     plnamesuffix();
+    clear_screen();
+
     set_playmode(); /* sets plname to "wizard" for wizard mode */
 #if 0
                     /* unlike Unix where the game might be invoked with a script
