@@ -11,8 +11,8 @@
     <DatDir>$(RootDir)dat\</DatDir>
     <UtilDir>$(RootDir)util\</UtilDir>
     <SysShareDir>$(RootDir)sys\share\</SysShareDir>
-    <BinDir>$(RootDir)bin\$(Configuration)\</BinDir>
-    <ObjDir>$(RootDir)obj\$(Configuration)\$(TargetName)\</ObjDir>
+    <BinDir>$(RootDir)bin\$(Configuration)\$(Platform)\</BinDir>
+    <ObjDir>$(RootDir)obj\$(Configuration)\$(Platform)\$(TargetName)\</ObjDir>
     <NhWinShareDir>$(RootDir)win\share\</NhWinShareDir>
     <WinWin32Dir>$(RootDir)win\win32\</WinWin32Dir>
     <SysWinntDir>$(RootDir)sys\winnt\</SysWinntDir>

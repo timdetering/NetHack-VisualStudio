@@ -421,5 +421,7 @@ void App::RunNethackMainLoop(void)
 
     // TODO: We should just call back into mainloop again but Nethack can not handle getting started again ... need to force exit
     m_exit = true;
+
     while (1) Sleep(1000);
+
 }

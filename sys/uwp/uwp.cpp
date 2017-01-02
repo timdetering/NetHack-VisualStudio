@@ -114,29 +114,6 @@ int kbhit(void)
     return !Nethack::g_eventQueue.Empty();
 }
 
-void error VA_DECL(const char *, s)
-{
-    char buf[BUFSZ];
-    VA_START(s);
-    VA_INIT(s, const char *);
-    /* error() may get called before tty is initialized */
-    if (iflags.window_inited)
-        end_screen();
-    if (!strncmpi(windowprocs.name, "tty", 3)) {
-        buf[0] = '\n';
-        (void)vsprintf(&buf[1], s, VA_ARGS);
-        Strcat(buf, "\n");
-        msmsg(buf);
-    }
-    else {
-        (void)vsprintf(buf, s, VA_ARGS);
-        Strcat(buf, "\n");
-        raw_printf(buf);
-    }
-    VA_END();
-    exit(EXIT_FAILURE);
-}
-
 void
 win32_abort()
 {
@@ -169,6 +146,7 @@ win32_abort()
 
 void nethack_exit(int result)
 {
+    getreturn("to exit");
     longjmp(Nethack::g_mainLoopJmpBuf, -1);
 }
 
@@ -675,6 +653,32 @@ toggle_mouse_support()
     return;
 }
 #endif
+
+void error VA_DECL(const char *, s)
+{
+    char buf[BUFSZ];
+    VA_START(s);
+    VA_INIT(s, const char *);
+    /* error() may get called before tty is initialized */
+    if (iflags.window_inited)
+        end_screen();
+    if (!strncmpi(windowprocs.name, "tty", 3)) {
+        buf[0] = '\n';
+        (void)vsprintf(&buf[1], s, VA_ARGS);
+        Strcat(buf, "\n");
+        msmsg(buf);
+    }
+    else {
+        (void)vsprintf(buf, s, VA_ARGS);
+        Strcat(buf, "\n");
+        raw_printf(buf);
+    }
+    VA_END();
+
+    nethack_exit(EXIT_FAILURE);
+}
+
+
 
 
 extern boolean FDECL(uwpmain, (const char *, const char *));

@@ -4,12 +4,15 @@ High Priority
 - fix ability to re-enter game without exiting application (stops game passing store submission)
 - add support for all platforms and configurations (x86, amd64) (release, debug)
 - add tty cursor rendering
+- need to support a way for users to specify persistent options
+- have a wait for key press before exiting ... we are not a console
 
 Medium Priority
 - add support for bold characters (assuming they get used)
 - look into what other character attributes (other then bold) should be supported
 
 Low Priority
+- see if we can remove WIN32CON definition (currently defined in vcxproj )
 - persist options which are set (low priority since NETHACKOPTIONS environment variable can be used)
 - add start menu before game start allowing player to edit persistent configuration settings
 - consider copying data files to user data area allowing user to modify

@@ -3,7 +3,15 @@ Notes
 - We can't get user name without adding the capability to application.  It seems intrusive to require
   the user to give the application access to his/her user name.  We will allow the user to enter his/her
   name at launch and we will not leverage the network user name capabilities of Nethack.
-- We will not support user sounds initially
+
+- We do not currently support user sounds.
+
 - SYSCF is not supported (no need to have additional administrator configuration settings)
+
 - mouse is supported including right click support
-- environment variables can be used to configure options via NETHACKOPTIONS
+
+- Environment variables can not be used in 64bit store apps.  We will
+  need to allow user to specify persistent options some other way.
+
+- keypad is supported.
+

@@ -219,4 +219,7 @@ extern int FDECL(alternative_palette, (char *));
 /* Include window headers that conflict with nethack macros */
 #include <windows.h>
 
+/* getenv is not available in UWP */
+#define getenv(x) ((char *) NULL)
+
 #endif /* UWPCONF_H */
