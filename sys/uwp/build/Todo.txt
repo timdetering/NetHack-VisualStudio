@@ -5,11 +5,13 @@ High Priority
 - add support for all platforms and configurations (x86, amd64) (release, debug)
 - add tty cursor rendering
 - need to support a way for users to specify persistent options
-- have a wait for key press before exiting ... we are not a console
 
 Medium Priority
 - add support for bold characters (assuming they get used)
 - look into what other character attributes (other then bold) should be supported
+- rethink when we ask to hit enter on exit.  We should wait until we have implemented
+  the outer shell.  This will have to come after we make changes to support starting
+  main loop a second time.
 
 Low Priority
 - see if we can remove WIN32CON definition (currently defined in vcxproj )
