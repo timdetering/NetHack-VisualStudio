@@ -617,7 +617,11 @@ ntposkey(int *x, int *y, int * mod)
     if (program_state.done_hup)
         return '\033';
 
-    Nethack::Event e = Nethack::g_eventQueue.PopFront();
+    Nethack::Event e;
+    
+    while(e.m_type == Nethack::Event::Type::Undefined ||
+          (e.m_type == Nethack::Event::Type::Mouse && !iflags.wc_mouse_support))
+        e = Nethack::g_eventQueue.PopFront();
 
     if (e.m_type == Nethack::Event::Type::Char)
     {
