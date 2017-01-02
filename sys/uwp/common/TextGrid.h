@@ -4,13 +4,13 @@
 #include "DeviceResources.h"
 #include "MyMath.h"
 #include "uwplock.h"
+#include "..\content\ShaderStructures.h"
 
 #include <memory>
 #include <vector>
 
 namespace Nethack
 {
-    struct VertexPositionColor;
 
     enum class TextAttribute
     {
@@ -109,6 +109,8 @@ namespace Nethack
 
         void ScaleAndCenter(const Nethack::IntRect & inRect);
 
+        void SetCursor(Int2D & cursor);
+
     private:
 
         void UpdateVertcies(void);
@@ -124,6 +126,11 @@ namespace Nethack
         Lock                  m_cellsLock;
         std::vector<TextCell> m_cells;
 
+        static const int kCursorTicks = 550;
+        Int2D   m_cursor;
+        bool    m_cursorBlink;
+        int64   m_cursorBlinkTicks;
+
         bool m_dirty;
         int m_vertexCount;
         VertexPositionColor * m_vertices;
@@ -132,15 +139,21 @@ namespace Nethack
         Float2D m_cellScreenDimensions;
         Float2D m_gridScreenCenter;
 
+        static const int kCursorVertexCount = 6;
+        VertexPositionColor m_cursorVertices[kCursorVertexCount];
+
         float m_scale;
         Int2D m_gridPixelDimensions;
         Float2D m_pixelScreenDimensions;
         Float2D m_gridScreenDimensions;
 
         Microsoft::WRL::ComPtr<ID3D11Buffer>		m_vertexBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Buffer>		m_cursorVertexBuffer;
         Microsoft::WRL::ComPtr<ID3D11VertexShader>	m_vertexShader;
         Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_pixelShader;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_solidPixelShader;
         Microsoft::WRL::ComPtr<ID3D11InputLayout>	m_inputLayout;
+        Microsoft::WRL::ComPtr<ID3D11BlendState>	m_invertDstBlendState;
 
         bool m_loadingComplete;
 

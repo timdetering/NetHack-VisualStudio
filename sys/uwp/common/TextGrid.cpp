@@ -63,6 +63,33 @@ namespace Nethack
         m_vertexCount = m_cellCount * 6;
         m_vertices = new VertexPositionColor[m_vertexCount];
 
+        // Cursor will not use texturing.  We will use a solid
+        // white box with invert destination blending.
+
+        DirectX::XMFLOAT3 whiteColor(1.0, 1.0, 1.0);
+        for (int i = 0; i < kCursorVertexCount; i++)
+        {
+            m_cursorVertices[i].color = whiteColor;
+            m_cursorVertices[i].coord.x = 0;
+            m_cursorVertices[i].coord.y = 0;
+        }
+
+        m_cursor.m_x = 0;
+        m_cursor.m_y = 0;
+        m_cursorBlink = false;
+        m_cursorBlinkTicks = ::GetTickCount64() + kCursorTicks;
+
+    }
+
+    void TextGrid::SetCursor(Int2D & cursor)
+    {
+        m_cellsLock.AcquireExclusive();
+
+        m_cursor = cursor;
+
+        m_dirty = true;
+
+        m_cellsLock.ReleaseExclusive();
     }
 
     void TextGrid::SetDeviceResources(void)
@@ -156,6 +183,15 @@ namespace Nethack
 
     void TextGrid::Render(void)
     {
+        int64 ticks = ::GetTickCount64();
+
+        if (m_cursorBlinkTicks < ticks)
+        {
+            m_cursorBlink = !m_cursorBlink;
+            m_cursorBlinkTicks = ticks + kCursorTicks;
+            m_dirty = true;
+        }
+
         UpdateVertcies();
 
         assert(m_deviceResources != nullptr);
@@ -189,6 +225,7 @@ namespace Nethack
         vertexBufferData.SysMemPitch = 0;
         vertexBufferData.SysMemSlicePitch = 0;
         CD3D11_BUFFER_DESC vertexBufferDesc(m_vertexCount * sizeof(VertexPositionColor), D3D11_BIND_VERTEX_BUFFER);
+
         DX::ThrowIfFailed(
             m_deviceResources->GetD3DDevice()->CreateBuffer(
             &vertexBufferDesc,
@@ -226,10 +263,51 @@ namespace Nethack
             &asciiTextureSampler
             );
 
+        context->OMSetBlendState(NULL, NULL, 0xffffffff);
+
         context->Draw(
             m_vertexCount,
             0
             );
+
+        if (m_cursorBlink)
+        {
+            context->PSSetShader(
+                m_solidPixelShader.Get(),
+                nullptr,
+                0
+            );
+
+            D3D11_SUBRESOURCE_DATA cursorVertexBufferData = { 0 };
+
+            cursorVertexBufferData.pSysMem = m_cursorVertices;
+            cursorVertexBufferData.SysMemPitch = 0;
+            cursorVertexBufferData.SysMemSlicePitch = 0;
+            CD3D11_BUFFER_DESC cursorVertexBufferDesc(kCursorVertexCount * sizeof(VertexPositionColor), D3D11_BIND_VERTEX_BUFFER);
+
+            DX::ThrowIfFailed(
+                m_deviceResources->GetD3DDevice()->CreateBuffer(
+                    &cursorVertexBufferDesc,
+                    &cursorVertexBufferData,
+                    &m_cursorVertexBuffer
+                )
+            );
+
+            context->IASetVertexBuffers(
+                0,
+                1,
+                m_cursorVertexBuffer.GetAddressOf(),
+                &stride,
+                &offset
+            );
+
+            context->OMSetBlendState(m_invertDstBlendState.Get(), NULL, 0xffffffff);
+
+            context->Draw(
+                kCursorVertexCount,
+                0
+            );
+        }
 
     }
 
@@ -288,6 +366,7 @@ namespace Nethack
         // Load shaders asynchronously.
         auto loadVSTask = DX::ReadDataAsync(L"SampleVertexShader.cso");
         auto loadPSTask = DX::ReadDataAsync(L"SamplePixelShader.cso");
+        auto loadSolidPSTask = DX::ReadDataAsync(L"SolidPixelShader.cso");
 
         // After the vertex shader file is loaded, create the shader and input layout.
         auto createVSTask = loadVSTask.then([this](const std::vector<byte>& fileData) {
@@ -329,6 +408,34 @@ namespace Nethack
                 )
                 );
         });
+
+        // After the pixel shader file is loaded, create the shader and constant buffer.
+        auto createSolidPSTask = loadSolidPSTask.then([this](const std::vector<byte>& fileData) {
+            DX::ThrowIfFailed(
+                m_deviceResources->GetD3DDevice()->CreatePixelShader(
+                    &fileData[0],
+                    fileData.size(),
+                    nullptr,
+                    &m_solidPixelShader
+                )
+            );
+        });
+
+        D3D11_BLEND_DESC invertDstBlendDesc = { 0 };
+
+        invertDstBlendDesc.RenderTarget[0].BlendEnable = TRUE;
+
+        invertDstBlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_SUBTRACT;
+        invertDstBlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+        invertDstBlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+
+        invertDstBlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+        invertDstBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+        invertDstBlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+
+        invertDstBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+        DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBlendState(&invertDstBlendDesc, &m_invertDstBlendState));
 
         m_loadingComplete = true;
 
@@ -407,6 +514,38 @@ namespace Nethack
                 topScreenY = bottomScreenY;
             }
 
+            float topCursorY = m_screenRect.m_topLeft.m_y - (m_cursor.m_y * m_cellScreenDimensions.m_y);
+            float bottomCursorY = topCursorY - m_cellScreenDimensions.m_y;
+            float leftCursorX = m_screenRect.m_topLeft.m_x + (m_cursor.m_x * m_cellScreenDimensions.m_x);
+            float rightCursorX = leftCursorX + m_cellScreenDimensions.m_x;
+
+            topCursorY -= (m_cellScreenDimensions.m_y * 3) / 4;
+
+            v = m_cursorVertices;
+                
+            // top left
+            v->pos.x = leftCursorX; v->pos.y = topCursorY; v->pos.z = 0.0f;
+            v++;
+
+            // top right
+            v->pos.x = rightCursorX; v->pos.y = topCursorY; v->pos.z = 0.0f;
+            v++;
+
+            // bottom right
+            v->pos.x = rightCursorX; v->pos.y = bottomCursorY; v->pos.z = 0.0f;
+            v++;
+
+            // top left
+            v->pos.x = leftCursorX; v->pos.y = topCursorY; v->pos.z = 0.0f;
+            v++;
+
+            // bottom right
+            v->pos.x = rightCursorX; v->pos.y = bottomCursorY; v->pos.z = 0.0f;
+            v++;
+
+            // bottom left
+            v->pos.x = leftCursorX; v->pos.y = bottomCursorY; v->pos.z = 0.0f;
+            v++;
 
             m_dirty = false;
         }

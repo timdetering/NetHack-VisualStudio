@@ -2,7 +2,6 @@
 
 High Priority
 - fix ability to re-enter game without exiting application (stops game passing store submission)
-- add support for all platforms and configurations (x86, amd64) (release, debug)
 - add tty cursor rendering
 - need to support a way for users to specify persistent options
 
@@ -18,3 +17,4 @@ Low Priority
 - persist options which are set (low priority since NETHACKOPTIONS environment variable can be used)
 - add start menu before game start allowing player to edit persistent configuration settings
 - consider copying data files to user data area allowing user to modify
+- add arm and arm64 support

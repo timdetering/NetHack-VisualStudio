@@ -144,11 +144,16 @@ void DX::DeviceResources::GetGlyphRect(unsigned char c, Nethack::FloatRect & out
     int x = c & 0xf;
     int y = c >> 4;
 
-    outRect.m_topLeft.m_x = (1.0f / 16.0f) * x;
-    outRect.m_bottomRight.m_x = outRect.m_topLeft.m_x + (1.0f / 16.0f);
+    Nethack::Int2D & glyphPixels = GetGlyphPixelDimensions();
 
-    outRect.m_topLeft.m_y = ((1.0f / 16.0f) * y);
-    outRect.m_bottomRight.m_y = ((1.0f / 16.0f) * y) + (1.0f / 16.0f);
+    float gutterX = (1.0f / 16.0f) / glyphPixels.m_x;
+    float gutterY = (1.0f / 16.0f) / glyphPixels.m_y;
+
+    outRect.m_topLeft.m_x = ((1.0f / 16.0f) * x) + gutterX;
+    outRect.m_bottomRight.m_x = outRect.m_topLeft.m_x + (1.0f / 16.0f) - (2.0f * gutterX);
+
+    outRect.m_topLeft.m_y = ((1.0f / 16.0f) * y) + gutterY;
+    outRect.m_bottomRight.m_y = outRect.m_topLeft.m_y + (1.0f / 16.0f) - (2.0f * gutterY);
 }
 
 
@@ -162,8 +167,10 @@ void DX::DeviceResources::CreateAsciiTexture(void)
 
     // glyphs have a one pixel wide gutter
 
-    static const int glyphWidth = 22 + (2 * gutter);
-    static const int glyphHeight = 42 + (2 * gutter);
+    Nethack::Int2D & glyphPixels = GetGlyphPixelDimensions();
+
+    static const int glyphWidth = glyphPixels.m_x + (2 * gutter);
+    static const int glyphHeight = glyphPixels.m_y + (2 * gutter);
 
     static const int textureWidth = glyphWidth * glyphColumnCount;
     static const int textureHeight = glyphHeight * glyphRowCount;

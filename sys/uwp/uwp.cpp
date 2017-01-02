@@ -50,6 +50,8 @@ void really_move_cursor()
         console.cursor.Y = ttyDisplay->cury;
     }
 
+    Nethack::g_textGrid.SetCursor(Nethack::Int2D(console.cursor.X, console.cursor.Y));
+
 #if 0
 #ifdef PORT_DEBUG
     char oldtitle[BUFSZ], newtitle[BUFSZ];
