@@ -1,8 +1,13 @@
 12/31/2016
 
 High Priority
+- Polish windows store description.
+- Polish GIT hub wiki pages.
+- Add description of UWP (Universal Windows Platform) port for NetHack.
 
 Medium Priority
+- Clean up UWP file naming and placement.
+- Place TextGrid positioned at top of window.
 - add support for bold characters (assuming they get used)
 - look into what other character attributes (other then bold) should be supported
 - rethink when we ask to hit enter on exit.  We should wait until we have implemented

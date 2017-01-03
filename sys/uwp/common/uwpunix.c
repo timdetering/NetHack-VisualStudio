@@ -1,5 +1,6 @@
-/* NetHack 3.6	pcunix.c	$NHDT-Date: 1432512787 2015/05/25 00:13:07 $  $NHDT-Branch: master $:$NHDT-Revision: 1.34 $ */
-/* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
+/* NetHack 3.6	uwpunix.h	$NHDT-Date:  $  $NHDT-Branch:  $:$NHDT-Revision:  $ */
+/* Copyright (c) Bart House, 2016. */
+/* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
 
 /* This file collects some Unix dependencies; pager.c contains some more */

@@ -1,8 +1,7 @@
 /* NetHack 3.6	uwpmain.c	$NHDT-Date:  $  $NHDT-Branch:  $:$NHDT-Revision:  $ */
 /* Copyright (c) Bart House, 2016. */
+/* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
-
-/* uwpmain.c - Universal Windows Platform NetHack */
 
 #include "hack.h"
 #include "wintty.h"
