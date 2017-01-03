@@ -3,7 +3,6 @@
 High Priority
 - Polish windows store description.
 - Polish GIT hub wiki pages.
-- Add description of UWP (Universal Windows Platform) port for NetHack.
 
 Medium Priority
 - Clean up UWP file naming and placement.
@@ -21,3 +20,11 @@ Low Priority
 - add start menu before game start allowing player to edit persistent configuration settings
 - consider copying data files to user data area allowing user to modify
 - add arm and arm64 support
+- Add more advanced gesturing support.
+- Consider supporting tiles.
+- Consider providing a more advanced windowing support
+
+Official NetHack Pull Request Work
+- Update various distribution documentation to describe UWP port.
+- Conform to coding standards.
+- Determine if copyright notices are correct.
