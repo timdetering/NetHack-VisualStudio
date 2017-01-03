@@ -1,8 +1,7 @@
 12/31/2016
 
 High Priority
-- fix ability to re-enter game without exiting application (stops game passing store submission)
-- need to support a way for users to specify persistent options
+- handle hibernation/resuming of application
 
 Medium Priority
 - add support for bold characters (assuming they get used)
@@ -10,6 +9,7 @@ Medium Priority
 - rethink when we ask to hit enter on exit.  We should wait until we have implemented
   the outer shell.  This will have to come after we make changes to support starting
   main loop a second time.
+- review decl_clean_up() to see if we need to free memory before NULLing pointers
 
 Low Priority
 - see if we can remove WIN32CON definition (currently defined in vcxproj )

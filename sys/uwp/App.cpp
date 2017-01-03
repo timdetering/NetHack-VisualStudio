@@ -417,11 +417,16 @@ void App::RunNethackMainLoop(void)
     std::wstring installDirW = Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data();
     std::string installDir(installDirW.begin(), installDirW.end());
 
-    mainloop(localDir.c_str(), installDir.c_str());
+    while (1)
+    {
+        mainloop(localDir.c_str(), installDir.c_str());
+    }
 
+#if 0
     // TODO: We should just call back into mainloop again but Nethack can not handle getting started again ... need to force exit
     m_exit = true;
 
     while (1) Sleep(1000);
+#endif
 
 }
