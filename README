@@ -1,4 +1,10 @@
-                Universal Windows Platform (UWP) port for NetHack
+
+If you are new to NetHack, please see the Guidebook found here:
+
+https://github.com/barthouse/NetHackPublic/blob/Nethack-3.6.0.uwp/doc/Guidebook.txt
+
+ 
+              Universal Windows Platform (UWP) port for NetHack
 				
 This branch of the official NetHack 3.6.1 is focused on a port of NetHack
 to the Universal Windows Platform.  The results of this work will be
