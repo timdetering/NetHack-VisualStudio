@@ -593,7 +593,7 @@ tgetch()
         return MapScanCode(e);
     else
     {
-        if (e.m_char == EOF || e.m_char == 'x')
+        if (e.m_char == EOF)
         {
             hangup(0);
             e.m_char = '\033';
@@ -620,7 +620,7 @@ ntposkey(int *x, int *y, int * mod)
 
     if (e.m_type == Nethack::Event::Type::Char)
     {
-        if (e.m_char == EOF || e.m_char == 'x')
+        if (e.m_char == EOF)
         {
             hangup(0);
             e.m_char = '\033';
