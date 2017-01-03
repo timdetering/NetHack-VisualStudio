@@ -169,11 +169,11 @@ void DX::DeviceResources::CreateAsciiTexture(void)
 
     Nethack::Int2D & glyphPixels = GetGlyphPixelDimensions();
 
-    static const int glyphWidth = glyphPixels.m_x + (2 * gutter);
-    static const int glyphHeight = glyphPixels.m_y + (2 * gutter);
+    int glyphWidth = glyphPixels.m_x + (2 * gutter);
+    int glyphHeight = glyphPixels.m_y + (2 * gutter);
 
-    static const int textureWidth = glyphWidth * glyphColumnCount;
-    static const int textureHeight = glyphHeight * glyphRowCount;
+    int textureWidth = glyphWidth * glyphColumnCount;
+    int textureHeight = glyphHeight * glyphRowCount;
 
     CD3D11_TEXTURE2D_DESC textureDesc(
         DXGI_FORMAT_B8G8R8A8_UNORM,
