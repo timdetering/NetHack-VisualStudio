@@ -1,7 +1,6 @@
 12/31/2016
 
 High Priority
-- handle hibernation/resuming of application
 
 Medium Priority
 - add support for bold characters (assuming they get used)

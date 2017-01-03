@@ -20,6 +20,7 @@ namespace Nethack
         void CreateWindowSizeDependentResources();
         void Update();
         bool Render();
+        void Suspend();
 
         // IDeviceNotify
         virtual void OnDeviceLost();

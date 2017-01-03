@@ -28,6 +28,10 @@ extern "C"  {
 #include "wintty.h"
 #include "spell.h"
 
+#ifndef HANGUPHANDLING
+#error HANGUPHANDLING must be defined
+#endif
+
 struct console_t {
     WORD background;
     WORD foreground;
@@ -149,7 +153,8 @@ win32_abort()
 
 void nethack_exit(int result)
 {
-    getreturn("to exit");
+    if (!program_state.done_hup)
+        getreturn("to exit");
     longjmp(Nethack::g_mainLoopJmpBuf, -1);
 }
 
@@ -579,14 +584,18 @@ tgetch()
         e = Nethack::g_eventQueue.PopFront();
     }
 
-    char c;
-
     if (e.m_type == Nethack::Event::Type::ScanCode)
-        c = MapScanCode(e);
+        return MapScanCode(e);
     else
-        c = e.m_char;
+    {
+        if (e.m_char == EOF || e.m_char == 'x')
+        {
+            hangup(0);
+            e.m_char = '\033';
+        }
 
-    return c;
+        return e.m_char;
+    }
 
 }
 
@@ -606,6 +615,12 @@ ntposkey(int *x, int *y, int * mod)
 
     if (e.m_type == Nethack::Event::Type::Char)
     {
+        if (e.m_char == EOF || e.m_char == 'x')
+        {
+            hangup(0);
+            e.m_char = '\033';
+        }
+
         return e.m_char;
     }
     else if(e.m_type == Nethack::Event::Type::Mouse)
@@ -727,6 +742,7 @@ void decl_clean_up(void)
     ZEROARRAYN(hackdir, PATHLEN);
 
     ZEROARRAY(level_info);
+    ZERO(program_state);
 
     tbx = 0;
     tby = 0;

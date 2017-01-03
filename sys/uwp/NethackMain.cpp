@@ -67,6 +67,12 @@ NethackMain::~NethackMain()
     m_deviceResources->RegisterDeviceNotify(nullptr);
 }
 
+void NethackMain::Suspend()
+{
+    // Send EOF causing a hangup to occur and exiting out of mainloop
+    g_eventQueue.PushBack(Nethack::Event(EOF));
+}
+
 // Updates application state when the window size changes (e.g. device orientation change)
 void NethackMain::CreateWindowSizeDependentResources() 
 {

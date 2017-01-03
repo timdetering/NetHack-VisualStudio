@@ -69,6 +69,8 @@ namespace Nethack
     private:
         bool m_exit;
 
+        int m_loopCount;
+
         std::shared_ptr<DX::DeviceResources> m_deviceResources;
         std::unique_ptr<NethackMain> m_main;
         bool m_windowClosed;

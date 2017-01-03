@@ -32,7 +32,8 @@ IFrameworkView^ Direct3DApplicationSource::CreateView()
 App::App() :
     m_windowClosed(false),
     m_windowVisible(true),
-    m_exit(false)
+    m_exit(false),
+    m_loopCount(0)
 {
 }
 
@@ -198,17 +199,21 @@ void App::OnActivated(CoreApplicationView^ applicationView, IActivatedEventArgs^
 
 void App::OnSuspending(Platform::Object^ sender, SuspendingEventArgs^ args)
 {
+    int loopCount = m_loopCount;
+
+    m_main->Suspend();
+
     // Save app state asynchronously after requesting a deferral. Holding a deferral
     // indicates that the application is busy performing suspending operations. Be
     // aware that a deferral may not be held indefinitely. After about five seconds,
     // the app will be forced to exit.
     SuspendingDeferral^ deferral = args->SuspendingOperation->GetDeferral();
 
-    create_task([this, deferral]()
+    create_task([this, deferral, loopCount]()
     {
         m_deviceResources->Trim();
 
-        // Insert your code here.
+        while (m_loopCount == loopCount) Sleep(100);
 
         deferral->Complete();
     });
@@ -420,6 +425,7 @@ void App::RunNethackMainLoop(void)
     while (1)
     {
         mainloop(localDir.c_str(), installDir.c_str());
+        m_loopCount++;
     }
 
 #if 0
