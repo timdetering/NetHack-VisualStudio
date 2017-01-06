@@ -106,9 +106,9 @@ namespace Nethack
 
         bool Empty()
         {
-            m_lock.AcquireShared();
+            m_lock.AcquireExclusive();
             bool empty = m_list.empty();
-            m_lock.ReleaseShared();
+            m_lock.ReleaseExclusive();
             return empty;
         }
 

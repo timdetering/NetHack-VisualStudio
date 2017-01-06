@@ -10,16 +10,22 @@
 #include <assert.h>
 #include <string.h>
 
-#ifndef NO_SIGNAL
-#include <signal.h>
-#endif
-
 #include <ctype.h>
 
 #include <sys\stat.h>
 
 #ifdef WIN32
 #include "win32api.h" /* for GetModuleFileName */
+#endif
+
+#include "common\uwpglobals.h"
+
+#ifndef NOCWD_ASSUMPTIONS
+#error NOCWD_ASSUMPTIONS must be defined
+#endif
+
+#ifndef NO_SIGNAL
+#error NO_SIGNAL must be defined
 #endif
 
 char * orgdir = NULL;
@@ -29,7 +35,6 @@ STATIC_DCL void NDECL(nhusage);
 
 extern void FDECL(nethack_exit, (int));
 
-#ifdef WIN32
 extern int redirect_stdout;       /* from sys/share/pcsys.c */
 extern int GUILaunched;
 HANDLE hStdOut;
@@ -37,11 +42,6 @@ char *NDECL(exename);
 char default_window_sys[] = "tty";
 boolean NDECL(fakeconsole);
 void NDECL(freefakeconsole);
-#endif
-
-#ifdef EXEPATH
-STATIC_DCL char *FDECL(exepath, (char *));
-#endif
 
 void
 verify_record_file()
@@ -68,48 +68,9 @@ verify_record_file()
         (void)nhclose(fd);
 }
 
-//
-static void copy_missing_file(const char * filename, const char * srcDir, const char * dstDir)
+const char * uwp_getenv(const char * env)
 {
-    // TODO(bhouse) Copy files from install dir to local dir
-    char srcPath[256];
-    sprintf(srcPath, "%s%s", srcDir, filename);
-
-    char dstPath[256];
-    sprintf(dstPath, "%s%s", dstDir, filename);
-
-    FILE * dstFp = fopen(dstPath, "rb");
-    if (dstFp != NULL)
-    {
-        fclose(dstFp);
-    }
-    else
-    {
-        dstFp = fopen(dstPath, "wb+");
-        assert(dstFp != NULL);
-
-        FILE * srcFp = fopen(srcPath, "rb");
-        assert(srcFp != NULL);
-
-        int failure = fseek(srcFp, 0, SEEK_END);
-        assert(!failure);
-
-        size_t fileSize = ftell(srcFp);
-        rewind(srcFp);
-
-        char * data = (char *)malloc(fileSize);
-        assert(data != NULL);
-
-        int readBytes = fread(data, 1, fileSize, srcFp);
-        assert(readBytes == fileSize);
-
-        int writeBytes = fwrite(data, 1, fileSize, dstFp);
-        assert(writeBytes == fileSize);
-
-        free(data);
-        fclose(srcFp);
-        fclose(dstFp);
-    }
+    return NULL;
 }
 
 
@@ -117,17 +78,11 @@ boolean
 uwpmain(const char * inLocalDir, const char * inInstallDir)
 {
     int fd;
-//    char *dir;
-#if defined(WIN32) || defined(MSDOS)
     char *envp = NULL;
     char *sptr = NULL;
-#endif
-#if defined(WIN32)
+
     char fnamebuf[BUFSZ], encodedfnamebuf[BUFSZ];
-#endif
-#ifdef NOCWD_ASSUMPTIONS
     char failbuf[BUFSZ];
-#endif
     boolean resuming = FALSE; /* assume new game */
 
 #ifdef _MSC_VER
@@ -154,8 +109,6 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     append_slash(installDir);
     append_slash(localDir);
 
-    copy_missing_file("defaults.nh", installDir, localDir);
-
     orgdir = installDir;
     fqn_prefix[HACKPREFIX] = installDir;
     fqn_prefix[LEVELPREFIX] = localDir;
@@ -168,71 +121,15 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     fqn_prefix[CONFIGPREFIX] = localDir;
     fqn_prefix[TROUBLEPREFIX] = localDir;
 
-    {
-        int fd;
-        boolean have_syscf = FALSE;
-#ifdef NOCWD_ASSUMPTIONS
-        {
-
-#if defined(WIN32) || defined(MSDOS)
-
-            /* okay so we have the overriding and definitive locaton
-            for sysconf, but only in the event that there is not a
-            sysconf file there (for whatever reason), check a secondary
-            location rather than abort. */
-
-            /* Is there a SYSCF_FILE there? */
-            fd = open(fqname(SYSCF_FILE, SYSCONFPREFIX, 0), O_RDONLY);
-            if (fd >= 0) {
-                /* readable */
-                close(fd);
-                have_syscf = TRUE;
-            }
-
-            if (!have_syscf) {
-                /* No SYSCF_FILE where there should be one, and
-                without an installer, a user may not be able
-                to place one there. So, let's try somewhere else... */
-                fqn_prefix[SYSCONFPREFIX] = fqn_prefix[0];
-
-                /* Is there a SYSCF_FILE there? */
-                fd = open(fqname(SYSCF_FILE, SYSCONFPREFIX, 0), O_RDONLY);
-                if (fd >= 0) {
-                    /* readable */
-                    close(fd);
-                    have_syscf = TRUE;
-                }
-            }
-
-            /* user's home directory should default to this - unless
-            * overridden */
-            envp = nh_getenv("USERPROFILE");
-            if (envp) {
-                if ((sptr = index(envp, ';')) != 0)
-                    *sptr = '\0';
-                if (strlen(envp) > 0) {
-                    fqn_prefix[CONFIGPREFIX] =
-                        (char *)alloc(strlen(envp) + 2);
-                    Strcpy(fqn_prefix[CONFIGPREFIX], envp);
-                    append_slash(fqn_prefix[CONFIGPREFIX]);
-                }
-            }
-#endif
-        }
-#endif
-    }
-#ifdef WIN32
     raw_clear_screen();
-#endif
+
     initoptions();
 
-#ifdef NOCWD_ASSUMPTIONS
     if (!validate_prefix_locations(failbuf)) {
         raw_printf("Some invalid directory locations were specified:\n\t%s\n",
             failbuf);
         nethack_exit(EXIT_FAILURE);
     }
-#endif
 
     if (!hackdir[0])
         Strcpy(hackdir, orgdir);
@@ -268,7 +165,6 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     iflags.use_background_glyph = FALSE;
     nttty_open(1);
 
-#if defined(MSDOS) || defined(WIN32)
     /* Player didn't specify any symbol set so use IBM defaults */
     if (!symset[PRIMARY].name) {
         load_symset("IBMGraphics_2", PRIMARY);
@@ -276,15 +172,12 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     if (!symset[ROGUESET].name) {
         load_symset("RogueEpyx", ROGUESET);
     }
-#endif
 
     int argc = 1;
     char * argv[1] = { "nethack" };
     init_nhwindows(&argc, argv);
 
-#ifdef WIN32
     toggle_mouse_support(); /* must come after process_options */
-#endif
 
     /* strip role,race,&c suffix; calls askname() if plname[] is empty
     or holds a generic user name like "player" or "games" */
@@ -354,15 +247,6 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     */
 attempt_restore:
     if ((fd = restore_saved_game()) >= 0) {
-#ifndef NO_SIGNAL
-        (void) signal(SIGINT, (SIG_RET_TYPE)done1);
-#endif
-#ifdef NEWS
-        if (iflags.news) {
-            display_file(NEWS, FALSE);
-            iflags.news = FALSE;
-        }
-#endif
         pline("Restoring save file...");
         mark_synch(); /* flush output */
 
@@ -403,190 +287,16 @@ attempt_restore:
             You("are in non-scoring discovery mode.");
     }
 
-#ifndef NO_SIGNAL
-    (void) signal(SIGINT, SIG_IGN);
-#endif
     return resuming;
 }
 
-STATIC_OVL void
-process_options(argc, argv)
-int argc;
-char *argv[];
-{
-    int i;
-
-    /*
-    * Process options.
-    */
-    while (argc > 1 && argv[1][0] == '-') {
-        argv++;
-        argc--;
-        switch (argv[0][1]) {
-        case 'a':
-            if (argv[0][2]) {
-                if ((i = str2align(&argv[0][2])) >= 0)
-                    flags.initalign = i;
-            }
-            else if (argc > 1) {
-                argc--;
-                argv++;
-                if ((i = str2align(argv[0])) >= 0)
-                    flags.initalign = i;
-            }
-            break;
-        case 'D':
-            wizard = TRUE, discover = FALSE;
-            break;
-        case 'X':
-            discover = TRUE, wizard = FALSE;
-            break;
-#ifdef NEWS
-        case 'n':
-            iflags.news = FALSE;
-            break;
-#endif
-        case 'u':
-            if (argv[0][2])
-                (void) strncpy(plname, argv[0] + 2, sizeof(plname) - 1);
-            else if (argc > 1) {
-                argc--;
-                argv++;
-                (void)strncpy(plname, argv[0], sizeof(plname) - 1);
-            }
-            else
-                raw_print("Player name expected after -u");
-            break;
-#ifndef AMIGA
-        case 'I':
-        case 'i':
-            if (!strncmpi(argv[0] + 1, "IBM", 3)) {
-                load_symset("IBMGraphics", PRIMARY);
-                load_symset("RogueIBM", ROGUESET);
-                switch_symbols(TRUE);
-            }
-            break;
-            /*	case 'D': */
-        case 'd':
-            if (!strncmpi(argv[0] + 1, "DEC", 3)) {
-                load_symset("DECGraphics", PRIMARY);
-                switch_symbols(TRUE);
-            }
-            break;
-#endif
-        case 'g':
-            if (argv[0][2]) {
-                if ((i = str2gend(&argv[0][2])) >= 0)
-                    flags.initgend = i;
-            }
-            else if (argc > 1) {
-                argc--;
-                argv++;
-                if ((i = str2gend(argv[0])) >= 0)
-                    flags.initgend = i;
-            }
-            break;
-        case 'p': /* profession (role) */
-            if (argv[0][2]) {
-                if ((i = str2role(&argv[0][2])) >= 0)
-                    flags.initrole = i;
-            }
-            else if (argc > 1) {
-                argc--;
-                argv++;
-                if ((i = str2role(argv[0])) >= 0)
-                    flags.initrole = i;
-            }
-            break;
-        case 'r': /* race */
-            if (argv[0][2]) {
-                if ((i = str2race(&argv[0][2])) >= 0)
-                    flags.initrace = i;
-            }
-            else if (argc > 1) {
-                argc--;
-                argv++;
-                if ((i = str2race(argv[0])) >= 0)
-                    flags.initrace = i;
-            }
-            break;
-#ifdef WIN32
-        case 'w': /* windowtype */
-            if (strncmpi(&argv[0][2], "tty", 3)) {
-                nttty_open(1);
-            }
-            /*
-            else {
-            NHWinMainInit();
-            }
-            */
-            choose_windows(&argv[0][2]);
-            break;
-#endif
-        case '@':
-            flags.randomall = 1;
-            break;
-        default:
-            if ((i = str2role(&argv[0][1])) >= 0) {
-                flags.initrole = i;
-                break;
-            }
-            else
-                raw_printf("\nUnknown switch: %s", argv[0]);
-            /* FALL THROUGH */
-        case '?':
-            nhusage();
-            nethack_exit(EXIT_SUCCESS);
-        }
-    }
-}
-
-STATIC_OVL void
-nhusage()
-{
-    char buf1[BUFSZ], buf2[BUFSZ], *bufptr;
-
-    buf1[0] = '\0';
-    bufptr = buf1;
-
-#define ADD_USAGE(s)                              \
-    if ((strlen(buf1) + strlen(s)) < (BUFSZ - 1)) \
-        Strcat(bufptr, s);
-
-    /* -role still works for those cases which aren't already taken, but
-    * is deprecated and will not be listed here.
-    */
-    (void)Sprintf(buf2, "\nUsage:\n%s [-d dir] -s [-r race] [-p profession] "
-        "[maxrank] [name]...\n       or",
-        hname);
-    ADD_USAGE(buf2);
-
-    (void)Sprintf(
-        buf2, "\n%s [-d dir] [-u name] [-r race] [-p profession] [-[DX]]",
-        hname);
-    ADD_USAGE(buf2);
-#ifdef NEWS
-    ADD_USAGE(" [-n]");
-#endif
-#ifndef AMIGA
-    ADD_USAGE(" [-I] [-i] [-d]");
-#endif
-    if (!iflags.window_inited)
-        raw_printf("%s\n", buf1);
-    else
-        (void)printf("%s\n", buf1);
-#undef ADD_USAGE
-}
-
 #ifdef PORT_HELP
-#if defined(MSDOS) || defined(WIN32)
 void
 port_help()
 {
     /* display port specific help file */
     display_file(PORT_HELP, 1);
 }
-#endif /* MSDOS || WIN32 */
 #endif /* PORT_HELP */
 
 /* validate wizard mode if player has requested access to it */
@@ -598,112 +308,5 @@ authorize_wizard_mode()
     return FALSE;
 }
 
-#ifdef EXEPATH
-#ifdef __DJGPP__
-#define PATH_SEPARATOR '/'
-#else
-#define PATH_SEPARATOR '\\'
-#endif
 
-#ifdef WIN32
-static char exenamebuf[PATHLEN];
-extern HANDLE hConIn;
-extern HANDLE hConOut;
-boolean has_fakeconsole;
-
-char *
-exename()
-{
-    int bsize = PATHLEN;
-    char *tmp = exenamebuf, *tmp2;
-
-#ifdef UNICODE
-    {
-        TCHAR wbuf[PATHLEN * 4];
-        GetModuleFileName((HANDLE)0, wbuf, PATHLEN * 4);
-        WideCharToMultiByte(CP_ACP, 0, wbuf, -1, tmp, bsize, NULL, NULL);
-    }
-#else
-    *(tmp + GetModuleFileName((HANDLE)0, tmp, bsize)) = '\0';
-#endif
-    tmp2 = strrchr(tmp, PATH_SEPARATOR);
-    if (tmp2)
-        *tmp2 = '\0';
-    tmp2++;
-    return tmp2;
-}
-
-#if 0
-boolean
-fakeconsole(void)
-{
-    if (!hStdOut) {
-        HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-        HANDLE hStdIn = GetStdHandle(STD_INPUT_HANDLE);
-
-        if (!hStdOut && !hStdIn) {
-            /* Bool rval; */
-            AllocConsole();
-            AttachConsole(GetCurrentProcessId());
-            /* 	rval = SetStdHandle(STD_OUTPUT_HANDLE, hWrite); */
-            freopen("CON", "w", stdout);
-            freopen("CON", "r", stdin);
-        }
-        has_fakeconsole = TRUE;
-    }
-
-    /* Obtain handles for the standard Console I/O devices */
-    hConIn = GetStdHandle(STD_INPUT_HANDLE);
-    hConOut = GetStdHandle(STD_OUTPUT_HANDLE);
-#if 0
-    if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE)) {
-        /* Unable to set control handler */
-        cmode = 0; /* just to have a statement to break on for debugger */
-    }
-#endif
-    return has_fakeconsole;
-}
-void freefakeconsole()
-{
-    if (has_fakeconsole) {
-        FreeConsole();
-    }
-}
-#endif
-#endif
-
-#define EXEPATHBUFSZ 256
-char exepathbuf[EXEPATHBUFSZ];
-
-char *
-exepath(str)
-char *str;
-{
-    char *tmp, *tmp2;
-    int bsize;
-
-    if (!str)
-        return (char *)0;
-    bsize = EXEPATHBUFSZ;
-    tmp = exepathbuf;
-#ifndef WIN32
-    Strcpy(tmp, str);
-#else
-#ifdef UNICODE
-    {
-        TCHAR wbuf[BUFSZ];
-        GetModuleFileName((HANDLE)0, wbuf, BUFSZ);
-        WideCharToMultiByte(CP_ACP, 0, wbuf, -1, tmp, bsize, NULL, NULL);
-    }
-#else
-    *(tmp + GetModuleFileName((HANDLE)0, tmp, bsize)) = '\0';
-#endif
-#endif
-    tmp2 = strrchr(tmp, PATH_SEPARATOR);
-    if (tmp2)
-        *tmp2 = '\0';
-    return tmp;
-}
-#endif /* EXEPATH */
-
-/*pcmain.c*/
+/*uwpmain.c*/

@@ -447,7 +447,7 @@ namespace Nethack
 
     void TextGrid::UpdateVertcies(void)
     {
-        m_cellsLock.AcquireShared();
+        m_cellsLock.AcquireExclusive();
 
         if (m_dirty)
         {
@@ -554,7 +554,7 @@ namespace Nethack
             m_dirty = false;
         }
 
-        m_cellsLock.ReleaseShared();
+        m_cellsLock.ReleaseExclusive();
     }
 
     // Called once per frame, rotates the cube and calculates the model and view matrices.
@@ -604,6 +604,8 @@ namespace Nethack
         for (auto & c : m_cells)
             c = clearCell;
 
+        m_cursor = Int2D(0, 0);
+
         m_dirty = true;
 
         m_cellsLock.ReleaseExclusive();
@@ -611,7 +613,8 @@ namespace Nethack
 
     void TextGrid::Scroll(int amount)
     {
-        m_cellsLock.AcquireExclusive();
+        bool takeLock = !m_cellsLock.HasExclusive();
+        if (takeLock) m_cellsLock.AcquireExclusive();
 
         int width = m_gridDimensions.m_x;
         int height = m_gridDimensions.m_y;
@@ -627,52 +630,98 @@ namespace Nethack
 
         m_dirty = true;
 
-        m_cellsLock.ReleaseExclusive();
+        if (takeLock) m_cellsLock.ReleaseExclusive();
     }
 
     void TextGrid::Put(int x, int y, const TextCell & textCell, int len)
     {
-        m_cellsLock.AcquireExclusive();
+        bool takeLock = !m_cellsLock.HasExclusive();
+        if (takeLock) m_cellsLock.AcquireExclusive();
 
-        int width = m_gridDimensions.m_x;
-        int height = m_gridDimensions.m_y;
+        int offset = (y * m_gridDimensions.m_x) + x;
 
-        assert(x < width);
-        assert(y < height);
-
-        int offset = (y * width) + x;
-        for (int i = 0; i < len; i++)
+        while (len-- > 0 && offset < m_cellCount)
         {
-            m_cells[offset + i] = textCell;
+            m_cells[offset++] = textCell;
         }
+
+        if (offset == m_cellCount)
+        {
+            offset--;
+        }
+
+        m_cursor.m_y = offset / m_gridDimensions.m_x;
+        m_cursor.m_x = offset % m_gridDimensions.m_x;
 
         m_dirty = true;
 
-        m_cellsLock.ReleaseExclusive();
+        if (takeLock) m_cellsLock.ReleaseExclusive();
+    }
+
+    void TextGrid::Put(TextColor color, TextAttribute attribute, char c)
+    {
+        bool takeLock = !m_cellsLock.HasExclusive();
+        if (takeLock) m_cellsLock.AcquireExclusive();
+
+        TextCell textCell(color, attribute, ' ');
+        int offset = (m_cursor.m_y * m_gridDimensions.m_x) + m_cursor.m_x;
+
+        assert(offset < m_cellCount);
+
+        if (c == '\b')
+        {
+            if (offset > 0)
+            {
+                offset--;
+                textCell.m_char = ' ';
+                m_cells[offset] = textCell;
+            }
+        }
+        else
+        {
+            textCell.m_char = c;
+            m_cells[offset++] = textCell;
+        }
+
+        if (offset == m_cellCount)
+        {
+            offset--;
+        }
+
+        m_cursor.m_y = offset / m_gridDimensions.m_x;
+        m_cursor.m_x = offset % m_gridDimensions.m_x;
+
+        m_dirty = true;
+
+        if (takeLock) m_cellsLock.ReleaseExclusive();
+    }
+
+    void TextGrid::Putstr(TextColor color, TextAttribute attribute, const char * text)
+    {
+        bool takeLock = !m_cellsLock.HasExclusive();
+        if (takeLock) m_cellsLock.AcquireExclusive();
+
+        const char * cPtr = text;
+
+        while (*cPtr != '\0')
+        {
+            Put(color, attribute, *cPtr++);
+        }
+
+        if (takeLock) m_cellsLock.ReleaseExclusive();
     }
 
     void TextGrid::Putstr(int x, int y, TextColor color, TextAttribute attribute, const char * text)
     {
-        m_cellsLock.AcquireExclusive();
+        bool takeLock = m_cellsLock.HasExclusive();
+        if(takeLock) m_cellsLock.AcquireExclusive();
 
-        int width = m_gridDimensions.m_x;
-        int height = m_gridDimensions.m_y;
+        m_cursor.m_x = x;
+        m_cursor.m_y = y;
 
-        TextCell textCell(color, attribute, ' ');
+        Putstr(color, attribute, text);
 
-        int len = strlen(text);
-        assert(len + x <= width);
-
-        int offset = (y * width) + x;
-        for (int i = 0; i < len; i++)
-        {
-            textCell.m_char = text[i];
-            m_cells[offset + i] = textCell;
-        }
-
-        m_dirty = true;
-
-        m_cellsLock.ReleaseExclusive();
+        if(takeLock) m_cellsLock.ReleaseExclusive();
     }
 
 }

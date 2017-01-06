@@ -16,6 +16,7 @@
     <NhWinShareDir>$(RootDir)win\share\</NhWinShareDir>
     <WinWin32Dir>$(RootDir)win\win32\</WinWin32Dir>
     <SysWinntDir>$(RootDir)sys\winnt\</SysWinntDir>
+    <SysUwpDir>$(RootDir)sys\uwp\</SysUwpDir>
     <WinTtyDir>$(RootDir)win\tty\</WinTtyDir>
   </PropertyGroup>
   <PropertyGroup>

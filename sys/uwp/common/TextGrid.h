@@ -106,7 +106,11 @@ namespace Nethack
 
         void Clear(void);
         void Scroll(int amount);
+
+        void Put(TextColor color, TextAttribute attribute, char c);
         void Put(int x, int y, const TextCell & textCell, int len = 1);
+
+        void Putstr(TextColor color, TextAttribute attribute, const char * text);
         void Putstr(int x, int y, TextColor color, TextAttribute attribute, const char * text);
 
         const Int2D & GetDimensions() { return m_gridDimensions; }
@@ -114,6 +118,7 @@ namespace Nethack
         void ScaleAndCenter(const Nethack::IntRect & inRect);
 
         void SetCursor(Int2D & cursor);
+
 
     private:
 

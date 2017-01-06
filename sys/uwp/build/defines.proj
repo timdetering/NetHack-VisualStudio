@@ -10,6 +10,7 @@
     <UtilDir>$(RootDir)util\</UtilDir>
     <SysShareDir>$(RootDir)sys\share\</SysShareDir>
     <SysWinntDir>$(RootDir)sys\winnt\</SysWinntDir>
+    <SysUwpDir>$(RootDir)sys\uwp\</SysUwpDir>
     <WinShareDir>$(RootDir)win\share\</WinShareDir>
     <WinTtyDir>$(RootDir)win\tty\</WinTtyDir>
     <WinWin32Dir>$(RootDir)win\win32\</WinWin32Dir>

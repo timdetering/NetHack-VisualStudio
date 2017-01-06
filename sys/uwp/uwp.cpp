@@ -5,6 +5,9 @@
 
 #include <windows.h>
 #include <assert.h>
+#include <fstream>
+#include <iostream>
+#include <string>
 
 #include <wrl.h>
 #include <wrl/client.h>
@@ -24,6 +27,7 @@
 #include "common\CellBuffer.h"
 #include "common\TextGrid.h"
 #include "common\ScaneCode.h"
+#include "common\uwpoption.h"
 
 CellBuffer g_cellBuffer;
 
@@ -354,6 +358,8 @@ void
 raw_clear_screen()
 {
     Nethack::g_textGrid.Clear();
+    console.cursor.X = 0;
+    console.cursor.Y = 0;
 }
 
 void
@@ -573,18 +579,15 @@ char MapScanCode(const Nethack::Event & e)
     return c;
 }
 
-int
-tgetch()
+int raw_getchar()
 {
-    really_move_cursor();
-
     if (program_state.done_hup)
         return '\033';
 
     Nethack::Event e;
 
     while (e.m_type != Nethack::Event::Type::Char ||
-           e.m_type == Nethack::Event::Type::ScanCode)
+        e.m_type == Nethack::Event::Type::ScanCode)
     {
         e = Nethack::g_eventQueue.PopFront();
     }
@@ -593,15 +596,23 @@ tgetch()
         return MapScanCode(e);
     else
     {
-        if (e.m_char == EOF)
-        {
-            hangup(0);
-            e.m_char = '\033';
-        }
-
         return e.m_char;
     }
+}
 
+int
+tgetch()
+{
+    really_move_cursor();
+    char c = raw_getchar();
+
+    if (c == EOF)
+    {
+        hangup(0);
+        c = '\033';
+    }
+
+    return c;
 }
 
 int
@@ -860,10 +871,212 @@ void decl_clean_up(void)
     nhUse_dummy = 0;
 }
 
+bool get_string(std::string & string, int maxLength)
+{
+    string = "";
+
+    bool done = false;
+    while (1)
+    {
+        char c = raw_getchar();
+
+        if (c == EOF) return false;
+        if (c == '\n') return true;
+
+        if (c == '\b')
+        {
+            if (string.length() > 0)
+            {
+                Nethack::g_textGrid.Putstr(Nethack::TextColor::White, Nethack::TextAttribute::None, "\b");
+                string = string.substr(0, string.length() - 1);
+            }
+            continue;
+        }
+
+        if (string.length() < maxLength)
+        {
+            Nethack::g_textGrid.Put(Nethack::TextColor::White, Nethack::TextAttribute::None, c);
+            string += c;
+        }
+    }
+}
+
+bool add_option(Nethack::Options & options)
+{
+    Nethack::g_textGrid.Clear();
+    Nethack::g_textGrid.Putstr(0, 0, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        "Add option");
+    Nethack::g_textGrid.Putstr(10, 1, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        "Name:");
+
+    std::string name;
+    if (!get_string(name, 60)) return false;
+
+    if (name.length() == 0) return true;
+
+    Nethack::g_textGrid.Putstr(10, 2, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        "Value:");
+
+    std::string value;
+    if (!get_string(value, 60)) return false;
+
+    options.m_options.push_back(Nethack::Option(name, value));
+
+    return true;
+}
+
+bool remove_option(Nethack::Options & options)
+{
+    Nethack::g_textGrid.Clear();
+    Nethack::g_textGrid.Putstr(0, 0, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        "Remove option");
+    Nethack::g_textGrid.Putstr(10, 1, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        "Name:");
+
+    std::string name;
+    if (!get_string(name, 60)) return false;
+
+    if (name.length() == 0) return true;
+
+    options.Remove(name);
+
+    return true;
+}
+
+bool change_options(Nethack::Options & options)
+{
+    bool done = false;
+    while (!done)
+    {
+        std::string optionsString = options.GetString();
+
+        Nethack::g_textGrid.Clear();
+        Nethack::g_textGrid.Putstr(0, 0, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "Change options");
+
+        Nethack::g_textGrid.Putstr(10, 2, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "a - Add option");
+        Nethack::g_textGrid.Putstr(10, 3, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "b - Remove option");
+        Nethack::g_textGrid.Putstr(10, 4, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "c - Done changing options");
+
+        Nethack::g_textGrid.Putstr(0, 6, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "Current Options:");
+        Nethack::g_textGrid.Putstr(10, 7, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            optionsString.c_str());
+
+        Nethack::g_textGrid.Putstr(0, 1, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "Select action:");
+
+        char c = raw_getchar();
+
+        if (c == EOF) return false;
+
+        switch (c)
+        {
+        case 'a': if (!add_option(options)) return false; break;
+        case 'b': if (!remove_option(options)) return false; break;
+        case 'c': done = true; break;
+        }
+    }
+
+    return true;
+}
+
+bool main_menu(const char * localDir)
+{
+    std::string optionsFilePath(localDir);
+    optionsFilePath += "\\defaults.nh";
+
+    Nethack::Options options;
+
+    options.Load(optionsFilePath);
+
+    bool done = false;
+    while (!done)
+    {
+        Nethack::g_textGrid.Clear();
+        Nethack::g_textGrid.Putstr(10, 0, Nethack::TextColor::White, Nethack::TextAttribute::None, 
+            "NetHack, Universal Windows Port by Bart House");
+        Nethack::g_textGrid.Putstr(19, 1, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "Copyright 2016-2017");
+        Nethack::g_textGrid.Putstr(19, 3, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "Select action:");
+        Nethack::g_textGrid.Putstr(19, 4, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "a - Start");
+        Nethack::g_textGrid.Putstr(19, 5, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "b - Change Options");
+
+        char c = raw_getchar();
+
+        if (c == EOF) return false;
+
+        switch (c)
+        {
+        case 'a': done = true; break;
+        case 'b': if (!change_options(options)) return false; break;
+        }
+    }
+
+    options.Store(optionsFilePath);
+
+    return true;
+
+}
+
+void copy_missing_file(const char * filename, const char * srcDir, const char * dstDir)
+{
+    // TODO(bhouse) Copy files from install dir to local dir
+    char srcPath[256];
+    sprintf(srcPath, "%s\\%s", srcDir, filename);
+
+    char dstPath[256];
+    sprintf(dstPath, "%s\\%s", dstDir, filename);
+
+    FILE * dstFp = fopen(dstPath, "rb");
+    if (dstFp != NULL)
+    {
+        fclose(dstFp);
+    }
+    else
+    {
+        dstFp = fopen(dstPath, "wb+");
+        assert(dstFp != NULL);
+
+        FILE * srcFp = fopen(srcPath, "rb");
+        assert(srcFp != NULL);
+
+        int failure = fseek(srcFp, 0, SEEK_END);
+        assert(!failure);
+
+        size_t fileSize = ftell(srcFp);
+        rewind(srcFp);
+
+        char * data = (char *)malloc(fileSize);
+        assert(data != NULL);
+
+        int readBytes = fread(data, 1, fileSize, srcFp);
+        assert(readBytes == fileSize);
+
+        int writeBytes = fwrite(data, 1, fileSize, dstFp);
+        assert(writeBytes == fileSize);
+
+        free(data);
+        fclose(srcFp);
+        fclose(dstFp);
+    }
+}
+
 extern boolean FDECL(uwpmain, (const char *, const char *));
 
 void mainloop(const char * localDir, const char * installDir)
 {
+    copy_missing_file("defaults.nh", installDir, localDir);
+
+    if (!main_menu(localDir))
+        return;
+
     if (setjmp(Nethack::g_mainLoopJmpBuf) == 0)
     {
         boolean resuming;

@@ -17,7 +17,9 @@ namespace Nethack
 
         void Sleep(Lock & inLock)
         {
+            inLock.m_ownerThreadId = 0;
             BOOL success = SleepConditionVariableSRW(&m_conditionVariable, &inLock.m_lock, INFINITE, 0);
+            inLock.m_ownerThreadId = GetCurrentThreadId();
             assert(success);
         }
 

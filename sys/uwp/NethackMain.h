@@ -25,6 +25,7 @@ namespace Nethack
         void Update();
         bool Render();
         void Suspend();
+        void MainLoop();
 
         // IDeviceNotify
         virtual void OnDeviceLost();

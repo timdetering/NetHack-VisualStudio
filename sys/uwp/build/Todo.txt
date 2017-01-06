@@ -1,6 +1,7 @@
 12/31/2016
 
 High Priority
+- Look into port_help().  Do we have a port help file?
 - Polish windows store description.
 - Polish GIT hub wiki pages.
 

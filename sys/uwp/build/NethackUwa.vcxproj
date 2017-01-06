@@ -229,6 +229,7 @@
     <ClInclude Include="..\common\uwpglobals.h" />
     <ClInclude Include="..\common\uwplock.h" />
     <ClInclude Include="..\common\TextGrid.h" />
+    <ClInclude Include="..\common\uwpoption.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(SrcDir)sys.c">
@@ -264,6 +265,7 @@
     <ClCompile Include="..\common\uwpgloabls.cpp" />
     <ClCompile Include="..\common\uwplock.cpp" />
     <ClCompile Include="..\common\TextGrid.cpp" />
+    <ClCompile Include="..\common\uwpoption.cpp" />
     <ClCompile Include="..\common\uwpunix.c">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsWinRT>
@@ -1247,7 +1249,7 @@
     <AppxManifest Include="$(SysDir)uwp\Package.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>
-    <None Include="$(SysWinntDir)defaults.nh">
+    <None Include="$(SysUwpDir)defaults.nh">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>

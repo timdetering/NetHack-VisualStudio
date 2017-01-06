@@ -5,6 +5,8 @@
 #pragma once
 
 #include <setjmp.h>
+
+#ifdef __cplusplus
 #include "uwpeventqueue.h"
 #include "TextGrid.h"
 
@@ -15,4 +17,6 @@ namespace Nethack
     extern jmp_buf     g_mainLoopJmpBuf;
     
 }
+#endif
+
 

@@ -221,6 +221,14 @@ extern int FDECL(alternative_palette, (char *));
 #include <windows.h>
 
 /* getenv is not available in UWP */
-#define getenv(x) ((char *) NULL)
+extern const char * uwp_getenv(const char * env);
+#define getenv(x) uwp_getenv(x)
+
+/* No SYSCF support */
+#undef SYSCF
+#undef SYSCF_FILE
+
+/* No NEWS support */
+#undef NEWS
 
 #endif /* UWPCONF_H */

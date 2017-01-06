@@ -18,15 +18,18 @@ namespace Nethack
         ~Lock(void);
 
         void AcquireExclusive(void);
-        void AcquireShared(void);
         void ReleaseExclusive(void);
-        void ReleaseShared(void);
+        bool HasExclusive(void);
+//        void AcquireShared(void);
+//        void ReleaseShared(void);
+
 
     private:
 
         friend class ConditionVariable;
 
         SRWLOCK m_lock;
+        DWORD m_ownerThreadId;
     };
 
 }

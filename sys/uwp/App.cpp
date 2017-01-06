@@ -416,19 +416,11 @@ void App::OnManipulationCompleted(Windows::UI::Input::GestureRecognizer^ sender,
 //
 //
 
-extern "C" { void mainloop(const char * localDir, const char * installDir); }
-
 void App::RunNethackMainLoop(void)
 {
-    std::wstring localDirW = Windows::Storage::ApplicationData::Current->LocalFolder->Path->Data();
-    std::string localDir(localDirW.begin(), localDirW.end());
-
-    std::wstring installDirW = Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data();
-    std::string installDir(installDirW.begin(), installDirW.end());
-
     while (1)
     {
-        mainloop(localDir.c_str(), installDir.c_str());
+        m_main->MainLoop();
         m_loopCount++;
     }
 
