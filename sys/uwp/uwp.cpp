@@ -8,6 +8,8 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <streambuf>
+#include <sstream>
 
 #include <wrl.h>
 #include <wrl/client.h>
@@ -23,11 +25,16 @@
 #include <agile.h>
 #include <concrt.h>
 
+
+
 #include "common\uwpglobals.h"
 #include "common\CellBuffer.h"
 #include "common\TextGrid.h"
 #include "common\ScaneCode.h"
 #include "common\uwpoption.h"
+
+#include "uwpfilehandler.h"
+#include "uwputil.h"
 
 CellBuffer g_cellBuffer;
 
@@ -901,11 +908,11 @@ bool get_string(std::string & string, int maxLength)
     }
 }
 
-bool add_option(Nethack::Options & options)
+bool add_option()
 {
     Nethack::g_textGrid.Clear();
     Nethack::g_textGrid.Putstr(0, 0, Nethack::TextColor::White, Nethack::TextAttribute::None,
-        "Add option");
+        "Add NETHACKOPTION");
     Nethack::g_textGrid.Putstr(10, 1, Nethack::TextColor::White, Nethack::TextAttribute::None,
         "Name:");
 
@@ -920,16 +927,17 @@ bool add_option(Nethack::Options & options)
     std::string value;
     if (!get_string(value, 60)) return false;
 
-    options.m_options.push_back(Nethack::Option(name, value));
+    Nethack::g_options.m_options.push_back(Nethack::Option(name, value));
+    Nethack::g_options.Store();
 
     return true;
 }
 
-bool remove_option(Nethack::Options & options)
+bool remove_option()
 {
     Nethack::g_textGrid.Clear();
     Nethack::g_textGrid.Putstr(0, 0, Nethack::TextColor::White, Nethack::TextAttribute::None,
-        "Remove option");
+        "Remove NETHACKOPTION");
     Nethack::g_textGrid.Putstr(10, 1, Nethack::TextColor::White, Nethack::TextAttribute::None,
         "Name:");
 
@@ -938,35 +946,36 @@ bool remove_option(Nethack::Options & options)
 
     if (name.length() == 0) return true;
 
-    options.Remove(name);
+    Nethack::g_options.Remove(name);
+    Nethack::g_options.Store();
 
     return true;
 }
 
-bool change_options(Nethack::Options & options)
+bool change_options()
 {
     bool done = false;
     while (!done)
     {
-        std::string optionsString = options.GetString();
+        std::string optionsString = Nethack::g_options.GetString();
 
         Nethack::g_textGrid.Clear();
         Nethack::g_textGrid.Putstr(0, 0, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "Change options");
+            "Change NETHACKOPTIONS");
 
         Nethack::g_textGrid.Putstr(10, 2, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "a - Add option");
+            "a - Add");
         Nethack::g_textGrid.Putstr(10, 3, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "b - Remove option");
+            "b - Remove");
         Nethack::g_textGrid.Putstr(10, 4, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "c - Done changing options");
+            "c - Done");
 
-        Nethack::g_textGrid.Putstr(0, 6, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        Nethack::g_textGrid.Putstr(0, 8, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "Current Options:");
-        Nethack::g_textGrid.Putstr(10, 7, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        Nethack::g_textGrid.Putstr(10, 9, Nethack::TextColor::White, Nethack::TextAttribute::None,
             optionsString.c_str());
 
-        Nethack::g_textGrid.Putstr(0, 1, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        Nethack::g_textGrid.Putstr(0, 6, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "Select action:");
 
         char c = raw_getchar();
@@ -975,8 +984,8 @@ bool change_options(Nethack::Options & options)
 
         switch (c)
         {
-        case 'a': if (!add_option(options)) return false; break;
-        case 'b': if (!remove_option(options)) return false; break;
+        case 'a': if (!add_option()) return false; break;
+        case 'b': if (!remove_option()) return false; break;
         case 'c': done = true; break;
         }
     }
@@ -984,14 +993,21 @@ bool change_options(Nethack::Options & options)
     return true;
 }
 
+const char * uwp_getenv(const char * env)
+{
+    static std::string options = Nethack::g_options.GetString();
+    return options.c_str();
+}
+
 bool main_menu(const char * localDir)
 {
     std::string optionsFilePath(localDir);
-    optionsFilePath += "\\defaults.nh";
+    optionsFilePath += "\\envoptions.nh";
 
-    Nethack::Options options;
+    Nethack::g_options.Load(optionsFilePath);
 
-    options.Load(optionsFilePath);
+    Platform::String ^ fileText = ref new Platform::String();
+
 
     bool done = false;
     while (!done)
@@ -1001,12 +1017,18 @@ bool main_menu(const char * localDir)
             "NetHack, Universal Windows Port by Bart House");
         Nethack::g_textGrid.Putstr(19, 1, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "Copyright 2016-2017");
-        Nethack::g_textGrid.Putstr(19, 3, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "Select action:");
+
         Nethack::g_textGrid.Putstr(19, 4, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "a - Start");
+            "a - Play");
         Nethack::g_textGrid.Putstr(19, 5, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "b - Change Options");
+            "b - Change NETHACKOPTIONS");
+        Nethack::g_textGrid.Putstr(19, 6, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "c - Save default options to file");
+        Nethack::g_textGrid.Putstr(19, 7, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "d - Load default options from file");
+
+        Nethack::g_textGrid.Putstr(19, 9, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "Select action:");
 
         char c = raw_getchar();
 
@@ -1015,11 +1037,45 @@ bool main_menu(const char * localDir)
         switch (c)
         {
         case 'a': done = true; break;
-        case 'b': if (!change_options(options)) return false; break;
-        }
-    }
+        case 'b': if (!change_options()) return false; break;
+        case 'c':
+            {
+                std::string readText;
+                std::fstream input(optionsFilePath.c_str(), std::fstream::in | std::fstream::binary);
+                if (input.is_open())
+                {
+                    input.seekg(0, std::ios::end);
+                    size_t size = input.tellg();
+                    input.seekg(0, std::ios::beg);
+                    std::vector<char> bytes(size);
+                    input.read(bytes.data(), size);
+                    input.close();
+                    readText = std::string(bytes.data(), size);
+                }
 
-    options.Store(optionsFilePath);
+                fileText = Nethack::to_string(readText);
+
+                Nethack::FileHandler::s_instance->SaveFilePicker(fileText);
+                break;
+
+            }
+        case 'd': 
+            {
+                fileText = Nethack::FileHandler::s_instance->LoadFilePicker();
+                std::string writeText = Nethack::to_string(fileText);
+                std::fstream output(optionsFilePath.c_str(), std::fstream::out | std::fstream::trunc | std::fstream::binary);
+                if (output.is_open())
+                {
+                    output.write(writeText.c_str(), writeText.length());
+                    output.close();
+                }
+
+                break;
+
+            }
+        }
+
+    }
 
     return true;
 

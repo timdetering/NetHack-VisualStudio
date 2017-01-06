@@ -225,11 +225,14 @@
     <ClInclude Include="$(SysDir)uwp\uwp.h" />
     <ClInclude Include="..\..\..\include\uwpconf.h" />
     <ClInclude Include="..\common\CellBuffer.h" />
+    <ClInclude Include="..\common\uwpconditionvariable.h" />
     <ClInclude Include="..\common\uwpeventqueue.h" />
     <ClInclude Include="..\common\uwpglobals.h" />
     <ClInclude Include="..\common\uwplock.h" />
     <ClInclude Include="..\common\TextGrid.h" />
     <ClInclude Include="..\common\uwpoption.h" />
+    <ClInclude Include="..\uwpfilehandler.h" />
+    <ClInclude Include="..\uwputil.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(SrcDir)sys.c">
@@ -274,6 +277,7 @@
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</CompileAsWinRT>
     </ClCompile>
+    <ClCompile Include="..\uwpfilehandler.cpp" />
     <ClCompile Include="..\uwpmain.c">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsWinRT>

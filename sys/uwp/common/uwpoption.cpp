@@ -7,11 +7,13 @@ namespace Nethack {
 
     void Options::Load(std::string & filePath)
     {
+        m_filePath = filePath;
+
         std::string optionsEqual = "OPTIONS=";
 
         m_options.clear();
 
-        std::fstream input(filePath.c_str(), std::fstream::in);
+        std::fstream input(m_filePath.c_str(), std::fstream::in);
         if (input.is_open())
         {
             std::string line;
@@ -43,9 +45,9 @@ namespace Nethack {
 
     }
 
-    void Options::Store(std::string & filePath)
+    void Options::Store()
     {
-        std::fstream output(filePath.c_str(), std::fstream::out | std::fstream::trunc);
+        std::fstream output(m_filePath.c_str(), std::fstream::out | std::fstream::trunc);
 
         if (output.is_open())
         {
@@ -72,7 +74,7 @@ namespace Nethack {
         for (auto & o : m_options)
         {
             if (options.length() > 0)
-                options += " ";
+                options += ",";
 
             options += o.m_name;
             if (o.m_value.length() > 0)

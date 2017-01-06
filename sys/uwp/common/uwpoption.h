@@ -20,11 +20,11 @@ namespace Nethack
     public:
 
         void Load(std::string & filePath);
-        void Store(std::string & filePath);
-        std::string GetString(void);
+        void Store();
+        std::string GetString();
         void Remove(std::string & name);
     
         std::vector<Option> m_options;
-
+        std::string m_filePath;
     };
 }

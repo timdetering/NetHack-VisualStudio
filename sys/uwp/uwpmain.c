@@ -68,11 +68,6 @@ verify_record_file()
         (void)nhclose(fd);
 }
 
-const char * uwp_getenv(const char * env)
-{
-    return NULL;
-}
-
 
 boolean
 uwpmain(const char * inLocalDir, const char * inInstallDir)

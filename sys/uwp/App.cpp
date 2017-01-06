@@ -64,6 +64,8 @@ void App::Initialize(CoreApplicationView^ applicationView)
 
     Attach(m_gestureRecognizer);
 
+    m_fileHandler = ref new Nethack::FileHandler();
+
     // Start worker thread which will run the nethack main loop
     auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction^)
     {
@@ -122,6 +124,7 @@ void App::SetWindow(CoreWindow^ window)
     pointerVisualizationSettings->IsBarrelButtonFeedbackEnabled = false;
 
     m_deviceResources->SetWindow(window);
+    m_fileHandler->SetCoreDispatcher(window->Dispatcher);
 }
 
 // Initializes scene resources, or loads a previously saved app state.

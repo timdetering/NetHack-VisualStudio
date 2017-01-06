@@ -9,12 +9,14 @@
 #ifdef __cplusplus
 #include "uwpeventqueue.h"
 #include "TextGrid.h"
+#include "uwpoption.h"
 
 namespace Nethack
 {
     extern EventQueue  g_eventQueue;
     extern TextGrid    g_textGrid;
     extern jmp_buf     g_mainLoopJmpBuf;
+    extern Options     g_options;
     
 }
 #endif

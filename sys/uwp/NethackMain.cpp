@@ -395,3 +395,4 @@ void NethackMain::MainLoop(void)
 
     mainloop(localDir.c_str(), installDir.c_str());
 }
+

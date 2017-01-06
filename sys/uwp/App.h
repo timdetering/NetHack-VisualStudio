@@ -20,6 +20,7 @@
 
 #include "Common\DeviceResources.h"
 #include "NethackMain.h"
+#include "uwpfilehandler.h"
 
 namespace Nethack
 {
@@ -79,6 +80,9 @@ namespace Nethack
         std::unique_ptr<NethackMain> m_main;
         bool m_windowClosed;
         bool m_windowVisible;
+
+        // file handler
+        FileHandler ^ m_fileHandler;
 
         // worker thread which runs nethack main loop
         Windows::Foundation::IAsyncAction^     m_nethackWorker;
