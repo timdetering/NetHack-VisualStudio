@@ -20,6 +20,7 @@
     <ProjectGuid>{E54B0D69-AC69-4EEA-AF82-979492BB5F48}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>dlb</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -51,9 +52,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(ToolsBinDir)</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(ToolsBinDir)</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -88,13 +91,4 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-  <Target Name="AfterBuild">
-    <MSBuild Projects="dlb.proj" Targets="Build" Properties="Configuration=$(Configuration)" />
-  </Target>
-  <Target Name="AfterClean">
-    <MSBuild Projects="dlb.proj" Targets="Clean" Properties="Configuration=$(Configuration)" />
-  </Target>
-  <Target Name="AfterRebuild">
-    <MSBuild Projects="dlb.proj" Targets="Build" Properties="Configuration=$(Configuration)" />
-  </Target>
 </Project>

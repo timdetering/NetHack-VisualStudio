@@ -15,3 +15,5 @@ Notes
 
 - keypad is supported.
 
+- had to disable optimizations due to compiler bug.  causing a crash in the options code.
+

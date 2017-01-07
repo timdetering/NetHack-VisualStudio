@@ -12,6 +12,9 @@
     <UtilDir>$(RootDir)util\</UtilDir>
     <SysShareDir>$(RootDir)sys\share\</SysShareDir>
     <BinDir>$(RootDir)bin\$(Configuration)\$(Platform)\</BinDir>
+    <NetHackBinDir>$(RootDir)bin\$(Configuration)\$(Platform)\NetHack\</NetHackBinDir>
+    <NetHackUwaBinDir>$(RootDir)bin\$(Configuration)\$(Platform)\NetHackUwa\</NetHackUwaBinDir>
+    <ToolsBinDir>$(RootDir)bin\$(Configuration)\$(Platform)\Tools\</ToolsBinDir>
     <ObjDir>$(RootDir)obj\$(Configuration)\$(Platform)\$(TargetName)\</ObjDir>
     <NhWinShareDir>$(RootDir)win\share\</NhWinShareDir>
     <WinWin32Dir>$(RootDir)win\win32\</WinWin32Dir>

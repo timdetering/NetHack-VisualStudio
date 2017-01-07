@@ -2,6 +2,9 @@
   <PropertyGroup>
     <RootDir>$(MSBuildProjectDirectory)\..\..\..\</RootDir>
     <BinDir>$(RootDir)bin\$(Configuration)\$(Platform)\</BinDir>
+    <NetHackBinDir>$(RootDir)bin\$(Configuration)\$(Platform)\NetHack\</NetHackBinDir>
+    <NetHackUwaBinDir>$(RootDir)bin\$(Configuration)\$(Platform)\NetHackUwa\</NetHackUwaBinDir>
+    <ToolsBinDir>$(RootDir)bin\$(Configuration)\$(Platform)\Tools\</ToolsBinDir>
     <DatDir>$(RootDir)dat\</DatDir>
     <DocDir>$(RootDir)doc\</DocDir>
     <IncDir>$(RootDir)include\</IncDir>
@@ -214,12 +217,12 @@
     <BmpFiles Include = "$(WinWin32Dir)splash.bmp"/>
   </ItemGroup>
   <ItemGroup>
+    <!-- Should $(DatDir)symbols be in this list? If not, why not? -->
     <DlbList Include = "$(DatDir)data"/>
     <DlbList Include = "$(DatDir)oracles"/>
     <DlbList Include = "$(DatDir)options" Condition="Exists('$(DatDir)options')"/>
     <DlbList Include = "$(DatDir)ttyoptions" Condition="Exists('$(DatDir)ttyoptions')"/>
     <DlbList Include = "$(DatDir)guioptions" Condition="Exists('$(DatDir)guioptions')"/>
-    <DlbList Include = "$(SysWinntDir)porthelp"/>
     <DlbList Include = "$(DatDir)quest.dat"/>
     <DlbList Include = "$(DatDir)rumors"/>
     <DlbList Include = "$(DatDir)engrave"/>
@@ -227,6 +230,7 @@
     <DlbList Include = "$(DatDir)bogusmon"/>
     <DlbList Include = "$(DatDir)tribute"/>
     <DlbList Include = "$(DatDir)help"/>
+    <DlbList Include = "$(DatDir)porthelp"/>
     <DlbList Include = "$(DatDir)hh"/>
     <DlbList Include = "$(DatDir)cmdhelp"/>
     <DlbList Include = "$(DatDir)history"/>
