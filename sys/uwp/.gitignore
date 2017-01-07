@@ -1,6 +1,5 @@
 !build/
 !*.sln
 *.vcxproj.user
-*.vcxproj.filters
 *.opendb
 *.db
