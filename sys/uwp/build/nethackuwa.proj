@@ -9,7 +9,7 @@
     <!-- Build nhdat -->
 	<Copy SourceFiles="$(SysUwpDir)porthelp" DestinationFolder="$(DatDir)"/>
 	<WriteLinesToFile File="$(DatDir)dlb.lst" Lines="@(DlbList->'%(filename)%(extension)')" Overwrite="true"/>
-	<Exec Command="$(ToolsBinDir)dlb.exe cIf $(DatDir)dlb.lst $(NetHackBinDir)nhdat" WorkingDirectory="$(DatDir)"/>
+	<Exec Command="$(ToolsBinDir)dlb.exe cIf $(DatDir)dlb.lst $(NetHackUwaBinDir)nhdat" WorkingDirectory="$(DatDir)"/>
 	<Delete Files="$(DatDir)porthelp"/>
 
 	 </Target>

@@ -4,7 +4,7 @@
     <BinDir>$(RootDir)bin\$(Configuration)\$(Platform)\</BinDir>
     <NetHackBinDir>$(RootDir)bin\$(Configuration)\$(Platform)\NetHack\</NetHackBinDir>
     <NetHackUwaBinDir>$(RootDir)bin\$(Configuration)\$(Platform)\NetHackUwa\</NetHackUwaBinDir>
-    <ToolsBinDir>$(RootDir)bin\$(Configuration)\$(Platform)\Tools\</ToolsBinDir>
+    <ToolsBinDir>$(RootDir)bin\$(Configuration)\Win32\Tools\</ToolsBinDir>
     <DatDir>$(RootDir)dat\</DatDir>
     <DocDir>$(RootDir)doc\</DocDir>
     <IncDir>$(RootDir)include\</IncDir>
