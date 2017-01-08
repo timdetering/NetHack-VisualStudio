@@ -881,7 +881,7 @@ void decl_clean_up(void)
     nhUse_dummy = 0;
 }
 
-bool get_string(std::string & string, int maxLength)
+bool get_string(std::string & string, unsigned int maxLength)
 {
     string = "";
 
@@ -1044,7 +1044,7 @@ bool main_menu(const char * localDir)
                 if (input.is_open())
                 {
                     input.seekg(0, std::ios::end);
-                    size_t size = input.tellg();
+                    size_t size = (size_t) input.tellg();
                     input.seekg(0, std::ios::beg);
                     std::vector<char> bytes(size);
                     input.read(bytes.data(), size);

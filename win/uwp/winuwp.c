@@ -1,4 +1,4 @@
-/* NetHack 3.6	uwptty.c	$NHDT-Date:  $  $NHDT-Branch:  $:$NHDT-Revision:  $ */
+/* NetHack 3.6	winuwp.c	$NHDT-Date:  $  $NHDT-Branch:  $:$NHDT-Revision:  $ */
 /* Copyright (c) Bart House, 2017                                */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -8,27 +8,23 @@
 
 #include "hack.h"
 
-#ifdef TTY_GRAPHICS
 #include "dlb.h"
 
-#ifdef MAC
-#define MICRO /* The Mac is a MICRO only for this file, not in general! */
-#ifdef THINK_C
-extern void msmsg(const char *, ...);
-#endif
-#endif
-
 #ifndef NO_TERMS
-#include "tcap.h"
+#error NO_TERMS must be defined
 #endif
 
-#include "wintty.h"
+#ifndef UWP_GRAPHICS
+#define UWP_GRAPHICS must be defined
+#endif
 
-#ifdef CLIPPING /* might want SIGWINCH */
-#if defined(BSD) || defined(ULTRIX) || defined(AIX_31) || defined(_BULL_SOURCE)
-#include <signal.h>
+#ifndef TTY_GRAPHICS    // TODO: this will eventually be removed
+#define TTY_GRAPHICS must be defined
 #endif
-#endif
+
+#include "wintty.h" // TODO: this will eventually be removed
+
+#include "winuwp.h"
 
 #ifdef TTY_TILES_ESCCODES
 extern short glyph2tile[];
@@ -50,9 +46,7 @@ struct window_procs uwp_procs = {
 #ifdef MSDOS
     WC_TILED_MAP | WC_ASCII_MAP |
 #endif
-#if defined(WIN32CON)
     WC_MOUSE_SUPPORT |
-#endif
     WC_COLOR | WC_HILITE_PET | WC_INVERSE | WC_EIGHT_BIT_IN,
 #if defined(SELECTSAVED)
     WC2_SELECTSAVED |
@@ -3854,8 +3848,6 @@ anything threshold;
 
 #endif /* STATUS_HILITES */
 #endif /*STATUS_VIA_WINDOWPORT*/
-
-#endif /* TTY_GRAPHICS */
 
 #endif // brh
 
