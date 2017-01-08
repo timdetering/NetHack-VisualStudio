@@ -71,9 +71,11 @@ namespace Nethack
         // white box with invert destination blending.
 
         DirectX::XMFLOAT3 whiteColor(1.0, 1.0, 1.0);
+        DirectX::XMFLOAT3 blackColor(0.0, 0.0, 0.0);
         for (int i = 0; i < kCursorVertexCount; i++)
         {
-            m_cursorVertices[i].color = whiteColor;
+            m_cursorVertices[i].foregroundColor = whiteColor;
+            m_cursorVertices[i].backgroundColor = blackColor;
             m_cursorVertices[i].coord.x = 0;
             m_cursorVertices[i].coord.y = 0;
         }
@@ -415,7 +417,8 @@ namespace Nethack
             {
                 { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
                 { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                { "COLOR", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 36, D3D11_INPUT_PER_VERTEX_DATA, 0 },
             };
 
             DX::ThrowIfFailed(
@@ -527,12 +530,8 @@ namespace Nethack
                     FloatRect glyphRect;
                     unsigned char c = textCell.m_char;
                     m_deviceResources->GetGlyphRect(c, glyphRect);
-                    DirectX::XMFLOAT3 color = s_colorTable[(int) textCell.m_color];
-
-                    if (textCell.m_color != TextColor::Gray)
-                    {
-                        color = s_colorTable[(int)textCell.m_color];
-                    }
+                    DirectX::XMFLOAT3 foregroundColor = s_colorTable[(int) textCell.m_color];
+                    DirectX::XMFLOAT3 backgroundColor = { 0.0f, 0.0f, 0.0f };
 
                     float rightScreenX = leftScreenX + m_cellScreenDimensions.m_x;
 
@@ -548,6 +547,8 @@ namespace Nethack
                     }
                     else if (textCell.m_attribute == TextAttribute::Inverse)
                     {
+                        backgroundColor = s_colorTable[(int)textCell.m_color];
+                        foregroundColor = { 0.0f, 0.0f, 0.0f };
                         pv = &invertedVertex;
                     }
                     else
@@ -560,37 +561,43 @@ namespace Nethack
 
                     // top left
                     v->pos.x = leftScreenX; v->pos.y = topScreenY; v->pos.z = 0.0f;
-                    v->color = color;
+                    v->foregroundColor = foregroundColor;
+                    v->backgroundColor = backgroundColor;
                     v->coord.x = glyphRect.m_topLeft.m_x; v->coord.y = glyphRect.m_topLeft.m_y;
                     v++;
 
                     // top right
                     v->pos.x = rightScreenX; v->pos.y = topScreenY; v->pos.z = 0.0f;
-                    v->color = color;
+                    v->foregroundColor = foregroundColor;
+                    v->backgroundColor = backgroundColor;
                     v->coord.x = glyphRect.m_bottomRight.m_x; v->coord.y = glyphRect.m_topLeft.m_y;
                     v++;
 
                     // bottom right
                     v->pos.x = rightScreenX; v->pos.y = bottomScreenY; v->pos.z = 0.0f;
-                    v->color = color;
+                    v->foregroundColor = foregroundColor;
+                    v->backgroundColor = backgroundColor;
                     v->coord.x = glyphRect.m_bottomRight.m_x; v->coord.y = glyphRect.m_bottomRight.m_y;
                     v++;
 
                     // top left
                     v->pos.x = leftScreenX; v->pos.y = topScreenY; v->pos.z = 0.0f;
-                    v->color = color;
+                    v->foregroundColor = foregroundColor;
+                    v->backgroundColor = backgroundColor;
                     v->coord.x = glyphRect.m_topLeft.m_x; v->coord.y = glyphRect.m_topLeft.m_y;
                     v++;
 
                     // bottom right
                     v->pos.x = rightScreenX; v->pos.y = bottomScreenY; v->pos.z = 0.0f;
-                    v->color = color;
+                    v->foregroundColor = foregroundColor;
+                    v->backgroundColor = backgroundColor;
                     v->coord.x = glyphRect.m_bottomRight.m_x; v->coord.y = glyphRect.m_bottomRight.m_y;
                     v++;
 
                     // bottom left
                     v->pos.x = leftScreenX; v->pos.y = bottomScreenY; v->pos.z = 0.0f;
-                    v->color = color;
+                    v->foregroundColor = foregroundColor;
+                    v->backgroundColor = backgroundColor;
                     v->coord.x = glyphRect.m_topLeft.m_x; v->coord.y = glyphRect.m_bottomRight.m_y;
                     v++;
 

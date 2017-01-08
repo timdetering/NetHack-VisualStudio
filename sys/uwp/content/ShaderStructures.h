@@ -16,7 +16,8 @@ namespace Nethack
     struct VertexPositionColor
     {
         DirectX::XMFLOAT3 pos;
-        DirectX::XMFLOAT3 color;
+        DirectX::XMFLOAT3 foregroundColor;
+        DirectX::XMFLOAT3 backgroundColor;
         DirectX::XMFLOAT2 coord;
     };
 }

@@ -10,7 +10,8 @@ cbuffer ModelViewProjectionConstantBuffer : register(b0)
 struct VertexShaderInput
 {
     float3 pos : POSITION;
-    float3 color : COLOR0;
+    float3 foregroundColor : COLOR0;
+    float3 backgroundColor : COLOR1;
     float2 tex : TEXCOORD0;
 };
 
@@ -18,7 +19,8 @@ struct VertexShaderInput
 struct PixelShaderInput
 {
     float4 pos : SV_POSITION;
-    float3 color : COLOR0;
+    float3 foregroundColor : COLOR0;
+    float3 backgroundColor : COLOR1;
     float2 tex : TEXCOORD0;
 };
 
@@ -28,14 +30,11 @@ PixelShaderInput main(VertexShaderInput input)
     PixelShaderInput output;
     float4 pos = float4(input.pos, 1.0f);
 
-    // Transform the vertex position into projected space.
-//	pos = mul(pos, model);
-//	pos = mul(pos, view);
-//	pos = mul(pos, projection);
     output.pos = pos;
 
     // Pass the color through without modification.
-    output.color = input.color;
+    output.foregroundColor = input.foregroundColor;
+    output.backgroundColor = input.backgroundColor;
     output.tex = input.tex;
 
     return output;
