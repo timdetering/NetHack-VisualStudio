@@ -6,6 +6,10 @@
 #ifndef UWPCONF_H
 #define UWPCONF_H
 
+#define UWP_GRAPHICS
+#undef DEFAULT_WINDOW_SYS
+#define DEFAULT_WINDOW_SYS "tty" // will eventually be "uwp"
+
 #define RANDOM    /* have Berkeley random(3) */
 #define TEXTCOLOR /* Color text */
 

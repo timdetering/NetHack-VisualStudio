@@ -412,6 +412,9 @@
     <ClCompile Include="..\uwpasciitexture.cpp">
       <Filter>sys\uwp</Filter>
     </ClCompile>
+    <ClCompile Include="..\uwptty.c">
+      <Filter>sys\uwp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="$(SysDir)uwp\assets\StoreLogo.png">

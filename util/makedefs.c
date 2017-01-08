@@ -1574,6 +1574,9 @@ static struct win_info window_opts[] = {
 #ifdef BEOS_GRAPHICS
     { "BeOS", "BeOS InterfaceKit" },
 #endif
+#ifdef UWP_GRAPHICS
+    { "uwp", "uwp" },
+#endif
     { 0, 0 }
 };
 
