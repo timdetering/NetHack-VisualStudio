@@ -3,6 +3,34 @@
 #include <assert.h>
 #include <string>
 
+namespace brh
+{
+    inline std::string to_string(const std::wstring & inString)
+    {
+        std::string outString;
+        outString.assign(inString.begin(), inString.end());
+        return outString;
+    }
+
+    inline void to_wstring(const std::string & inString, std::wstring & outString)
+    {
+        outString.assign(inString.begin(), inString.end());
+    }
+
+    inline std::wstring to_wstring(const std::string & inString)
+    {
+        std::wstring outString;
+        outString.assign(inString.begin(), inString.end());
+        return outString;
+    }
+
+    inline void to_string(const std::wstring & inString, std::string & outString)
+    {
+        outString.assign(inString.begin(), inString.end());
+    }
+
+}
+
 namespace Nethack
 {
 

@@ -106,7 +106,7 @@ namespace Nethack
 
     void TextGrid::ScaleAndCenter(const Nethack::IntRect & inRect)
     {
-        Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->GetGlyphPixelDimensions();
+        const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->GetGlyphPixelDimensions();
 
         int screenPixelWidth = inRect.m_bottomRight.m_x - inRect.m_topLeft.m_x;
         int screenPixelHeight = inRect.m_bottomRight.m_y - inRect.m_topLeft.m_y;
@@ -120,8 +120,8 @@ namespace Nethack
 
         SetScale(scale);
 
-        int gridScreenPixelWidth = gridPixelWidth * scale;
-        int gridScreenPixelHeight = gridPixelHeight * scale;
+        int gridScreenPixelWidth = (int) ceil(gridPixelWidth * scale);
+        int gridScreenPixelHeight = (int) ceil(gridPixelHeight * scale);
 
         int extraScreenPixelsWidth = screenPixelWidth - gridScreenPixelWidth;
         int extraScreenPixelHeight = screenPixelHeight - gridScreenPixelHeight;
@@ -250,29 +250,57 @@ namespace Nethack
             );
 
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        
+        auto asciiTextureShaderResourceView = m_deviceResources->m_asciiTextureNew.m_asciiTextureShaderResourceView.Get();
+        auto boldAsciiTextureShaderResourceView = m_deviceResources->m_boldAsciiTextureNew.m_asciiTextureShaderResourceView.Get();
 
-        auto asciiTextureShaderResourceView = m_deviceResources->GetAsciiTextureShaderResourceView();
+        ID3D11ShaderResourceView * shaderResourceViews[2]{ asciiTextureShaderResourceView , boldAsciiTextureShaderResourceView };
 
         context->PSSetShaderResources(
             0,                          // starting at the first shader resource slot
             1,                          // set one shader resource binding
-            &asciiTextureShaderResourceView
+            &shaderResourceViews[0]
             );
 
-        auto asciiTextureSampler = m_deviceResources->GetAsciiTextureSampler();
+        auto asciiTextureSampler = m_deviceResources->m_asciiTextureNew.m_asciiTextureSampler.Get();
+        auto boldAsciiTextureSampler = m_deviceResources->m_boldAsciiTextureNew.m_asciiTextureSampler.Get();
+
+        ID3D11SamplerState * samplerStates[2] = { asciiTextureSampler , boldAsciiTextureSampler };
 
         context->PSSetSamplers(
             0,                          // starting at the first sampler slot
-            1,                          // set one sampler binding
-            &asciiTextureSampler
+            1,                          // set two sampler bindings
+            &samplerStates[0]
             );
 
         context->OMSetBlendState(NULL, NULL, 0xffffffff);
 
         context->Draw(
-            m_vertexCount,
+            m_normalVertexCount,
             0
             );
+
+        context->PSSetShaderResources(
+            0,                          // starting at the first shader resource slot
+            1,                          // set one shader resource binding
+            &shaderResourceViews[1]
+        );
+
+        context->Draw(
+            m_boldVertexCount,
+            m_normalVertexCount
+        );
+
+        context->PSSetShaderResources(
+            0,                          // starting at the first shader resource slot
+            1,                          // set one shader resource binding
+            &shaderResourceViews[0]
+        );
+
+        context->Draw(
+            m_invertedVertexCount,
+            m_normalVertexCount + m_boldVertexCount
+        );
 
         if (m_cursorBlink)
         {
@@ -451,7 +479,38 @@ namespace Nethack
 
         if (m_dirty)
         {
+            m_normalVertexCount = 0;
+            m_boldVertexCount = 0;
+            m_invertedVertexCount = 0;
+
+            for (int i = 0; i < m_cellCount; i++)
+            {
+                auto const & textCell = m_cells[i];
+
+                if (textCell.m_attribute == TextAttribute::None)
+                {
+                    m_normalVertexCount+=6;
+                }
+                else if (textCell.m_attribute == TextAttribute::Bold)
+                {
+                    m_boldVertexCount+=6;
+                }
+                else if (textCell.m_attribute == TextAttribute::Inverse)
+                {
+                    m_invertedVertexCount+=6;
+                }
+                else
+                {
+                    assert(0);
+                    m_normalVertexCount+=6;
+                }
+            }
+
             VertexPositionColor * v = m_vertices;
+            VertexPositionColor * normalVertex = &m_vertices[0];
+            VertexPositionColor * boldVertex = &m_vertices[m_normalVertexCount];
+            VertexPositionColor * invertedVertex = &m_vertices[m_normalVertexCount + m_boldVertexCount];
+
 
             float topScreenY = m_screenRect.m_topLeft.m_y;
 
@@ -463,8 +522,9 @@ namespace Nethack
 
                 for (int x = 0; x < m_gridDimensions.m_x; x++)
                 {
-                    FloatRect glyphRect;
                     auto const & textCell = m_cells[(y * m_gridDimensions.m_x) + x];
+
+                    FloatRect glyphRect;
                     unsigned char c = textCell.m_char;
                     m_deviceResources->GetGlyphRect(c, glyphRect);
                     DirectX::XMFLOAT3 color = s_colorTable[(int) textCell.m_color];
@@ -475,6 +535,28 @@ namespace Nethack
                     }
 
                     float rightScreenX = leftScreenX + m_cellScreenDimensions.m_x;
+
+                    VertexPositionColor ** pv;
+
+                    if (textCell.m_attribute == TextAttribute::None)
+                    {
+                        pv = &normalVertex;
+                    }
+                    else if (textCell.m_attribute == TextAttribute::Bold)
+                    {
+                        pv = &boldVertex;
+                    }
+                    else if (textCell.m_attribute == TextAttribute::Inverse)
+                    {
+                        pv = &invertedVertex;
+                    }
+                    else
+                    {
+                        assert(0);
+                        pv = &normalVertex;
+                    }
+
+                    v = *pv;
 
                     // top left
                     v->pos.x = leftScreenX; v->pos.y = topScreenY; v->pos.z = 0.0f;
@@ -511,6 +593,8 @@ namespace Nethack
                     v->color = color;
                     v->coord.x = glyphRect.m_topLeft.m_x; v->coord.y = glyphRect.m_bottomRight.m_y;
                     v++;
+
+                    *pv = v;
 
                     leftScreenX = rightScreenX;
                 }

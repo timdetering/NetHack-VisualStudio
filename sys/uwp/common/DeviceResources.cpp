@@ -15,9 +15,12 @@
 #include <memory>
 #include <agile.h>
 #include <concrt.h>
+#include <math.h>
 
 #include "DeviceResources.h"
 #include "DirectXHelper.h"
+#include "..\uwpfont.h"
+#include "uwpglobals.h"
 
 using namespace D2D1;
 using namespace DirectX;
@@ -94,11 +97,29 @@ DX::DeviceResources::DeviceResources() :
     m_currentOrientation(DisplayOrientations::None),
     m_dpi(-1.0f),
     m_effectiveDpi(-1.0f),
-    m_deviceNotify(nullptr)
+    m_deviceNotify(nullptr),
+    m_asciiTextureNew(this),
+    m_boldAsciiTextureNew(this)
 {
+
+    assert(Nethack::g_fontCollection.m_fontFamilies.count("Lucida Console") == 1);
+    Nethack::FontFamily & fontFamily = Nethack::g_fontCollection.m_fontFamilies["Lucida Console"];
+    assert(fontFamily.m_fonts.count("Regular") == 1);
+    Nethack::Font & font = fontFamily.m_fonts["Regular"];
+
+    assert(fontFamily.m_fonts.count("Bold") == 1);
+    Nethack::Font & boldFont = fontFamily.m_fonts["Bold"];
+
+    // 72 pixel height glyphs
+    m_glyphPixels = Nethack::Int2D((int) ceil(72 * font.m_widthToHeight), 72);
+
     CreateDeviceIndependentResources();
     CreateDeviceResources();
+
+
     CreateAsciiTexture();
+    m_asciiTextureNew.Create(L"Lucida Console", DWRITE_FONT_WEIGHT_THIN);
+    m_boldAsciiTextureNew.Create(L"Lucida Console", DWRITE_FONT_WEIGHT_BOLD);
 }
 
 // Configures resources that don't depend on the Direct3D device.
@@ -148,7 +169,7 @@ void DX::DeviceResources::GetGlyphRect(unsigned char c, Nethack::FloatRect & out
     int x = c & 0xf;
     int y = c >> 4;
 
-    Nethack::Int2D & glyphPixels = GetGlyphPixelDimensions();
+    const Nethack::Int2D & glyphPixels = GetGlyphPixelDimensions();
 
     float gutterX = (1.0f / 16.0f) / glyphPixels.m_x;
     float gutterY = (1.0f / 16.0f) / glyphPixels.m_y;
@@ -160,8 +181,6 @@ void DX::DeviceResources::GetGlyphRect(unsigned char c, Nethack::FloatRect & out
     outRect.m_bottomRight.m_y = outRect.m_topLeft.m_y + (1.0f / 16.0f) - (2.0f * gutterY);
 }
 
-
-
 void DX::DeviceResources::CreateAsciiTexture(void)
 {
     static const int glyphRowCount = 16;
@@ -171,7 +190,7 @@ void DX::DeviceResources::CreateAsciiTexture(void)
 
     // glyphs have a one pixel wide gutter
 
-    Nethack::Int2D & glyphPixels = GetGlyphPixelDimensions();
+    const Nethack::Int2D & glyphPixels = GetGlyphPixelDimensions();
 
     int glyphWidth = glyphPixels.m_x + (2 * gutter);
     int glyphHeight = glyphPixels.m_y + (2 * gutter);
@@ -828,7 +847,9 @@ void DX::DeviceResources::HandleDeviceLost()
     }
 
     CreateDeviceResources();
-    CreateAsciiTexture();
+
+    m_asciiTextureNew.Create(L"Lucida Console", DWRITE_FONT_WEIGHT_THIN);
+    m_boldAsciiTextureNew.Create(L"Lucida Console Bold", DWRITE_FONT_WEIGHT_BOLD);
 
     m_d2dContext->SetDpi(m_dpi, m_dpi);
     CreateWindowSizeDependentResources();

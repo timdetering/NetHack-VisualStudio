@@ -16,14 +16,21 @@
 namespace Nethack
 {
 
+#define ATR_NONE 0
+#define ATR_BOLD 1
+#define ATR_DIM 2
+#define ATR_ULINE 4
+#define ATR_BLINK 5
+#define ATR_INVERSE 7
+
     enum class TextAttribute
     {
-        None,
-        Bold,
-        Dim,
-        Underline,
-        Blink,
-        Inverse
+        None = 0,
+        Bold = 2,
+        Dim = 4,
+        Underline = 16,
+        Blink = 32,
+        Inverse = 128
     };
 
     enum class TextColor
@@ -53,7 +60,21 @@ namespace Nethack
 
         TextCell() : m_char(' '), m_attribute(TextAttribute::None), m_color(TextColor::Gray) {}
         TextCell(TextColor color, TextAttribute attribute, unsigned char c) :
-            m_color(color), m_attribute(attribute), m_char(c) {}
+            m_color(color), m_attribute(attribute), m_char(c) 
+        {
+            switch (m_attribute)
+            {
+            case TextAttribute::None:
+            case TextAttribute::Bold:
+            case TextAttribute::Dim:
+            case TextAttribute::Underline:
+            case TextAttribute::Blink:
+            case TextAttribute::Inverse:
+                break;
+            default:
+                assert(0);
+            }
+        }
 
         unsigned char   m_char;
         TextAttribute   m_attribute;
@@ -142,7 +163,11 @@ namespace Nethack
 
         bool m_dirty;
         int m_vertexCount;
+        int m_normalVertexCount;
+        int m_boldVertexCount;
+        int m_invertedVertexCount;
         VertexPositionColor * m_vertices;
+
         Int2D m_screenSize;
         FloatRect m_screenRect;
         Float2D m_cellScreenDimensions;

@@ -10,13 +10,15 @@
 #include "uwpeventqueue.h"
 #include "TextGrid.h"
 #include "uwpoption.h"
+#include "..\uwpfont.h"
 
 namespace Nethack
 {
-    extern EventQueue  g_eventQueue;
-    extern TextGrid    g_textGrid;
-    extern jmp_buf     g_mainLoopJmpBuf;
-    extern Options     g_options;
+    extern EventQueue       g_eventQueue;
+    extern TextGrid         g_textGrid;
+    extern jmp_buf          g_mainLoopJmpBuf;
+    extern Options          g_options;
+    extern FontCollection   g_fontCollection;
     
 }
 #endif

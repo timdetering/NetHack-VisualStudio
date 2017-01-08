@@ -406,6 +406,12 @@
     <ClCompile Include="..\uwpfilehandler.cpp">
       <Filter>sys\uwp</Filter>
     </ClCompile>
+    <ClCompile Include="..\uwpfont.cpp">
+      <Filter>sys\uwp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\uwpasciitexture.cpp">
+      <Filter>sys\uwp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="$(SysDir)uwp\assets\StoreLogo.png">
@@ -755,6 +761,15 @@
       <Filter>sys\uwp</Filter>
     </ClInclude>
     <ClInclude Include="..\common\uwpconditionvariable.h">
+      <Filter>sys\uwp\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\uwpfont.h">
+      <Filter>sys\uwp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\uwpasciitexture.h">
+      <Filter>sys\uwp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\ScaneCode.h">
       <Filter>sys\uwp\common</Filter>
     </ClInclude>
   </ItemGroup>

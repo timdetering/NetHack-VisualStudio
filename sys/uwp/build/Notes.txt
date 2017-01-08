@@ -17,3 +17,9 @@ Notes
 
 - had to disable optimizations due to compiler bug.  causing a crash in the options code.
 
+- had to check that num lock was not active when enquing a key down event for keypad.  If num pad is active
+  then a character will be generated alonw with the key down event causing two events to be queued for every
+  key stroke.
+
+- marked the application as high dpi aware
+

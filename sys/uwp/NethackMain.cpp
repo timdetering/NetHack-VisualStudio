@@ -51,7 +51,7 @@ NethackMain::NethackMain(const std::shared_ptr<DX::DeviceResources>& deviceResou
     */
 
     // Initialize text grid state
-    Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->GetGlyphPixelDimensions();
+    const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->GetGlyphPixelDimensions();
     Windows::Foundation::Size & outputSize = DX::DeviceResources::s_deviceResources->GetOutputSize();
 
     // TODO: Can we enforce some minimum screen size?
@@ -80,7 +80,7 @@ void NethackMain::Suspend()
 // Updates application state when the window size changes (e.g. device orientation change)
 void NethackMain::CreateWindowSizeDependentResources() 
 {
-    Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->GetGlyphPixelDimensions();
+    const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->GetGlyphPixelDimensions();
     Windows::Foundation::Size & outputSize = DX::DeviceResources::s_deviceResources->GetOutputSize();
     
     // TODO: Can we enforce some minimum screen size?
@@ -190,17 +190,26 @@ void NethackMain::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::
     bool isMenuDown = args->KeyStatus.IsMenuKeyDown;
 #endif
 
-    if (scanCode >= ScanCode::Home && scanCode <= ScanCode::PageDown)
+    if (scanCode >= ScanCode::Home && scanCode <= ScanCode::Delete)
     {
         Windows::UI::Core::CoreVirtualKeyStates shiftKeyState = 
                 sender->GetKeyState(Windows::System::VirtualKey::Shift);
         Windows::UI::Core::CoreVirtualKeyStates controlKeyState =
                 sender->GetKeyState(Windows::System::VirtualKey::Control);
+        Windows::UI::Core::CoreVirtualKeyStates numLockState =
+            sender->GetKeyState(Windows::System::VirtualKey::NumberKeyLock);
 
-        bool shift = (shiftKeyState == Windows::UI::Core::CoreVirtualKeyStates::Down);
-        bool control = (controlKeyState == Windows::UI::Core::CoreVirtualKeyStates::Down);
+       bool shift = ((shiftKeyState & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down);
+       bool control = ((controlKeyState & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down);
+        bool numLock = (numLockState == Windows::UI::Core::CoreVirtualKeyStates::Down) ||
+                       (numLockState == Windows::UI::Core::CoreVirtualKeyStates::Locked);
 
-        g_eventQueue.PushBack(Event(scanCode, shift, control));
+        // If num lock, then we will get the corresponding character received so ignore
+        if (!numLock)
+        {
+            g_eventQueue.PushBack(Event(scanCode, shift, control));
+        }
+
     }
 
     

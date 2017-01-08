@@ -25,7 +25,7 @@
 #include <agile.h>
 #include <concrt.h>
 
-
+#include "uwp.h"
 
 #include "common\uwpglobals.h"
 #include "common\CellBuffer.h"
@@ -325,13 +325,16 @@ term_start_raw_bold(void)
 void
 term_start_attr(int attrib)
 {
-    console.current_nhattr |= 1 << attrib;
+    assert(console.current_nhattr == 0);
+    if (attrib != ATR_NONE && console.current_nhattr == 0)
+        console.current_nhattr |= 1 << attrib;
 }
 
 void
 term_end_attr(int attrib)
 {
     console.current_nhattr &= ~(1 << attrib);
+    assert(console.current_nhattr == 0);
 }
 
 void
@@ -529,7 +532,7 @@ nttty_preference_update(const char * pref)
 char MapScanCode(const Nethack::Event & e)
 {
     assert(e.m_type == Nethack::Event::Type::ScanCode);
-    assert(e.m_scanCode >= ScanCode::Home && e.m_scanCode <= ScanCode::PageDown);
+    assert(e.m_scanCode >= ScanCode::Home && e.m_scanCode <= ScanCode::Delete);
 
     typedef struct {
         char normal, shift, control;
@@ -589,12 +592,12 @@ char MapScanCode(const Nethack::Event & e)
 int raw_getchar()
 {
     if (program_state.done_hup)
-        return '\033';
+        return ESCAPE;
 
     Nethack::Event e;
 
-    while (e.m_type != Nethack::Event::Type::Char ||
-        e.m_type == Nethack::Event::Type::ScanCode)
+    while (e.m_type != Nethack::Event::Type::Char &&
+           e.m_type != Nethack::Event::Type::ScanCode)
     {
         e = Nethack::g_eventQueue.PopFront();
     }
@@ -887,7 +890,8 @@ bool get_string(std::string & string, int maxLength)
     {
         char c = raw_getchar();
 
-        if (c == EOF) return false;
+        if (c == EOF || c == ESCAPE) return false;
+
         if (c == '\n') return true;
 
         if (c == '\b')
@@ -900,6 +904,9 @@ bool get_string(std::string & string, int maxLength)
             continue;
         }
 
+        if (!isprint(c))
+            continue;
+
         if (string.length() < maxLength)
         {
             Nethack::g_textGrid.Put(Nethack::TextColor::White, Nethack::TextAttribute::None, c);
@@ -908,7 +915,7 @@ bool get_string(std::string & string, int maxLength)
     }
 }
 
-bool add_option()
+void add_option()
 {
     Nethack::g_textGrid.Clear();
     Nethack::g_textGrid.Putstr(0, 0, Nethack::TextColor::White, Nethack::TextAttribute::None,
@@ -917,23 +924,20 @@ bool add_option()
         "Name:");
 
     std::string name;
-    if (!get_string(name, 60)) return false;
-
-    if (name.length() == 0) return true;
+    if (!get_string(name, 60)) return;
+    if (name.length() == 0) return;
 
     Nethack::g_textGrid.Putstr(10, 2, Nethack::TextColor::White, Nethack::TextAttribute::None,
         "Value:");
 
     std::string value;
-    if (!get_string(value, 60)) return false;
+    if (!get_string(value, 60)) return;
 
     Nethack::g_options.m_options.push_back(Nethack::Option(name, value));
     Nethack::g_options.Store();
-
-    return true;
 }
 
-bool remove_option()
+void remove_option()
 {
     Nethack::g_textGrid.Clear();
     Nethack::g_textGrid.Putstr(0, 0, Nethack::TextColor::White, Nethack::TextAttribute::None,
@@ -942,14 +946,12 @@ bool remove_option()
         "Name:");
 
     std::string name;
-    if (!get_string(name, 60)) return false;
-
-    if (name.length() == 0) return true;
+    if (!get_string(name, 60)) return;
+    if (name.length() == 0) return;
 
     Nethack::g_options.Remove(name);
     Nethack::g_options.Store();
 
-    return true;
 }
 
 bool change_options()
@@ -967,8 +969,6 @@ bool change_options()
             "a - Add");
         Nethack::g_textGrid.Putstr(10, 3, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "b - Remove");
-        Nethack::g_textGrid.Putstr(10, 4, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "c - Done");
 
         Nethack::g_textGrid.Putstr(0, 8, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "Current Options:");
@@ -980,13 +980,12 @@ bool change_options()
 
         char c = raw_getchar();
 
-        if (c == EOF) return false;
+        if (c == EOF || c == ESCAPE) return false;
 
         switch (c)
         {
-        case 'a': if (!add_option()) return false; break;
-        case 'b': if (!remove_option()) return false; break;
-        case 'c': done = true; break;
+        case 'a': add_option();  break;
+        case 'b': remove_option();  break;
         }
     }
 

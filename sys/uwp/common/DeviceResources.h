@@ -28,6 +28,8 @@
 
 #include <memory>
 
+#include "..\uwpasciitexture.h"
+
 
 namespace DX
 {
@@ -82,15 +84,19 @@ namespace DX
         IWICImagingFactory2*		GetWicImagingFactory() const			{ return m_wicFactory.Get(); }
         D2D1::Matrix3x2F			GetOrientationTransform2D() const		{ return m_orientationTransform2D; }
 
-        Nethack::Int2D        GetGlyphPixelDimensions() const { return Nethack::Int2D(44, 72); }
+        const Nethack::Int2D &  GetGlyphPixelDimensions() const { return m_glyphPixels; }
         void                    GetGlyphRect(unsigned char c, Nethack::FloatRect & outRect) const;
 
         static std::shared_ptr<DX::DeviceResources> s_deviceResources;
 
+        void CreateAsciiTexture(void);
+            
+        Nethack::AsciiTexture m_asciiTextureNew;
+        Nethack::AsciiTexture m_boldAsciiTextureNew;
+
     private:
         void CreateDeviceIndependentResources();
         void CreateDeviceResources();
-        void CreateAsciiTexture();
         void CreateWindowSizeDependentResources();
         void UpdateRenderTargetSize();
         DXGI_MODE_ROTATION ComputeDisplayRotation();
@@ -139,9 +145,11 @@ namespace DX
         IDeviceNotify* m_deviceNotify;
 
         // Ascii Texture
+        Nethack::Int2D                                      m_glyphPixels;
+        
         Microsoft::WRL::ComPtr<ID3D11Texture2D>             m_asciiTexture;
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    m_asciiTextureShaderResourceView;  // cube texture view
-        Microsoft::WRL::ComPtr<ID3D11SamplerState>          m_asciiTextureSampler;                    // cube texture sampler
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    m_asciiTextureShaderResourceView;
+        Microsoft::WRL::ComPtr<ID3D11SamplerState>          m_asciiTextureSampler;
 
     };
 }
