@@ -3,16 +3,13 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#if 0 // brh
-
-#define E extern
-
-#ifndef WINDOW_STRUCTS
-#define WINDOW_STRUCTS
+#ifndef UWP_GRAPHICS
+#error UWP_GRAPHICS must be defined
+#endif
 
 /* menu structure */
-typedef struct tty_mi {
-    struct tty_mi *next;
+typedef struct uwp_mi {
+    struct uwp_mi *next;
     anything identifier; /* user identifier */
     long count;          /* user count */
     char *str;           /* description string (including accelerator) */
@@ -20,10 +17,10 @@ typedef struct tty_mi {
     boolean selected;    /* TRUE if selected by user */
     char selector;       /* keyboard accelerator */
     char gselector;      /* group accelerator */
-} tty_menu_item;
+} uwp_menu_item;
 
 /* descriptor for tty-based windows */
-struct WinDesc {
+struct UwpWinDesc {
     int flags;           /* window flags */
     xchar type;          /* type of window */
     boolean active;      /* true if window is active */
@@ -36,8 +33,8 @@ struct WinDesc {
     short *datlen;         /* allocation size for *data */
     char **data;           /* window data [row][column] */
     char *morestr;         /* string to display instead of default */
-    tty_menu_item *mlist;  /* menu information (MENU) */
-    tty_menu_item **plist; /* menu page pointers (MENU) */
+    uwp_menu_item *mlist;  /* menu information (MENU) */
+    uwp_menu_item **plist; /* menu page pointers (MENU) */
     long plist_size;       /* size of allocated plist (MENU) */
     long npages;           /* number of pages in menu (MENU) */
     long nitems;           /* total number of items (MENU) */
@@ -46,13 +43,13 @@ struct WinDesc {
 };
 
 /* window flags */
-#define WIN_CANCELLED 1
-#define WIN_STOP 1        /* for NHW_MESSAGE; stops output */
-#define WIN_LOCKHISTORY 2 /* for NHW_MESSAGE; suppress history updates */
+#define UWP_WIN_CANCELLED 1
+#define UWP_WIN_STOP 1        /* for NHW_MESSAGE; stops output */
+#define UWP_WIN_LOCKHISTORY 2 /* for NHW_MESSAGE; suppress history updates */
 
-/* descriptor for tty-based displays -- all the per-display data */
-struct DisplayDesc {
-    short rows, cols; /* width and height of tty display */
+/* descriptor for uwp-based displays -- all the per-display data */
+struct UwpDisplayDesc {
+    short rows, cols; /* width and height of uwp display */
     short curx, cury; /* current cursor position on the screen */
 #ifdef TEXTCOLOR
     int color; /* current color */
@@ -67,69 +64,47 @@ struct DisplayDesc {
     char dismiss_more; /* extra character accepted at --More-- */
 };
 
-#endif /* WINDOW_STRUCTS */
+#define UWP_MAXWIN 20 /* maximum number of windows, cop-out */
+#define UWP_NHW_BASE 6
 
-#define MAXWIN 20 /* maximum number of windows, cop-out */
-
-/* tty dependent window types */
-#ifdef NHW_BASE
-#undef NHW_BASE
-#endif
-#define NHW_BASE 6
-
-extern struct window_procs tty_procs;
+extern struct window_procs uwp_procs;
 
 /* port specific variable declarations */
-extern winid BASE_WINDOW;
+extern winid UWP_BASE_WINDOW;
 
-extern struct WinDesc *wins[MAXWIN];
+extern struct UwpWinDesc *uwp_wins[UWP_MAXWIN];
 
-extern struct DisplayDesc *ttyDisplay; /* the tty display descriptor */
+extern struct UwpDisplayDesc *uwpDisplay; /* the uwp display descriptor */
 
-extern char morc;         /* last character typed to xwaitforspace */
-extern char defmorestr[]; /* default --more-- prompt */
+extern char uwp_morc;         /* last character typed to xwaitforspace */
+
+extern char uwp_defmorestr[]; /* default --more-- prompt */
 
 /* port specific external function references */
 
+void uwp_msmsg(const char * fmt, ...);
+
 /* ### getline.c ### */
-E void FDECL(xwaitforspace, (const char *));
+void FDECL(uwp_xwaitforspace, (const char *));
 
 /* ### termcap.c, video.c ### */
 
-E void FDECL(tty_startup, (int *, int *));
-#ifndef NO_TERMS
-E void NDECL(tty_shutdown);
-#endif
-#if defined(apollo)
-/* Apollos don't widen old-style function definitions properly -- they try to
- * be smart and use the prototype, or some such strangeness.  So we have to
- * define UNWIDENDED_PROTOTYPES (in tradstdc.h), which makes CHAR_P below a
- * char.  But the tputs termcap call was compiled as if xputc's argument
- * actually would be expanded.	So here, we have to make an exception. */
-E void FDECL(xputc, (int));
-#else
-E void FDECL(xputc, (CHAR_P));
-#endif
-E void FDECL(xputs, (const char *));
-#if defined(SCREEN_VGA) || defined(SCREEN_8514)
-E void FDECL(xputg, (int, int, unsigned));
-#endif
-E void NDECL(cl_end);
-E void NDECL(clear_screen);
-E void NDECL(home);
-E void NDECL(standoutbeg);
-E void NDECL(standoutend);
-#if 0
-E void NDECL(revbeg);
-E void NDECL(boldbeg);
-E void NDECL(blinkbeg);
-E void NDECL(dimbeg);
-E void NDECL(m_end);
-#endif
-E void NDECL(backsp);
-E void NDECL(graph_on);
-E void NDECL(graph_off);
-E void NDECL(cl_eos);
+void FDECL(uwp_startup, (int *, int *));
+
+void FDECL(uwp_xputc, (CHAR_P));
+
+void FDECL(uwp_xputs, (const char *));
+
+void NDECL(uwp_cl_end);
+void NDECL(uwp_clear_screen);
+void NDECL(uwp_home);
+void NDECL(uwp_standoutbeg);
+void NDECL(uwp_standoutend);
+
+void NDECL(uwp_backsp);
+void NDECL(uwp_graph_on);
+void NDECL(uwp_graph_off);
+void NDECL(uwp_cl_eos);
 
 /*
  * termcap.c (or facsimiles in other ports) is the right place for doing
@@ -137,128 +112,109 @@ E void NDECL(cl_eos);
  * a color or whatever.  wintty.c should concern itself with WHERE to put
  * stuff in a window.
  */
-E void FDECL(term_start_attr, (int attr));
-E void FDECL(term_end_attr, (int attr));
-E void NDECL(term_start_raw_bold);
-E void NDECL(term_end_raw_bold);
+void FDECL(uwp_term_start_attr, (int attr));
+void FDECL(uwp_term_end_attr, (int attr));
+void NDECL(uwp_term_start_raw_bold);
+void NDECL(uwp_term_end_raw_bold);
 
 #ifdef TEXTCOLOR
-E void NDECL(term_end_color);
-E void FDECL(term_start_color, (int color));
-E int FDECL(has_color, (int color));
+void NDECL(uwp_term_end_color);
+void FDECL(uwp_term_start_color, (int color));
+int FDECL(uwp_has_color, (int color));
 #endif /* TEXTCOLOR */
 
 /* ### topl.c ### */
 
-E void FDECL(addtopl, (const char *));
-E void NDECL(more);
-E void FDECL(update_topl, (const char *));
-E void FDECL(putsyms, (const char *));
+void FDECL(uwp_addtopl, (const char *));
+void NDECL(uwp_more);
+void FDECL(uwp_update_topl, (const char *));
+void FDECL(uwp_putsyms, (const char *));
 
 /* ### wintty.c ### */
 #ifdef CLIPPING
-E void NDECL(setclipped);
+void NDECL(uwp_setclipped);
 #endif
-E void FDECL(docorner, (int, int));
-E void NDECL(end_glyphout);
-E void FDECL(g_putch, (int));
-E void FDECL(win_tty_init, (int));
+void FDECL(uwp_docorner, (int, int));
+void NDECL(uwp_end_glyphout);
+void FDECL(uwp_g_putch, (int));
+void FDECL(win_uwp_init, (int));
 
 /* external declarations */
-E void FDECL(tty_init_nhwindows, (int *, char **));
-E void NDECL(tty_player_selection);
-E void NDECL(tty_askname);
-E void NDECL(tty_get_nh_event);
-E void FDECL(tty_exit_nhwindows, (const char *));
-E void FDECL(tty_suspend_nhwindows, (const char *));
-E void NDECL(tty_resume_nhwindows);
-E winid FDECL(tty_create_nhwindow, (int));
-E void FDECL(tty_clear_nhwindow, (winid));
-E void FDECL(tty_display_nhwindow, (winid, BOOLEAN_P));
-E void FDECL(tty_dismiss_nhwindow, (winid));
-E void FDECL(tty_destroy_nhwindow, (winid));
-E void FDECL(tty_curs, (winid, int, int));
-E void FDECL(tty_putstr, (winid, int, const char *));
-E void FDECL(tty_display_file, (const char *, BOOLEAN_P));
-E void FDECL(tty_start_menu, (winid));
-E void FDECL(tty_add_menu, (winid, int, const ANY_P *, CHAR_P, CHAR_P, int,
+void FDECL(uwp_init_nhwindows, (int *, char **));
+void NDECL(uwp_player_selection);
+void NDECL(uwp_askname);
+void NDECL(uwp_get_nh_event);
+void FDECL(uwp_exit_nhwindows, (const char *));
+void FDECL(uwp_suspend_nhwindows, (const char *));
+void NDECL(uwp_resume_nhwindows);
+winid FDECL(uwp_create_nhwindow, (int));
+void FDECL(uwp_clear_nhwindow, (winid));
+void FDECL(uwp_display_nhwindow, (winid, BOOLEAN_P));
+void FDECL(uwp_dismiss_nhwindow, (winid));
+void FDECL(uwp_destroy_nhwindow, (winid));
+void FDECL(uwp_curs, (winid, int, int));
+void FDECL(uwp_putstr, (winid, int, const char *));
+void FDECL(uwp_display_file, (const char *, BOOLEAN_P));
+void FDECL(uwp_start_menu, (winid));
+void FDECL(uwp_add_menu, (winid, int, const ANY_P *, CHAR_P, CHAR_P, int,
                             const char *, BOOLEAN_P));
-E void FDECL(tty_end_menu, (winid, const char *));
-E int FDECL(tty_select_menu, (winid, int, MENU_ITEM_P **));
-E char FDECL(tty_message_menu, (CHAR_P, int, const char *));
-E void NDECL(tty_update_inventory);
-E void NDECL(tty_mark_synch);
-E void NDECL(tty_wait_synch);
+void FDECL(uwp_end_menu, (winid, const char *));
+int FDECL(uwp_select_menu, (winid, int, MENU_ITEM_P **));
+char FDECL(uwp_message_menu, (CHAR_P, int, const char *));
+void NDECL(uwp_update_inventory);
+void NDECL(uwp_mark_synch);
+void NDECL(uwp_wait_synch);
 #ifdef CLIPPING
-E void FDECL(tty_cliparound, (int, int));
+void FDECL(uwp_cliparound, (int, int));
 #endif
 #ifdef POSITIONBAR
-E void FDECL(tty_update_positionbar, (char *));
+void FDECL(uwp_update_positionbar, (char *));
 #endif
-E void FDECL(tty_print_glyph, (winid, XCHAR_P, XCHAR_P, int, int));
-E void FDECL(tty_raw_print, (const char *));
-E void FDECL(tty_raw_print_bold, (const char *));
-E int NDECL(tty_nhgetch);
-E int FDECL(tty_nh_poskey, (int *, int *, int *));
-E void NDECL(tty_nhbell);
-E int NDECL(tty_doprev_message);
-E char FDECL(tty_yn_function, (const char *, const char *, CHAR_P));
-E void FDECL(tty_getlin, (const char *, char *));
-E int NDECL(tty_get_ext_cmd);
-E void FDECL(tty_number_pad, (int));
-E void NDECL(tty_delay_output);
+void FDECL(uwp_print_glyph, (winid, XCHAR_P, XCHAR_P, int, int));
+void FDECL(uwp_raw_print, (const char *));
+void FDECL(uwp_raw_print_bold, (const char *));
+int NDECL(uwp_nhgetch);
+int FDECL(uwp_nh_poskey, (int *, int *, int *));
+void NDECL(uwp_nhbell);
+int NDECL(uwp_doprev_message);
+char FDECL(uwp_yn_function, (const char *, const char *, CHAR_P));
+void FDECL(uwp_getlin, (const char *, char *));
+int NDECL(uwp_get_ext_cmd);
+void FDECL(uwp_number_pad, (int));
+void NDECL(uwp_delay_output);
 #ifdef CHANGE_COLOR
-E void FDECL(tty_change_color, (int color, long rgb, int reverse));
+void FDECL(uwp_change_color, (int color, long rgb, int reverse));
 #ifdef MAC
-E void FDECL(tty_change_background, (int white_or_black));
-E short FDECL(set_tty_font_name, (winid, char *));
+void FDECL(uwp_change_background, (int white_or_black));
+short FDECL(set_uwp_font_name, (winid, char *));
 #endif
-E char *NDECL(tty_get_color_string);
+char *NDECL(uwp_get_color_string);
 #endif
 #ifdef STATUS_VIA_WINDOWPORT
-E void NDECL(tty_status_init);
-E void FDECL(tty_status_update, (int, genericptr_t, int, int));
+void NDECL(uwp_status_init);
+void FDECL(uwp_status_update, (int, genericptr_t, int, int));
 #ifdef STATUS_HILITES
-E void FDECL(tty_status_threshold, (int, int, anything, int, int, int));
+void FDECL(uwp_status_threshold, (int, int, anything, int, int, int));
 #endif
 #endif
 
 /* other defs that really should go away (they're tty specific) */
-E void NDECL(tty_start_screen);
-E void NDECL(tty_end_screen);
+void NDECL(uwp_start_screen);
+void NDECL(uwp_end_screen);
 
-E void FDECL(genl_outrip, (winid, int, time_t));
+void FDECL(uwp_genl_outrip, (winid, int, time_t));
 
-E char *FDECL(tty_getmsghistory, (BOOLEAN_P));
-E void FDECL(tty_putmsghistory, (const char *, BOOLEAN_P));
+char *FDECL(uwp_getmsghistory, (BOOLEAN_P));
+void FDECL(uwp_putmsghistory, (const char *, BOOLEAN_P));
 
-#ifdef NO_TERMS
-#ifdef MAC
-#ifdef putchar
-#undef putchar
-#undef putc
-#endif
-#define putchar term_putc
-#define fflush term_flush
-#define puts term_puts
-E int FDECL(term_putc, (int c));
-E int FDECL(term_flush, (void *desc));
-E int FDECL(term_puts, (const char *str));
-#endif /* MAC */
-#if defined(MSDOS) || defined(WIN32)
-#if defined(SCREEN_BIOS) || defined(SCREEN_DJGPPFAST) || defined(WIN32)
+
 #undef putchar
 #undef putc
 #undef puts
-#define putchar(x) xputc(x) /* these are in video.c, nttty.c */
-#define putc(x) xputc(x)
-#define puts(x) xputs(x)
-#endif /*SCREEN_BIOS || SCREEN_DJGPPFAST || WIN32 */
-#ifdef POSITIONBAR
-E void FDECL(video_update_positionbar, (char *));
-#endif
-#endif /*MSDOS*/
-#endif /*NO_TERMS*/
+#define putchar(x) uwp_xputc(x) /* these are in video.c, nttty.c */
+#define putc(x) uwp_xputc(x)
+#define puts(x) uwp_xputs(x)
 
-#undef E
+#ifdef POSITIONBAR
+void FDECL(uwp_video_update_positionbar, (char *));
 #endif

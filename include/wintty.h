@@ -5,6 +5,10 @@
 #ifndef WINTTY_H
 #define WINTTY_H
 
+#ifndef TTY_GRAPHICS
+#error TTY_GRAPHICS must be defined
+#endif
+
 #define E extern
 
 #ifndef WINDOW_STRUCTS

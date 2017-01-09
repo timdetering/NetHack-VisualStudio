@@ -4,7 +4,9 @@
 /* NetHack may be freely redistributed.  See license for details. */
 
 #include "hack.h"
-#include "wintty.h"
+
+//#include "wintty.h"
+
 #include "dlb.h"
 
 #include <assert.h>
@@ -39,9 +41,12 @@ extern int redirect_stdout;       /* from sys/share/pcsys.c */
 extern int GUILaunched;
 HANDLE hStdOut;
 char *NDECL(exename);
-char default_window_sys[] = "tty";
+
+char default_window_sys[] = DEFAULT_WINDOW_SYS;
+
 boolean NDECL(fakeconsole);
 void NDECL(freefakeconsole);
+extern void NDECL(clear_screen);
 
 void
 verify_record_file()
@@ -174,10 +179,12 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
 
     toggle_mouse_support(); /* must come after process_options */
 
+    // load up the game windows before we start asking questions
+    display_gamewindows();
+
     /* strip role,race,&c suffix; calls askname() if plname[] is empty
     or holds a generic user name like "player" or "games" */
     plnamesuffix();
-    clear_screen();
 
     set_playmode(); /* sets plname to "wizard" for wizard mode */
 #if 0
@@ -233,8 +240,6 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     *  new game or before a level restore on a saved game.
     */
     vision_init();
-
-    display_gamewindows();
 
     /*
     * First, try to find and restore a save file for specified character.

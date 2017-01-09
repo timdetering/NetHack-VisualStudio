@@ -23,3 +23,8 @@ Notes
 
 - marked the application as high dpi aware
 
+- found a problem with key bindings due to the static local backed_dir_cmd in reset_commands() when playing
+  game for second time the flag is not in the right state since it retains the setting from the previous
+  game.  The simple fix to this problem is to set the flag again when initial is true.  The problem is that
+  this type of problem can be throughtout the code.  Probably can only find these types of problems by
+  code inspection.

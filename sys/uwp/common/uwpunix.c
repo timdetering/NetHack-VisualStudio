@@ -6,7 +6,10 @@
 /* This file collects some Unix dependencies; pager.c contains some more */
 
 #include "hack.h"
-#include "wintty.h"
+
+#include <assert.h>
+
+//#include "wintty.h"
 
 #include <sys/stat.h>
 #if defined(WIN32) || defined(MSDOS)
@@ -96,6 +99,7 @@ eraseoldlocks()
     return (1);   /* success! */
 }
 
+#if 0
 // This prompt will work even when the windowing system has not been initialized
 boolean prompt_yn(const char * prompt)
 {
@@ -132,6 +136,7 @@ boolean prompt_yn(const char * prompt)
 
     return (c == 'y') || (c == 'Y');
 }
+#endif
 
 void
 getlock()
@@ -140,6 +145,9 @@ getlock()
     int fcmask = FCMASK;
     char tbuf[BUFSZ];
     const char *fq_lock;
+
+    // Shoudl only be called when windowing system is initialized
+    assert(iflags.window_inited);
 
     /* we ignore QUIT and INT at this point */
     if (!lock_file(HLOCK, LOCKPREFIX, 10)) {
@@ -163,14 +171,11 @@ getlock()
 
     (void)nhclose(fd);
 
-
-    if (prompt_yn("There are files from a game in progress under your name. Recover?")) {
-        clear_screen();
+    if (yn("There are files from a game in progress under your name. Recover?")) {
         if (recover_savefile()) {
             goto gotlock;
         }
-        else if (prompt_yn("Recovery failed.  Continue by removing corrupt saved files?")) {
-            clear_screen();
+        else if (yn("Recovery failed.  Continue by removing corrupt saved files?")) {
             if (!eraseoldlocks()) {
                 unlock_file(HLOCK);
                 error("Cound not remove corrupt saved files.  Exiting.");

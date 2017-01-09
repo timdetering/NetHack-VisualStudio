@@ -108,7 +108,7 @@ static struct Bool_Opt {
     { "dark_room", &flags.dark_room, TRUE, SET_IN_GAME },
     { "eight_bit_tty", &iflags.wc_eight_bit_input, FALSE,
       SET_IN_GAME }, /*WC*/
-#ifdef TTY_GRAPHICS
+#if defined(TTY_GRAPHICS) || defined(UWP_GRAPHICS)
     { "extmenu", &iflags.extmenu, FALSE, SET_IN_GAME },
 #else
     { "extmenu", (boolean *) 0, FALSE, SET_IN_FILE },
@@ -149,7 +149,7 @@ static struct Bool_Opt {
     /* for menu debugging only*/
     { "menu_tab_sep", &iflags.menu_tab_sep, FALSE, SET_IN_WIZGAME },
     { "menu_objsyms", &iflags.menu_head_objsym, FALSE, SET_IN_GAME },
-#ifdef TTY_GRAPHICS
+#if defined(TTY_GRAPHICS) || defined(UWP_GRAPHICS)
     { "menu_overlay", &iflags.menu_overlay, TRUE, SET_IN_GAME },
 #else
     { "menu_overlay", (boolean *) 0, FALSE, SET_IN_FILE },
@@ -319,7 +319,7 @@ static struct Comp_Opt {
     { "monsters", "the symbols to use for monsters", MAXMCLASSES,
       SET_IN_FILE },
     { "msghistory", "number of top line messages to save", 5, DISP_IN_GAME },
-#ifdef TTY_GRAPHICS
+#if defined(TTY_GRAPHICS) || defined(UWP_GRAPHICS)
     { "msg_window", "the type of message window required", 1, SET_IN_GAME },
 #else
     { "msg_window", "the type of message window required", 1, SET_IN_FILE },
@@ -697,7 +697,7 @@ initoptions_init()
     flags.pile_limit = PILE_LIMIT_DFLT;  /* 5 */
     flags.runmode = RUN_LEAP;
     iflags.msg_history = 20;
-#ifdef TTY_GRAPHICS
+#if defined(TTY_GRAPHICS) || defined(UWP_GRAPHICS)
     iflags.prevmsg_window = 's';
 #endif
     iflags.menu_headings = ATR_INVERSE;
@@ -2130,7 +2130,7 @@ boolean tinitial, tfrom_file;
     /* msg_window:single, combo, full or reversed */
     if (match_optname(opts, fullname, 4, TRUE)) {
 /* allow option to be silently ignored by non-tty ports */
-#ifdef TTY_GRAPHICS
+#if defined(TTY_GRAPHICS) || defined(UWP_GRAPHICS)
         int tmp;
 
         if (duplicate)
@@ -4277,7 +4277,7 @@ boolean setinitial, setfromfile;
         }
         destroy_nhwindow(tmpwin);
     } else if (!strcmp("msg_window", optname)) {
-#ifdef TTY_GRAPHICS
+#if defined(TTY_GRAPHICS) || defined(UWP_GRAPHICS)
         /* by Christian W. Cooper */
         menu_item *window_pick = (menu_item *) 0;
 
@@ -4963,7 +4963,7 @@ char *buf;
         Sprintf(buf, "%s", to_be_done);
     } else if (!strcmp(optname, "msghistory")) {
         Sprintf(buf, "%u", iflags.msg_history);
-#ifdef TTY_GRAPHICS
+#if defined(TTY_GRAPHICS) || defined(UWP_GRAPHICS)
     } else if (!strcmp(optname, "msg_window")) {
         Sprintf(buf, "%s", (iflags.prevmsg_window == 's')
                                ? "single"

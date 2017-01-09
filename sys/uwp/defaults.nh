@@ -97,7 +97,7 @@ OPTIONS=align_message:top
 
 # Other
 OPTIONS=hilite_pet
-OPTIONS=!toptenwin
+OPTIONS=toptenwin
 #OPTIONS=!splash_screen,player_selection:prompts
 
 # Status/message window colors

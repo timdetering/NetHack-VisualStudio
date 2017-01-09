@@ -418,6 +418,18 @@
     <ClCompile Include="..\..\..\win\uwp\winuwp.c">
       <Filter>win\uwp</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\win\uwp\uwptopl.c">
+      <Filter>win\uwp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\win\uwp\uwpgetline.c">
+      <Filter>win\uwp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\win\uwp\ntuwp.cpp">
+      <Filter>win\uwp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\uwptty.cpp">
+      <Filter>sys\uwp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="$(SysDir)uwp\assets\StoreLogo.png">

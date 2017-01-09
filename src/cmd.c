@@ -376,7 +376,8 @@ doextlist(VOID_ARGS)
     return 0;
 }
 
-#ifdef TTY_GRAPHICS
+// TODO(bhouse) Temporary enable this for UWP_GRAPHICS
+#if defined(TTY_GRAPHICS) || defined(UWP_GRAPHICS)
 #define MAX_EXT_CMD 200 /* Change if we ever have more ext cmds */
 
 /*
@@ -3719,6 +3720,7 @@ boolean initial;
     static boolean backed_dir_cmd = FALSE;
 
     if (initial) {
+        backed_dir_cmd = FALSE;
         updated = 1;
         Cmd.num_pad = FALSE;
         Cmd.pcHack_compat = Cmd.phone_layout = Cmd.swap_yz = FALSE;

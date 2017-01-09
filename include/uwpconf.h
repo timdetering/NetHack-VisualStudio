@@ -6,9 +6,43 @@
 #ifndef UWPCONF_H
 #define UWPCONF_H
 
+#ifndef TTY_GRAPHICS
+#error TTY_GRAPHICS is expected to be defined at this point
+#endif
+
+#ifndef DEFAULT_WINDOW_SYS
+#error DEFAULT_WINDOW_SYS is expecte to be set and equal to "tty"
+#endif
+
+#ifdef UWP_GRAPHICS
+#error UWP_GRAPHICS is not expected to be defined at this point
+#endif
+
+// By default we will enable both TTY and UWP graphics
 #define UWP_GRAPHICS
+
+// Test defines used to ensure UWP and TTY support are independent.
+// Uncommand out one to test having support for one only windowing
+// system.
+//#define UWP_ONLY
+#define TTY_ONLY
+
+#ifdef UWP_ONLY
+#ifdef TTY_ONLY
+#error TTY_ONLY can not be defined when TTY_ONLY is defined
+#endif
+
 #undef DEFAULT_WINDOW_SYS
-#define DEFAULT_WINDOW_SYS "tty" // will eventually be "uwp"
+#define DEFAULT_WINDOW_SYS "uwp"
+
+#define NOTTYGRAPHICS
+#undef TTY_GRAPHICS
+#endif // UWP_ONLY
+
+#ifdef TTY_ONLY
+#undef UWP_GRAPHICS
+#endif // TTY_ONLY
+
 
 #define RANDOM    /* have Berkeley random(3) */
 #define TEXTCOLOR /* Color text */
@@ -225,7 +259,7 @@ extern int FDECL(alternative_palette, (char *));
 #include <windows.h>
 
 /* getenv is not available in UWP */
-extern const char * uwp_getenv(const char * env);
+extern char * uwp_getenv(const char * env);
 #define getenv(x) uwp_getenv(x)
 
 /* No SYSCF support */

@@ -6,3 +6,12 @@
 #pragma once
 
 #define ESCAPE 27
+
+#include "common\uwpeventqueue.h"
+
+extern"C" {
+
+    extern char MapScanCode(const Nethack::Event & e);
+    extern int raw_getchar();
+
+}

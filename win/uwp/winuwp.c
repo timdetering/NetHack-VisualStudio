@@ -8,6 +8,8 @@
 
 #include "hack.h"
 
+#ifdef UWP_GRAPHICS
+
 #include "dlb.h"
 
 #ifndef NO_TERMS
@@ -18,15 +20,9 @@
 #define UWP_GRAPHICS must be defined
 #endif
 
-#ifndef TTY_GRAPHICS    // TODO: this will eventually be removed
-#define TTY_GRAPHICS must be defined
-#endif
-
-#include "wintty.h" // TODO: this will eventually be removed
-
 #include "winuwp.h"
 
-#ifdef TTY_TILES_ESCCODES
+#ifdef UWP_TILES_ESCCODES
 extern short glyph2tile[];
 #define TILE_ANSI_COMMAND 'z'
 #define AVTC_GLYPH_START   0
@@ -37,7 +33,7 @@ extern short glyph2tile[];
 
 extern char mapped_menu_cmds[]; /* from options.c */
 
-                                /* this is only needed until tty_status_* routines are written */
+                                /* this is only needed until uwp_status_* routines are written */
 extern NEARDATA winid WIN_STATUS;
 
 /* Interface definition, for windows.c */
@@ -52,140 +48,137 @@ struct window_procs uwp_procs = {
     WC2_SELECTSAVED |
 #endif
     WC2_DARKGRAY,
-    tty_init_nhwindows, tty_player_selection, tty_askname, tty_get_nh_event,
-    tty_exit_nhwindows, tty_suspend_nhwindows, tty_resume_nhwindows,
-    tty_create_nhwindow, tty_clear_nhwindow, tty_display_nhwindow,
-    tty_destroy_nhwindow, tty_curs, tty_putstr, genl_putmixed,
-    tty_display_file, tty_start_menu, tty_add_menu, tty_end_menu,
-    tty_select_menu, tty_message_menu, tty_update_inventory, tty_mark_synch,
-    tty_wait_synch,
+    uwp_init_nhwindows, uwp_player_selection, uwp_askname, uwp_get_nh_event,
+    uwp_exit_nhwindows, uwp_suspend_nhwindows, uwp_resume_nhwindows,
+    uwp_create_nhwindow, uwp_clear_nhwindow, uwp_display_nhwindow,
+    uwp_destroy_nhwindow, uwp_curs, uwp_putstr, genl_putmixed,
+    uwp_display_file, uwp_start_menu, uwp_add_menu, uwp_end_menu,
+    uwp_select_menu, uwp_message_menu, uwp_update_inventory, uwp_mark_synch,
+    uwp_wait_synch,
 #ifdef CLIPPING
-    tty_cliparound,
+    uwp_cliparound,
 #endif
 #ifdef POSITIONBAR
-    tty_update_positionbar,
+    uwp_update_positionbar,
 #endif
-    tty_print_glyph, tty_raw_print, tty_raw_print_bold, tty_nhgetch,
-    tty_nh_poskey, tty_nhbell, tty_doprev_message, tty_yn_function,
-    tty_getlin, tty_get_ext_cmd, tty_number_pad, tty_delay_output,
+    uwp_print_glyph, uwp_raw_print, uwp_raw_print_bold, uwp_nhgetch,
+    uwp_nh_poskey, uwp_nhbell, uwp_doprev_message, uwp_yn_function,
+    uwp_getlin, uwp_get_ext_cmd, uwp_number_pad, uwp_delay_output,
 #ifdef CHANGE_COLOR /* the Mac uses a palette device */
-    tty_change_color,
+    uwp_change_color,
 #ifdef MAC
-    tty_change_background, set_tty_font_name,
+    uwp_change_background, set_uwp_font_name,
 #endif
-    tty_get_color_string,
+    uwp_get_color_string,
 #endif
 
-    /* other defs that really should go away (they're tty specific) */
-    tty_start_screen, tty_end_screen, genl_outrip,
+    /* other defs that really should go away (they're uwp specific) */
+    uwp_start_screen, uwp_end_screen, genl_outrip,
 #if defined(WIN32)
     nttty_preference_update,
 #else
     genl_preference_update,
 #endif
-    tty_getmsghistory, tty_putmsghistory,
+    uwp_getmsghistory, uwp_putmsghistory,
 #ifdef STATUS_VIA_WINDOWPORT
-    tty_status_init,
+    uwp_status_init,
     genl_status_finish, genl_status_enablefield,
-    tty_status_update,
+    uwp_status_update,
 #ifdef STATUS_HILITES
-    tty_status_threshold,
+    uwp_status_threshold,
 #endif
 #endif
     genl_can_suspend_yes,
 };
 
-#if 0 // brh
+static int uwp_maxwin = 0; /* number of windows in use */
+winid UWP_BASE_WINDOW;
+struct UwpWinDesc *uwp_wins[UWP_MAXWIN];
+struct UwpDisplayDesc *uwpDisplay; /* the uwp display descriptor */
 
-static int maxwin = 0; /* number of windows in use */
-winid BASE_WINDOW;
-struct WinDesc *wins[MAXWIN];
-struct DisplayDesc *ttyDisplay; /* the tty display descriptor */
+extern void FDECL(uwp_cmov, (int, int));
+extern void FDECL(uwp_nocmov, (int, int));
 
-extern void FDECL(cmov, (int, int));   /* from termcap.c */
-extern void FDECL(nocmov, (int, int)); /* from termcap.c */
-#if defined(UNIX) || defined(VMS)
-static char obuf[BUFSIZ]; /* BUFSIZ is defined in stdio.h */
-#endif
+extern void uwp_settty(const char *s);
+extern int uwp_tgetch(void);
+extern int uwp_ntposkey(int *x, int *y, int * mod);
+extern void uwp_getreturn(const char * str);
 
-static char winpanicstr[] = "Bad window id %d";
-char defmorestr[] = "--More--";
+
+static char uwp_winpanicstr[] = "Bad window id %d";
+char uwp_defmorestr[] = "--More--";
 
 #ifdef CLIPPING
 #if defined(USE_TILES) && defined(MSDOS)
-boolean clipping = FALSE; /* clipping on? */
-int clipx = 0, clipxmax = 0;
+boolean uwp_clipping = FALSE; /* clipping on? */
+int uwp_clipx = 0, uwp_clipxmax = 0;
 #else
-static boolean clipping = FALSE; /* clipping on? */
-static int clipx = 0, clipxmax = 0;
+static boolean uwp_clipping = FALSE; /* clipping on? */
+static int uwp_clipx = 0, uwp_clipxmax = 0;
 #endif
-static int clipy = 0, clipymax = 0;
+static int uwp_clipy = 0, uwp_clipymax = 0;
 #endif /* CLIPPING */
 
 #if defined(USE_TILES) && defined(MSDOS)
-extern void FDECL(adjust_cursor_flags, (struct WinDesc *));
+extern void FDECL(uwp_adjust_cursor_flags, (struct UwpWinDesc *));
 #endif
 
 #if defined(ASCIIGRAPH) && !defined(NO_TERMS)
-boolean GFlag = FALSE;
-boolean HE_resets_AS; /* see termcap.c */
+boolean uwp_GFlag = FALSE;
+boolean uwp_HE_resets_AS; /* see termcap.c */
 #endif
 
 #if defined(MICRO) || defined(WIN32CON)
-static const char to_continue[] = "to continue";
-#define getret() getreturn(to_continue)
+static const char uwp_to_continue[] = "to continue";
+#define getret() uwp_getreturn(uwp_to_continue)
 #else
-STATIC_DCL void NDECL(getret);
+STATIC_DCL void NDECL(uwp_getret);
 #endif
-STATIC_DCL void FDECL(erase_menu_or_text,
-(winid, struct WinDesc *, BOOLEAN_P));
-STATIC_DCL void FDECL(free_window_info, (struct WinDesc *, BOOLEAN_P));
-STATIC_DCL void FDECL(dmore, (struct WinDesc *, const char *));
-STATIC_DCL void FDECL(set_item_state, (winid, int, tty_menu_item *));
-STATIC_DCL void FDECL(set_all_on_page, (winid, tty_menu_item *,
-    tty_menu_item *));
-STATIC_DCL void FDECL(unset_all_on_page, (winid, tty_menu_item *,
-    tty_menu_item *));
-STATIC_DCL void FDECL(invert_all_on_page, (winid, tty_menu_item *,
-    tty_menu_item *, CHAR_P));
-STATIC_DCL void FDECL(invert_all, (winid, tty_menu_item *,
-    tty_menu_item *, CHAR_P));
-STATIC_DCL void FDECL(toggle_menu_attr, (BOOLEAN_P, int, int));
-STATIC_DCL void FDECL(process_menu_window, (winid, struct WinDesc *));
-STATIC_DCL void FDECL(process_text_window, (winid, struct WinDesc *));
-STATIC_DCL tty_menu_item *FDECL(reverse, (tty_menu_item *));
-STATIC_DCL const char *FDECL(compress_str, (const char *));
-STATIC_DCL void FDECL(tty_putsym, (winid, int, int, CHAR_P));
-STATIC_DCL void FDECL(bail, (const char *)); /* __attribute__((noreturn)) */
-STATIC_DCL void FDECL(setup_rolemenu, (winid, BOOLEAN_P, int, int, int));
-STATIC_DCL void FDECL(setup_racemenu, (winid, BOOLEAN_P, int, int, int));
-STATIC_DCL void FDECL(setup_gendmenu, (winid, BOOLEAN_P, int, int, int));
-STATIC_DCL void FDECL(setup_algnmenu, (winid, BOOLEAN_P, int, int, int));
-STATIC_DCL boolean NDECL(reset_role_filtering);
+
+STATIC_DCL void FDECL(uwp_erase_menu_or_text, (winid, struct UwpWinDesc *, BOOLEAN_P));
+STATIC_DCL void FDECL(uwp_free_window_info, (struct UwpWinDesc *, BOOLEAN_P));
+STATIC_DCL void FDECL(uwp_dmore, (struct UwpWinDesc *, const char *));
+STATIC_DCL void FDECL(uwp_set_item_state, (winid, int, uwp_menu_item *));
+STATIC_DCL void FDECL(uwp_set_all_on_page, (winid, uwp_menu_item *, uwp_menu_item *));
+STATIC_DCL void FDECL(unset_all_on_page, (winid, uwp_menu_item *, uwp_menu_item *));
+STATIC_DCL void FDECL(invert_all_on_page, (winid, uwp_menu_item *, uwp_menu_item *, CHAR_P));
+STATIC_DCL void FDECL(invert_all, (winid, uwp_menu_item *, uwp_menu_item *, CHAR_P));
+STATIC_DCL void FDECL(uwp_toggle_menu_attr, (BOOLEAN_P, int, int));
+STATIC_DCL void FDECL(uwp_process_menu_window, (winid, struct UwpWinDesc *));
+STATIC_DCL void FDECL(uwp_process_text_window, (winid, struct UwpWinDesc *));
+STATIC_DCL uwp_menu_item *FDECL(uwp_reverse, (uwp_menu_item *));
+STATIC_DCL const char *FDECL(uwp_compress_str, (const char *));
+STATIC_DCL void FDECL(uwp_putsym, (winid, int, int, CHAR_P));
+STATIC_DCL void FDECL(uwp_bail, (const char *)); /* __attribute__((noreturn)) */
+STATIC_DCL void FDECL(uwp_setup_rolemenu, (winid, BOOLEAN_P, int, int, int));
+STATIC_DCL void FDECL(uwp_setup_racemenu, (winid, BOOLEAN_P, int, int, int));
+STATIC_DCL void FDECL(uwp_setup_gendmenu, (winid, BOOLEAN_P, int, int, int));
+STATIC_DCL void FDECL(uwp_setup_algnmenu, (winid, BOOLEAN_P, int, int, int));
+STATIC_DCL boolean NDECL(uwp_reset_role_filtering);
 
 /*
 * A string containing all the default commands -- to add to a list
 * of acceptable inputs.
 */
-static const char default_menu_cmds[] = {
+static const char uwp_default_menu_cmds[] = {
     MENU_FIRST_PAGE,    MENU_LAST_PAGE,   MENU_NEXT_PAGE,
     MENU_PREVIOUS_PAGE, MENU_SELECT_ALL,  MENU_UNSELECT_ALL,
     MENU_INVERT_ALL,    MENU_SELECT_PAGE, MENU_UNSELECT_PAGE,
     MENU_INVERT_PAGE,   MENU_SEARCH,      0 /* null terminator */
 };
 
-#ifdef TTY_TILES_ESCCODES
-static int vt_tile_current_window = -2;
+#ifdef UWP_TILES_ESCCODES
+static int uwp_vt_tile_current_window = -2;
 
 void
-print_vt_code(i, c, d)
+uwp_print_vt_code(i, c, d)
 int i, c, d;
 {
     if (iflags.vt_tiledata) {
         if (c >= 0) {
             if (i == AVTC_SELECT_WINDOW) {
-                if (c == vt_tile_current_window) return;
-                vt_tile_current_window = c;
+                if (c == uwp_vt_tile_current_window) return;
+                uwp_vt_tile_current_window = c;
             }
             if (d >= 0)
                 printf("\033[1;%d;%d;%d%c", i, c, d, TILE_ANSI_COMMAND);
@@ -198,169 +191,76 @@ int i, c, d;
     }
 }
 #else
-# define print_vt_code(i, c, d) ;
-#endif /* !TTY_TILES_ESCCODES */
-#define print_vt_code1(i)     print_vt_code((i), -1, -1)
-#define print_vt_code2(i,c)   print_vt_code((i), (c), -1)
-#define print_vt_code3(i,c,d) print_vt_code((i), (c), (d))
+# define uwp_print_vt_code(i, c, d) ;
+#endif /* !UWP_TILES_ESCCODES */
+
+#define uwp_print_vt_code1(i)     uwp_print_vt_code((i), -1, -1)
+#define uwp_print_vt_code2(i,c)   uwp_print_vt_code((i), (c), -1)
+#define uwp_print_vt_code3(i,c,d) uwp_print_vt_code((i), (c), (d))
 
 
 /* clean up and quit */
 STATIC_OVL void
-bail(mesg)
+uwp_bail(mesg)
 const char *mesg;
 {
     clearlocks();
-    tty_exit_nhwindows(mesg);
+    uwp_exit_nhwindows(mesg);
     terminate(EXIT_SUCCESS);
     /*NOTREACHED*/
 }
 
-#if defined(SIGWINCH) && defined(CLIPPING)
-STATIC_DCL void FDECL(winch_handler, (int));
-
-/*
-* This really ought to just set a flag like the hangup handler does,
-* then check the flag at "safe" times, in case the signal arrives
-* while something fragile is executing.  Better to have a brief period
-* where display updates don't fit the new size than for tty internals
-* to become corrupted.
-*
-* 'winch_seen' has been "notyet" for a long time....
-*/
-/*ARGUSED*/
-STATIC_OVL void
-winch_handler(sig_unused) /* signal handler is called with at least 1 arg */
-int sig_unused UNUSED;
-{
-    int oldLI = LI, oldCO = CO, i;
-    register struct WinDesc *cw;
-
-#ifdef WINCHAIN
-    {
-#define WINCH_MESSAGE "(SIGWINCH)"
-        if (wc_tracelogf)
-            (void)write(fileno(wc_tracelogf), WINCH_MESSAGE,
-                strlen(WINCH_MESSAGE));
-#undef WINCH_MESSAGE
-    }
-#endif
-    getwindowsz();
-    /* For long running events such as multi-page menus and
-    * display_file(), we note the signal's occurance and
-    * hope the code there decides to handle the situation
-    * and reset the flag. There will be race conditions
-    * when handling this - code handlers so it doesn't matter.
-    */
-#ifdef notyet
-    winch_seen = TRUE;
-#endif
-    if ((oldLI != LI || oldCO != CO) && ttyDisplay) {
-        ttyDisplay->rows = LI;
-        ttyDisplay->cols = CO;
-
-        cw = wins[BASE_WINDOW];
-        cw->rows = ttyDisplay->rows;
-        cw->cols = ttyDisplay->cols;
-
-        if (iflags.window_inited) {
-            cw = wins[WIN_MESSAGE];
-            cw->curx = cw->cury = 0;
-
-            tty_destroy_nhwindow(WIN_STATUS);
-            WIN_STATUS = tty_create_nhwindow(NHW_STATUS);
-
-            if (u.ux) {
-#ifdef CLIPPING
-                if (CO < COLNO || LI < ROWNO + 3) {
-                    setclipped();
-                    tty_cliparound(u.ux, u.uy);
-                }
-                else {
-                    clipping = FALSE;
-                    clipx = clipy = 0;
-                }
-#endif
-                i = ttyDisplay->toplin;
-                ttyDisplay->toplin = 0;
-                docrt();
-                bot();
-                ttyDisplay->toplin = i;
-                flush_screen(1);
-                if (i) {
-                    addtopl(toplines);
-                }
-                else
-                    for (i = WIN_INVEN; i < MAXWIN; i++)
-                        if (wins[i] && wins[i]->active) {
-                            /* cop-out */
-                            addtopl("Press Return to continue: ");
-                            break;
-                        }
-                (void)fflush(stdout);
-                if (i < 2)
-                    flush_screen(1);
-            }
-        }
-    }
-}
-#endif
-
 /*ARGSUSED*/
 void
-tty_init_nhwindows(argcp, argv)
+uwp_init_nhwindows(argcp, argv)
 int *argcp UNUSED;
 char **argv UNUSED;
 {
     int wid, hgt, i;
 
     /*
-    *  Remember tty modes, to be restored on exit.
+    *  Remember uwp modes, to be restored on exit.
     *
-    *  gettty() must be called before tty_startup()
+    *  gettty() must be called before uwp_startup()
     *    due to ordering of LI/CO settings
-    *  tty_startup() must be called before initoptions()
+    *  uwp_startup() must be called before initoptions()
     *    due to ordering of graphics settings
     */
-#if defined(UNIX) || defined(VMS)
-    setbuf(stdout, obuf);
-#endif
+    // TODO: thing through gettty().  Why is it needed?
     gettty();
 
-    /* to port dependant tty setup */
-    tty_startup(&wid, &hgt);
+    /* to port dependant uwp setup */
+    uwp_startup(&wid, &hgt);
+
+    // TODO: think through setftty().  Why is it needed?
     setftty(); /* calls start_screen */
 
-               /* set up tty descriptor */
-    ttyDisplay = (struct DisplayDesc *) alloc(sizeof(struct DisplayDesc));
-    ttyDisplay->toplin = 0;
-    ttyDisplay->rows = hgt;
-    ttyDisplay->cols = wid;
-    ttyDisplay->curx = ttyDisplay->cury = 0;
-    ttyDisplay->inmore = ttyDisplay->inread = ttyDisplay->intr = 0;
-    ttyDisplay->dismiss_more = 0;
+               /* set up uwp descriptor */
+    uwpDisplay = (struct UwpDisplayDesc *) alloc(sizeof(struct UwpDisplayDesc));
+    uwpDisplay->toplin = 0;
+    uwpDisplay->rows = hgt;
+    uwpDisplay->cols = wid;
+    uwpDisplay->curx = uwpDisplay->cury = 0;
+    uwpDisplay->inmore = uwpDisplay->inread = uwpDisplay->intr = 0;
+    uwpDisplay->dismiss_more = 0;
 #ifdef TEXTCOLOR
-    ttyDisplay->color = NO_COLOR;
+    uwpDisplay->color = NO_COLOR;
 #endif
-    ttyDisplay->attrs = 0;
+    uwpDisplay->attrs = 0;
 
     /* set up the default windows */
-    BASE_WINDOW = tty_create_nhwindow(NHW_BASE);
-    wins[BASE_WINDOW]->active = 1;
+    UWP_BASE_WINDOW = uwp_create_nhwindow(UWP_NHW_BASE);
+    uwp_wins[UWP_BASE_WINDOW]->active = 1;
 
-    ttyDisplay->lastwin = WIN_ERR;
+    uwpDisplay->lastwin = WIN_ERR;
 
-#if defined(SIGWINCH) && defined(CLIPPING) && !defined(NO_SIGNAL)
-    (void)signal(SIGWINCH, (SIG_RET_TYPE)winch_handler);
-#endif
+    uwp_clear_nhwindow(UWP_BASE_WINDOW);
 
-    tty_clear_nhwindow(BASE_WINDOW);
-
-    tty_putstr(BASE_WINDOW, 0, "");
+    uwp_putstr(UWP_BASE_WINDOW, 0, "");
     for (i = 1; i <= 4; ++i)
-        tty_putstr(BASE_WINDOW, 0, copyright_banner_line(i));
-    tty_putstr(BASE_WINDOW, 0, "");
-    tty_display_nhwindow(BASE_WINDOW, FALSE);
+        uwp_putstr(UWP_BASE_WINDOW, 0, copyright_banner_line(i));
+    uwp_putstr(UWP_BASE_WINDOW, 0, "");
+    uwp_display_nhwindow(UWP_BASE_WINDOW, FALSE);
 }
 
 /* try to reduce clutter in the code below... */
@@ -370,7 +270,7 @@ char **argv UNUSED;
 #define ALGN flags.initalign
 
 void
-tty_player_selection()
+uwp_player_selection()
 {
     int i, k, n, choice, nextpick;
     boolean getconfirmation, picksomething;
@@ -419,9 +319,9 @@ tty_player_selection()
         a - like 'y', but skips confirmation and starts game;
         q - quit
         */
-        tty_putstr(BASE_WINDOW, 0, "");
-        echoline = wins[BASE_WINDOW]->cury;
-        tty_putstr(BASE_WINDOW, 0, prompt);
+        uwp_putstr(UWP_BASE_WINDOW, 0, "");
+        echoline = uwp_wins[UWP_BASE_WINDOW]->cury;
+        uwp_putstr(UWP_BASE_WINDOW, 0, prompt);
         do {
             pick4u = lowc(readchar());
             if (index(quitchars, pick4u))
@@ -429,9 +329,9 @@ tty_player_selection()
         } while (!index(ynaqchars, pick4u));
         if ((int)strlen(prompt) + 1 < CO) {
             /* Echo choice and move back down line */
-            tty_putsym(BASE_WINDOW, (int)strlen(prompt) + 1, echoline,
+            uwp_putsym(UWP_BASE_WINDOW, (int)strlen(prompt) + 1, echoline,
                 pick4u);
-            tty_putstr(BASE_WINDOW, 0, "");
+            uwp_putstr(UWP_BASE_WINDOW, 0, "");
         }
         else
             /* Otherwise it's hard to tell where to echo, and things are
@@ -439,7 +339,7 @@ tty_player_selection()
             * question shows up well and doesn't get wrapped at the
             * bottom of the window.
             */
-            tty_clear_nhwindow(BASE_WINDOW);
+            uwp_clear_nhwindow(UWP_BASE_WINDOW);
 
         if (pick4u != 'y' && pick4u != 'a' && pick4u != 'n')
             goto give_up;
@@ -459,18 +359,18 @@ makepicks:
                     /* Pick a random role */
                     k = pick_role(RACE, GEND, ALGN, PICK_RANDOM);
                     if (k < 0) {
-                        tty_putstr(BASE_WINDOW, 0, "Incompatible role!");
+                        uwp_putstr(UWP_BASE_WINDOW, 0, "Incompatible role!");
                         k = randrole();
                     }
                 }
                 else {
                     /* Prompt for a role */
-                    tty_clear_nhwindow(BASE_WINDOW);
-                    role_selection_prolog(RS_ROLE, BASE_WINDOW);
+                    uwp_clear_nhwindow(UWP_BASE_WINDOW);
+                    role_selection_prolog(RS_ROLE, UWP_BASE_WINDOW);
                     win = create_nhwindow(NHW_MENU);
                     start_menu(win);
                     /* populate the menu with role choices */
-                    setup_rolemenu(win, TRUE, RACE, GEND, ALGN);
+                    uwp_setup_rolemenu(win, TRUE, RACE, GEND, ALGN);
                     /* add miscellaneous menu entries */
                     role_menu_extra(ROLE_RANDOM, win, TRUE);
                     any.a_int = 0; /* separator, not a choice */
@@ -523,7 +423,7 @@ makepicks:
                     }
                     else if (choice == RS_menu_arg(RS_filter)) {
                         ROLE = k = ROLE_NONE;
-                        (void)reset_role_filtering();
+                        (void)uwp_reset_role_filtering();
                         nextpick = RS_ROLE;
                     }
                     else if (choice == ROLE_RANDOM) {
@@ -549,7 +449,7 @@ makepicks:
                 if (pick4u == 'y' || pick4u == 'a' || RACE == ROLE_RANDOM) {
                     k = pick_race(ROLE, GEND, ALGN, PICK_RANDOM);
                     if (k < 0) {
-                        tty_putstr(BASE_WINDOW, 0, "Incompatible race!");
+                        uwp_putstr(UWP_BASE_WINDOW, 0, "Incompatible race!");
                         k = randrace(ROLE);
                     }
                 }
@@ -571,13 +471,13 @@ makepicks:
                     }
                     /* Permit the user to pick, if there is more than one */
                     if (n > 1) {
-                        tty_clear_nhwindow(BASE_WINDOW);
-                        role_selection_prolog(RS_RACE, BASE_WINDOW);
+                        uwp_clear_nhwindow(UWP_BASE_WINDOW);
+                        role_selection_prolog(RS_RACE, UWP_BASE_WINDOW);
                         win = create_nhwindow(NHW_MENU);
                         start_menu(win);
                         any = zeroany; /* zero out all bits */
                                        /* populate the menu with role choices */
-                        setup_racemenu(win, TRUE, ROLE, GEND, ALGN);
+                        uwp_setup_racemenu(win, TRUE, ROLE, GEND, ALGN);
                         /* add miscellaneous menu entries */
                         role_menu_extra(ROLE_RANDOM, win, TRUE);
                         any.a_int = 0; /* separator, not a choice */
@@ -620,7 +520,7 @@ makepicks:
                         }
                         else if (choice == RS_menu_arg(RS_filter)) {
                             RACE = k = ROLE_NONE;
-                            if (reset_role_filtering())
+                            if (uwp_reset_role_filtering())
                                 nextpick = RS_ROLE;
                             else
                                 nextpick = RS_RACE;
@@ -650,7 +550,7 @@ makepicks:
                 if (pick4u == 'y' || pick4u == 'a' || GEND == ROLE_RANDOM) {
                     k = pick_gend(ROLE, RACE, ALGN, PICK_RANDOM);
                     if (k < 0) {
-                        tty_putstr(BASE_WINDOW, 0, "Incompatible gender!");
+                        uwp_putstr(UWP_BASE_WINDOW, 0, "Incompatible gender!");
                         k = randgend(ROLE, RACE);
                     }
                 }
@@ -672,13 +572,13 @@ makepicks:
                     }
                     /* Permit the user to pick, if there is more than one */
                     if (n > 1) {
-                        tty_clear_nhwindow(BASE_WINDOW);
-                        role_selection_prolog(RS_GENDER, BASE_WINDOW);
+                        uwp_clear_nhwindow(UWP_BASE_WINDOW);
+                        role_selection_prolog(RS_GENDER, UWP_BASE_WINDOW);
                         win = create_nhwindow(NHW_MENU);
                         start_menu(win);
                         any = zeroany; /* zero out all bits */
                                        /* populate the menu with gender choices */
-                        setup_gendmenu(win, TRUE, ROLE, RACE, ALGN);
+                        uwp_setup_gendmenu(win, TRUE, ROLE, RACE, ALGN);
                         /* add miscellaneous menu entries */
                         role_menu_extra(ROLE_RANDOM, win, TRUE);
                         any.a_int = 0; /* separator, not a choice */
@@ -721,7 +621,7 @@ makepicks:
                         }
                         else if (choice == RS_menu_arg(RS_filter)) {
                             GEND = k = ROLE_NONE;
-                            if (reset_role_filtering())
+                            if (uwp_reset_role_filtering())
                                 nextpick = RS_ROLE;
                             else
                                 nextpick = RS_GENDER;
@@ -749,7 +649,7 @@ makepicks:
                 if (pick4u == 'y' || pick4u == 'a' || ALGN == ROLE_RANDOM) {
                     k = pick_align(ROLE, RACE, GEND, PICK_RANDOM);
                     if (k < 0) {
-                        tty_putstr(BASE_WINDOW, 0, "Incompatible alignment!");
+                        uwp_putstr(UWP_BASE_WINDOW, 0, "Incompatible alignment!");
                         k = randalign(ROLE, RACE);
                     }
                 }
@@ -771,12 +671,12 @@ makepicks:
                     }
                     /* Permit the user to pick, if there is more than one */
                     if (n > 1) {
-                        tty_clear_nhwindow(BASE_WINDOW);
-                        role_selection_prolog(RS_ALGNMNT, BASE_WINDOW);
+                        uwp_clear_nhwindow(UWP_BASE_WINDOW);
+                        role_selection_prolog(RS_ALGNMNT, UWP_BASE_WINDOW);
                         win = create_nhwindow(NHW_MENU);
                         start_menu(win);
                         any = zeroany; /* zero out all bits */
-                        setup_algnmenu(win, TRUE, ROLE, RACE, GEND);
+                        uwp_setup_algnmenu(win, TRUE, ROLE, RACE, GEND);
                         role_menu_extra(ROLE_RANDOM, win, TRUE);
                         any.a_int = 0; /* separator, not a choice */
                         add_menu(win, NO_GLYPH, &any, 0, 0, ATR_NONE, "",
@@ -818,7 +718,7 @@ makepicks:
                         }
                         else if (choice == RS_menu_arg(RS_filter)) {
                             ALGN = k = ROLE_NONE;
-                            if (reset_role_filtering())
+                            if (uwp_reset_role_filtering())
                                 nextpick = RS_ROLE;
                             else
                                 nextpick = RS_ALGNMNT;
@@ -858,8 +758,8 @@ makepicks:
     */
     getconfirmation = (picksomething && pick4u != 'a' && !flags.randomall);
     while (getconfirmation) {
-        tty_clear_nhwindow(BASE_WINDOW);
-        role_selection_prolog(ROLE_NONE, BASE_WINDOW);
+        uwp_clear_nhwindow(UWP_BASE_WINDOW);
+        role_selection_prolog(ROLE_NONE, UWP_BASE_WINDOW);
         win = create_nhwindow(NHW_MENU);
         start_menu(win);
         any = zeroany; /* zero out all bits */
@@ -942,20 +842,20 @@ makepicks:
     }
 
     /* Success! */
-    tty_display_nhwindow(BASE_WINDOW, FALSE);
+    uwp_display_nhwindow(UWP_BASE_WINDOW, FALSE);
     return;
 
 give_up:
     /* Quit */
     if (selected)
         free((genericptr_t)selected); /* [obsolete] */
-    bail((char *)0);
+    uwp_bail((char *)0);
     /*NOTREACHED*/
     return;
 }
 
 STATIC_OVL boolean
-reset_role_filtering()
+uwp_reset_role_filtering()
 {
     winid win;
     anything any;
@@ -969,22 +869,22 @@ reset_role_filtering()
     /* no extra blank line preceding this entry; end_menu supplies one */
     add_menu(win, NO_GLYPH, &any, 0, 0, ATR_NONE,
         "Unacceptable roles", MENU_UNSELECTED);
-    setup_rolemenu(win, FALSE, ROLE_NONE, ROLE_NONE, ROLE_NONE);
+    uwp_setup_rolemenu(win, FALSE, ROLE_NONE, ROLE_NONE, ROLE_NONE);
 
     add_menu(win, NO_GLYPH, &any, 0, 0, ATR_NONE, "", MENU_UNSELECTED);
     add_menu(win, NO_GLYPH, &any, 0, 0, ATR_NONE,
         "Unacceptable races", MENU_UNSELECTED);
-    setup_racemenu(win, FALSE, ROLE_NONE, ROLE_NONE, ROLE_NONE);
+    uwp_setup_racemenu(win, FALSE, ROLE_NONE, ROLE_NONE, ROLE_NONE);
 
     add_menu(win, NO_GLYPH, &any, 0, 0, ATR_NONE, "", MENU_UNSELECTED);
     add_menu(win, NO_GLYPH, &any, 0, 0, ATR_NONE,
         "Unacceptable genders", MENU_UNSELECTED);
-    setup_gendmenu(win, FALSE, ROLE_NONE, ROLE_NONE, ROLE_NONE);
+    uwp_setup_gendmenu(win, FALSE, ROLE_NONE, ROLE_NONE, ROLE_NONE);
 
     add_menu(win, NO_GLYPH, &any, 0, 0, ATR_NONE, "", MENU_UNSELECTED);
     add_menu(win, NO_GLYPH, &any, 0, 0, ATR_NONE,
         "Uncceptable alignments", MENU_UNSELECTED);
-    setup_algnmenu(win, FALSE, ROLE_NONE, ROLE_NONE, ROLE_NONE);
+    uwp_setup_algnmenu(win, FALSE, ROLE_NONE, ROLE_NONE, ROLE_NONE);
 
     end_menu(win, "Pick all that apply");
     n = select_menu(win, PICK_ANY, &selected);
@@ -1009,7 +909,7 @@ reset_role_filtering()
 
 /* add entries a-Archeologist, b-Barbarian, &c to menu being built in 'win' */
 STATIC_OVL void
-setup_rolemenu(win, filtering, race, gend, algn)
+uwp_setup_rolemenu(win, filtering, race, gend, algn)
 winid win;
 boolean filtering; /* True => exclude filtered roles; False => filter reset */
 int race, gend, algn; /* all ROLE_NONE for !filtering case */
@@ -1044,7 +944,7 @@ int race, gend, algn; /* all ROLE_NONE for !filtering case */
                 Strcat(rolenamebuf, roles[i].name.f);
             }
         }
-        /* !filtering implies reset_role_filtering() where we want to
+        /* !filtering implies uwp_reset_role_filtering() where we want to
         mark this role as preseleted if current filter excludes it */
         add_menu(win, NO_GLYPH, &any, thisch, 0, ATR_NONE, an(rolenamebuf),
             (!filtering && !role_ok) ? MENU_SELECTED : MENU_UNSELECTED);
@@ -1053,7 +953,7 @@ int race, gend, algn; /* all ROLE_NONE for !filtering case */
 }
 
 STATIC_OVL void
-setup_racemenu(win, filtering, role, gend, algn)
+uwp_setup_racemenu(win, filtering, role, gend, algn)
 winid win;
 boolean filtering;
 int role, gend, algn;
@@ -1086,7 +986,7 @@ int role, gend, algn;
 }
 
 STATIC_DCL void
-setup_gendmenu(win, filtering, role, race, algn)
+uwp_setup_gendmenu(win, filtering, role, race, algn)
 winid win;
 boolean filtering;
 int role, race, algn;
@@ -1106,8 +1006,8 @@ int role, race, algn;
         else
             any.a_string = genders[i].adj;
         this_ch = *genders[i].adj;
-        /* (see setup_racemenu for explanation of selector letters
-        and setup_rolemenu for preselection) */
+        /* (see uwp_setup_racemenu for explanation of selector letters
+        and uwp_setup_rolemenu for preselection) */
         add_menu(win, NO_GLYPH, &any,
             filtering ? this_ch : highc(this_ch),
             filtering ? highc(this_ch) : 0,
@@ -1117,7 +1017,7 @@ int role, race, algn;
 }
 
 STATIC_DCL void
-setup_algnmenu(win, filtering, role, race, gend)
+uwp_setup_algnmenu(win, filtering, role, race, gend)
 winid win;
 boolean filtering;
 int role, race, gend;
@@ -1137,8 +1037,8 @@ int role, race, gend;
         else
             any.a_string = aligns[i].adj;
         this_ch = *aligns[i].adj;
-        /* (see setup_racemenu for explanation of selector letters
-        and setup_rolemenu for preselection) */
+        /* (see uwp_setup_racemenu for explanation of selector letters
+        and uwp_setup_rolemenu for preselection) */
         add_menu(win, NO_GLYPH, &any,
             filtering ? this_ch : highc(this_ch),
             filtering ? highc(this_ch) : 0,
@@ -1154,16 +1054,16 @@ int role, race, gend;
 * Always called after init_nhwindows() and before display_gamewindows().
 */
 void
-tty_askname()
+uwp_askname()
 {
     static const char who_are_you[] = "Who are you? ";
     register int c, ct, tryct = 0;
 
 #ifdef SELECTSAVED
     if (iflags.wc2_selectsaved && !iflags.renameinprogress)
-        switch (restore_menu(BASE_WINDOW)) {
+        switch (restore_menu(UWP_BASE_WINDOW)) {
         case -1:
-            bail("Until next time then..."); /* quit */
+            uwp_bail("Until next time then..."); /* quit */
                                              /*NOTREACHED*/
         case 0:
             break; /* no game chosen; start new game */
@@ -1172,22 +1072,22 @@ tty_askname()
         }
 #endif /* SELECTSAVED */
 
-    tty_putstr(BASE_WINDOW, 0, "");
+    uwp_putstr(UWP_BASE_WINDOW, 0, "");
     do {
         if (++tryct > 1) {
             if (tryct > 10)
-                bail("Giving up after 10 tries.\n");
-            tty_curs(BASE_WINDOW, 1, wins[BASE_WINDOW]->cury - 1);
-            tty_putstr(BASE_WINDOW, 0, "Enter a name for your character...");
+                uwp_bail("Giving up after 10 tries.\n");
+            uwp_curs(UWP_BASE_WINDOW, 1, uwp_wins[UWP_BASE_WINDOW]->cury - 1);
+            uwp_putstr(UWP_BASE_WINDOW, 0, "Enter a name for your character...");
             /* erase previous prompt (in case of ESC after partial response)
             */
-            tty_curs(BASE_WINDOW, 1, wins[BASE_WINDOW]->cury), cl_end();
+            uwp_curs(UWP_BASE_WINDOW, 1, uwp_wins[UWP_BASE_WINDOW]->cury), uwp_cl_end();
         }
-        tty_putstr(BASE_WINDOW, 0, who_are_you);
-        tty_curs(BASE_WINDOW, (int)(sizeof who_are_you),
-            wins[BASE_WINDOW]->cury - 1);
+        uwp_putstr(UWP_BASE_WINDOW, 0, who_are_you);
+        uwp_curs(UWP_BASE_WINDOW, (int)(sizeof who_are_you),
+            uwp_wins[UWP_BASE_WINDOW]->cury - 1);
         ct = 0;
-        while ((c = tty_nhgetch()) != '\n') {
+        while ((c = uwp_nhgetch()) != '\n') {
             if (c == EOF)
                 c = '\033';
             if (c == '\033') {
@@ -1196,22 +1096,22 @@ tty_askname()
             } /* continue outer loop */
 #if defined(WIN32CON)
             if (c == '\003')
-                bail("^C abort.\n");
+                uwp_bail("^C abort.\n");
 #endif
             /* some people get confused when their erase char is not ^H */
             if (c == '\b' || c == '\177') {
                 if (ct) {
                     ct--;
 #ifdef WIN32CON
-                    ttyDisplay->curx--;
+                    uwpDisplay->curx--;
 #endif
 #if defined(MICRO) || defined(WIN32CON)
 #if defined(WIN32CON) || defined(MSDOS)
-                    backsp(); /* \b is visible on NT */
+                    uwp_backsp(); /* \b is visible on NT */
                     (void)putchar(' ');
-                    backsp();
+                    uwp_backsp();
 #else
-                    msmsg("\b \b");
+                    uwp_msmsg("\b \b");
 #endif
 #else
                     (void)putchar('\b');
@@ -1238,13 +1138,13 @@ tty_askname()
                 }
                 else
 #endif
-                    msmsg("%c", c);
+                    uwp_msmsg("%c", c);
 #else
                 (void)putchar(c);
 #endif
                 plname[ct++] = c;
 #ifdef WIN32CON
-                ttyDisplay->curx++;
+                uwpDisplay->curx++;
 #endif
             }
         }
@@ -1252,7 +1152,7 @@ tty_askname()
     } while (ct == 0);
 
     /* move to next line to simulate echo of user's <return> */
-    tty_curs(BASE_WINDOW, 1, wins[BASE_WINDOW]->cury + 1);
+    uwp_curs(UWP_BASE_WINDOW, 1, uwp_wins[UWP_BASE_WINDOW]->cury + 1);
 
     /* since we let user pick an arbitrary name now, he/she can pick
     another one during role selection */
@@ -1260,7 +1160,7 @@ tty_askname()
 }
 
 void
-tty_get_nh_event()
+uwp_get_nh_event()
 {
     return;
 }
@@ -1269,29 +1169,29 @@ tty_get_nh_event()
 STATIC_OVL void
 getret()
 {
-    xputs("\n");
+    uwp_xputs("\n");
     if (flags.standout)
-        standoutbeg();
-    xputs("Hit ");
-    xputs(iflags.cbreak ? "space" : "return");
-    xputs(" to continue: ");
+        uwp_standoutbeg();
+    uwp_xputs("Hit ");
+    uwp_xputs(iflags.cbreak ? "space" : "return");
+    uwp_xputs(" to continue: ");
     if (flags.standout)
-        standoutend();
-    xwaitforspace(" ");
+        uwp_standoutend();
+    uwp_xwaitforspace(" ");
 }
 #endif
 
 void
-tty_suspend_nhwindows(str)
+uwp_suspend_nhwindows(str)
 const char *str;
 {
-    settty(str); /* calls end_screen, perhaps raw_print */
+    uwp_settty(str); /* calls end_screen, perhaps raw_print */
     if (!str)
-        tty_raw_print(""); /* calls fflush(stdout) */
+        uwp_raw_print(""); /* calls fflush(stdout) */
 }
 
 void
-tty_resume_nhwindows()
+uwp_resume_nhwindows()
 {
     gettty();
     setftty(); /* calls start_screen */
@@ -1299,25 +1199,25 @@ tty_resume_nhwindows()
 }
 
 void
-tty_exit_nhwindows(str)
+uwp_exit_nhwindows(str)
 const char *str;
 {
     winid i;
 
-    tty_suspend_nhwindows(str);
+    uwp_suspend_nhwindows(str);
     /*
     * Disable windows to avoid calls to window routines.
     */
     free_pickinv_cache(); /* reset its state as well as tear down window */
-    for (i = 0; i < MAXWIN; i++) {
-        if (i == BASE_WINDOW)
-            continue; /* handle wins[BASE_WINDOW] last */
-        if (wins[i]) {
+    for (i = 0; i < UWP_MAXWIN; i++) {
+        if (i == UWP_BASE_WINDOW)
+            continue; /* handle uwp_wins[UWP_BASE_WINDOW] last */
+        if (uwp_wins[i]) {
 #ifdef FREE_ALL_MEMORY
-            free_window_info(wins[i], TRUE);
-            free((genericptr_t)wins[i]);
+            uwp_free_window_info(uwp_wins[i], TRUE);
+            free((genericptr_t)uwp_wins[i]);
 #endif
-            wins[i] = (struct WinDesc *) 0;
+            uwp_wins[i] = (struct UwpWinDesc *) 0;
         }
     }
     WIN_MAP = WIN_MESSAGE = WIN_INVEN = WIN_ERR; /* these are all gone now */
@@ -1325,48 +1225,48 @@ const char *str;
     WIN_STATUS = WIN_ERR;
 #endif
 #ifdef FREE_ALL_MEMORY
-    if (BASE_WINDOW != WIN_ERR && wins[BASE_WINDOW]) {
-        free_window_info(wins[BASE_WINDOW], TRUE);
-        free((genericptr_t)wins[BASE_WINDOW]);
-        wins[BASE_WINDOW] = (struct WinDesc *) 0;
-        BASE_WINDOW = WIN_ERR;
+    if (UWP_BASE_WINDOW != WIN_ERR && uwp_wins[UWP_BASE_WINDOW]) {
+        uwp_free_window_info(uwp_wins[UWP_BASE_WINDOW], TRUE);
+        free((genericptr_t)uwp_wins[UWP_BASE_WINDOW]);
+        uwp_wins[UWP_BASE_WINDOW] = (struct UwpWinDesc *) 0;
+        UWP_BASE_WINDOW = WIN_ERR;
     }
-    free((genericptr_t)ttyDisplay);
-    ttyDisplay = (struct DisplayDesc *) 0;
+    free((genericptr_t)uwpDisplay);
+    uwpDisplay = (struct UwpDisplayDesc *) 0;
 #endif
 
 #ifndef NO_TERMS    /*(until this gets added to the window interface)*/
-    tty_shutdown(); /* cleanup termcap/terminfo/whatever */
+    uwp_shutdown(); /* cleanup termcap/terminfo/whatever */
 #endif
     iflags.window_inited = 0;
 }
 
 winid
-tty_create_nhwindow(type)
+uwp_create_nhwindow(type)
 int type;
 {
-    struct WinDesc *newwin;
+    struct UwpWinDesc *newwin;
     int i;
     int newid;
 
-    if (maxwin == MAXWIN)
+    if (uwp_maxwin == UWP_MAXWIN)
         return WIN_ERR;
 
-    newwin = (struct WinDesc *) alloc(sizeof(struct WinDesc));
+    newwin = (struct UwpWinDesc *) alloc(sizeof(struct UwpWinDesc));
     newwin->type = type;
     newwin->flags = 0;
     newwin->active = FALSE;
     newwin->curx = newwin->cury = 0;
     newwin->morestr = 0;
-    newwin->mlist = (tty_menu_item *)0;
-    newwin->plist = (tty_menu_item **)0;
+    newwin->mlist = (uwp_menu_item *)0;
+    newwin->plist = (uwp_menu_item **)0;
     newwin->npages = newwin->plist_size = newwin->nitems = newwin->how = 0;
     switch (type) {
-    case NHW_BASE:
+    case UWP_NHW_BASE:
         /* base window, used for absolute movement on the screen */
         newwin->offx = newwin->offy = 0;
-        newwin->rows = ttyDisplay->rows;
-        newwin->cols = ttyDisplay->cols;
+        newwin->rows = uwpDisplay->rows;
+        newwin->cols = uwpDisplay->cols;
         newwin->maxrow = newwin->maxcol = 0;
         break;
     case NHW_MESSAGE:
@@ -1385,13 +1285,13 @@ int type;
         newwin->offx = 0;
 #if defined(USE_TILES) && defined(MSDOS)
         if (iflags.grmode) {
-            newwin->offy = ttyDisplay->rows - 2;
+            newwin->offy = uwpDisplay->rows - 2;
         }
         else
 #endif
-            newwin->offy = min((int)ttyDisplay->rows - 2, ROWNO + 1);
+            newwin->offy = min((int)uwpDisplay->rows - 2, ROWNO + 1);
         newwin->rows = newwin->maxrow = 2;
-        newwin->cols = newwin->maxcol = ttyDisplay->cols;
+        newwin->cols = newwin->maxcol = uwpDisplay->cols;
         break;
     case NHW_MAP:
         /* map window, ROWNO lines long, full width, below message window */
@@ -1409,7 +1309,7 @@ int type;
         /* help window, the same, different semantics for display, etc */
         newwin->offx = newwin->offy = 0;
         newwin->rows = 0;
-        newwin->cols = ttyDisplay->cols;
+        newwin->cols = uwpDisplay->cols;
         newwin->maxrow = newwin->maxcol = 0;
         break;
     default:
@@ -1417,13 +1317,13 @@ int type;
         return WIN_ERR;
     }
 
-    for (newid = 0; newid < MAXWIN; newid++) {
-        if (wins[newid] == 0) {
-            wins[newid] = newwin;
+    for (newid = 0; newid < UWP_MAXWIN; newid++) {
+        if (uwp_wins[newid] == 0) {
+            uwp_wins[newid] = newwin;
             break;
         }
     }
-    if (newid == MAXWIN) {
+    if (newid == UWP_MAXWIN) {
         panic("No window slots!");
         return WIN_ERR;
     }
@@ -1460,31 +1360,31 @@ int type;
 STATIC_OVL void
 erase_menu_or_text(window, cw, clear)
 winid window;
-struct WinDesc *cw;
+struct UwpWinDesc *cw;
 boolean clear;
 {
     if (cw->offx == 0)
         if (cw->offy) {
-            tty_curs(window, 1, 0);
-            cl_eos();
+            uwp_curs(window, 1, 0);
+            uwp_cl_eos();
         }
         else if (clear)
-            clear_screen();
+            uwp_clear_screen();
         else
             docrt();
     else
-        docorner((int)cw->offx, cw->maxrow + 1);
+        uwp_docorner((int)cw->offx, cw->maxrow + 1);
 }
 
 STATIC_OVL void
-free_window_info(cw, free_data)
-struct WinDesc *cw;
+uwp_free_window_info(cw, free_data)
+struct UwpWinDesc *cw;
 boolean free_data;
 {
     int i;
 
     if (cw->data) {
-        if (cw == wins[WIN_MESSAGE] && cw->rows > cw->maxrow)
+        if (cw == uwp_wins[WIN_MESSAGE] && cw->rows > cw->maxrow)
             cw->maxrow = cw->rows; /* topl data */
         for (i = 0; i < cw->maxrow; i++)
             if (cw->data[i]) {
@@ -1504,7 +1404,7 @@ boolean free_data;
     }
     cw->maxrow = cw->maxcol = 0;
     if (cw->mlist) {
-        tty_menu_item *temp;
+        uwp_menu_item *temp;
 
         while ((temp = cw->mlist) != 0) {
             cw->mlist = cw->mlist->next;
@@ -1525,45 +1425,45 @@ boolean free_data;
 }
 
 void
-tty_clear_nhwindow(window)
+uwp_clear_nhwindow(window)
 winid window;
 {
-    register struct WinDesc *cw = 0;
+    register struct UwpWinDesc *cw = 0;
 
-    if (window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0)
-        panic(winpanicstr, window);
-    ttyDisplay->lastwin = window;
+    if (window == WIN_ERR || (cw = uwp_wins[window]) == (struct UwpWinDesc *) 0)
+        panic(uwp_winpanicstr, window);
+    uwpDisplay->lastwin = window;
 
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
+    uwp_print_vt_code2(AVTC_SELECT_WINDOW, window);
 
     switch (cw->type) {
     case NHW_MESSAGE:
-        if (ttyDisplay->toplin) {
-            home();
-            cl_end();
+        if (uwpDisplay->toplin) {
+            uwp_home();
+            uwp_cl_end();
             if (cw->cury)
-                docorner(1, cw->cury + 1);
-            ttyDisplay->toplin = 0;
+                uwp_docorner(1, cw->cury + 1);
+            uwpDisplay->toplin = 0;
         }
         break;
     case NHW_STATUS:
-        tty_curs(window, 1, 0);
-        cl_end();
-        tty_curs(window, 1, 1);
-        cl_end();
+        uwp_curs(window, 1, 0);
+        uwp_cl_end();
+        uwp_curs(window, 1, 1);
+        uwp_cl_end();
         break;
     case NHW_MAP:
         /* cheap -- clear the whole thing and tell nethack to redraw botl */
         context.botlx = 1;
         /* fall into ... */
-    case NHW_BASE:
-        clear_screen();
+    case UWP_NHW_BASE:
+        uwp_clear_screen();
         break;
     case NHW_MENU:
     case NHW_TEXT:
         if (cw->active)
             erase_menu_or_text(window, cw, TRUE);
-        free_window_info(cw, FALSE);
+        uwp_free_window_info(cw, FALSE);
         break;
     }
     cw->curx = cw->cury = 0;
@@ -1572,7 +1472,7 @@ winid window;
 boolean
 toggle_menu_curr(window, curr, lineno, in_view, counting, count)
 winid window;
-tty_menu_item *curr;
+uwp_menu_item *curr;
 int lineno;
 boolean in_view, counting;
 long count;
@@ -1581,14 +1481,14 @@ long count;
         if (counting && count > 0) {
             curr->count = count;
             if (in_view)
-                set_item_state(window, lineno, curr);
+                uwp_set_item_state(window, lineno, curr);
             return TRUE;
         }
         else { /* change state */
             curr->selected = FALSE;
             curr->count = -1L;
             if (in_view)
-                set_item_state(window, lineno, curr);
+                uwp_set_item_state(window, lineno, curr);
             return TRUE;
         }
     }
@@ -1597,13 +1497,13 @@ long count;
             curr->count = count;
             curr->selected = TRUE;
             if (in_view)
-                set_item_state(window, lineno, curr);
+                uwp_set_item_state(window, lineno, curr);
             return TRUE;
         }
         else if (!counting) {
             curr->selected = TRUE;
             if (in_view)
-                set_item_state(window, lineno, curr);
+                uwp_set_item_state(window, lineno, curr);
             return TRUE;
         }
         /* do nothing counting&&count==0 */
@@ -1613,77 +1513,77 @@ long count;
 
 STATIC_OVL void
 dmore(cw, s)
-register struct WinDesc *cw;
+register struct UwpWinDesc *cw;
 const char *s; /* valid responses */
 {
-    const char *prompt = cw->morestr ? cw->morestr : defmorestr;
+    const char *prompt = cw->morestr ? cw->morestr : uwp_defmorestr;
     int offset = (cw->type == NHW_TEXT) ? 1 : 2;
 
-    tty_curs(BASE_WINDOW, (int)ttyDisplay->curx + offset,
-        (int)ttyDisplay->cury);
+    uwp_curs(UWP_BASE_WINDOW, (int)uwpDisplay->curx + offset,
+        (int)uwpDisplay->cury);
     if (flags.standout)
-        standoutbeg();
-    xputs(prompt);
-    ttyDisplay->curx += strlen(prompt);
+        uwp_standoutbeg();
+    uwp_xputs(prompt);
+    uwpDisplay->curx += strlen(prompt);
     if (flags.standout)
-        standoutend();
+        uwp_standoutend();
 
-    xwaitforspace(s);
+    uwp_xwaitforspace(s);
 }
 
 STATIC_OVL void
-set_item_state(window, lineno, item)
+uwp_set_item_state(window, lineno, item)
 winid window;
 int lineno;
-tty_menu_item *item;
+uwp_menu_item *item;
 {
     char ch = item->selected ? (item->count == -1L ? '+' : '#') : '-';
 
-    tty_curs(window, 4, lineno);
-    term_start_attr(item->attr);
+    uwp_curs(window, 4, lineno);
+    uwp_term_start_attr(item->attr);
     (void)putchar(ch);
-    ttyDisplay->curx++;
-    term_end_attr(item->attr);
+    uwpDisplay->curx++;
+    uwp_term_end_attr(item->attr);
 }
 
 STATIC_OVL void
 set_all_on_page(window, page_start, page_end)
 winid window;
-tty_menu_item *page_start, *page_end;
+uwp_menu_item *page_start, *page_end;
 {
-    tty_menu_item *curr;
+    uwp_menu_item *curr;
     int n;
 
     for (n = 0, curr = page_start; curr != page_end; n++, curr = curr->next)
         if (curr->identifier.a_void && !curr->selected) {
             curr->selected = TRUE;
-            set_item_state(window, n, curr);
+            uwp_set_item_state(window, n, curr);
         }
 }
 
 STATIC_OVL void
 unset_all_on_page(window, page_start, page_end)
 winid window;
-tty_menu_item *page_start, *page_end;
+uwp_menu_item *page_start, *page_end;
 {
-    tty_menu_item *curr;
+    uwp_menu_item *curr;
     int n;
 
     for (n = 0, curr = page_start; curr != page_end; n++, curr = curr->next)
         if (curr->identifier.a_void && curr->selected) {
             curr->selected = FALSE;
             curr->count = -1L;
-            set_item_state(window, n, curr);
+            uwp_set_item_state(window, n, curr);
         }
 }
 
 STATIC_OVL void
 invert_all_on_page(window, page_start, page_end, acc)
 winid window;
-tty_menu_item *page_start, *page_end;
+uwp_menu_item *page_start, *page_end;
 char acc; /* group accelerator, 0 => all */
 {
-    tty_menu_item *curr;
+    uwp_menu_item *curr;
     int n;
 
     for (n = 0, curr = page_start; curr != page_end; n++, curr = curr->next)
@@ -1694,7 +1594,7 @@ char acc; /* group accelerator, 0 => all */
             }
             else
                 curr->selected = TRUE;
-            set_item_state(window, n, curr);
+            uwp_set_item_state(window, n, curr);
         }
 }
 
@@ -1704,12 +1604,12 @@ char acc; /* group accelerator, 0 => all */
 STATIC_OVL void
 invert_all(window, page_start, page_end, acc)
 winid window;
-tty_menu_item *page_start, *page_end;
+uwp_menu_item *page_start, *page_end;
 char acc; /* group accelerator, 0 => all */
 {
-    tty_menu_item *curr;
+    uwp_menu_item *curr;
     boolean on_curr_page;
-    struct WinDesc *cw = wins[window];
+    struct UwpWinDesc *cw = uwp_wins[window];
 
     invert_all_on_page(window, page_start, page_end, acc);
 
@@ -1739,18 +1639,18 @@ boolean on;
 int color, attr;
 {
     if (on) {
-        term_start_attr(attr);
+        uwp_term_start_attr(attr);
 #ifdef TEXTCOLOR
         if (color != NO_COLOR)
-            term_start_color(color);
+            uwp_term_start_color(color);
 #endif
     }
     else {
 #ifdef TEXTCOLOR
         if (color != NO_COLOR)
-            term_end_color();
+            uwp_term_end_color();
 #endif
-        term_end_attr(attr);
+        uwp_term_end_attr(attr);
     }
 
 #ifndef TEXTCOLOR
@@ -1761,9 +1661,9 @@ int color, attr;
 STATIC_OVL void
 process_menu_window(window, cw)
 winid window;
-struct WinDesc *cw;
+struct UwpWinDesc *cw;
 {
-    tty_menu_item *page_start, *page_end, *curr;
+    uwp_menu_item *page_start, *page_end, *curr;
     long count;
     int n, attr_n, curr_page, page_lines, resp_len;
     boolean finished, counting, reset_count;
@@ -1824,11 +1724,11 @@ struct WinDesc *cw;
             /* clear screen */
             if (!cw->offx) { /* if not corner, do clearscreen */
                 if (cw->offy) {
-                    tty_curs(window, 1, 0);
-                    cl_eos();
+                    uwp_curs(window, 1, 0);
+                    uwp_cl_eos();
                 }
                 else
-                    clear_screen();
+                    uwp_clear_screen();
             }
 
             rp = resp;
@@ -1843,12 +1743,12 @@ struct WinDesc *cw;
                     if (curr->selector)
                         *rp++ = curr->selector;
 
-                    tty_curs(window, 1, page_lines);
+                    uwp_curs(window, 1, page_lines);
                     if (cw->offx)
-                        cl_end();
+                        uwp_cl_end();
 
                     (void)putchar(' ');
-                    ++ttyDisplay->curx;
+                    ++uwpDisplay->curx;
 
                     if (!iflags.use_menu_color
                         || !get_menu_coloring(curr->str, &color, &attr))
@@ -1867,7 +1767,7 @@ struct WinDesc *cw;
                         attr_n = 4; /* [4:N]=entry description */
 
                                     /*
-                                    * Don't use xputs() because (1) under unix it calls
+                                    * Don't use uwp_xputs() because (1) under unix it calls
                                     * tputstr() which will interpret a '*' as some kind
                                     * of padding information and (2) it calls xputc to
                                     * actually output the character.  We're faster doing
@@ -1876,10 +1776,10 @@ struct WinDesc *cw;
                     for (n = 0, cp = curr->str;
                         *cp &&
 #ifndef WIN32CON
-                        (int) ++ttyDisplay->curx < (int)ttyDisplay->cols;
+                        (int) ++uwpDisplay->curx < (int)uwpDisplay->cols;
 #else
-                        (int)ttyDisplay->curx < (int)ttyDisplay->cols;
-                        ttyDisplay->curx++,
+                        (int)uwpDisplay->curx < (int)uwpDisplay->cols;
+                        uwpDisplay->curx++,
 #endif
                         cp++, n++) {
                         if (n == attr_n && (color != NO_COLOR
@@ -1912,13 +1812,13 @@ struct WinDesc *cw;
             /* corner window - clear extra lines from last page */
             if (cw->offx) {
                 for (n = page_lines + 1; n < cw->maxrow; n++) {
-                    tty_curs(window, 1, n);
-                    cl_end();
+                    uwp_curs(window, 1, n);
+                    uwp_cl_end();
                 }
             }
 
             /* set extra chars.. */
-            Strcat(resp, default_menu_cmds);
+            Strcat(resp, uwp_default_menu_cmds);
             Strcat(resp, " ");                  /* next page or end */
             Strcat(resp, "0123456789\033\n\r"); /* counts, quit */
             Strcat(resp, gacc);                 /* group accelerators */
@@ -1930,31 +1830,31 @@ struct WinDesc *cw;
             else if (msave)
                 Strcpy(cw->morestr, msave);
             else
-                Strcpy(cw->morestr, defmorestr);
+                Strcpy(cw->morestr, uwp_defmorestr);
 
-            tty_curs(window, 1, page_lines);
-            cl_end();
+            uwp_curs(window, 1, page_lines);
+            uwp_cl_end();
             dmore(cw, resp);
         }
         else {
             /* just put the cursor back... */
-            tty_curs(window, (int)strlen(cw->morestr) + 2, page_lines);
-            xwaitforspace(resp);
+            uwp_curs(window, (int)strlen(cw->morestr) + 2, page_lines);
+            uwp_xwaitforspace(resp);
         }
 
-        really_morc = morc; /* (only used with MENU_EXPLICIT_CHOICE */
-        if ((rp = index(resp, morc)) != 0 && rp < resp + resp_len)
+        really_morc = uwp_morc; /* (only used with MENU_EXPLICIT_CHOICE */
+        if ((rp = index(resp, uwp_morc)) != 0 && rp < resp + resp_len)
             /* explicit menu selection; don't override it if it also
             happens to match a mapped menu command (such as ':' to
             look inside a container vs ':' to search) */
-            morc = MENU_EXPLICIT_CHOICE;
+            uwp_morc = MENU_EXPLICIT_CHOICE;
         else
-            morc = map_menu_cmd(morc);
+            uwp_morc = map_menu_cmd(uwp_morc);
 
-        switch (morc) {
+        switch (uwp_morc) {
         case '0':
             /* special case: '0' is also the default ball class */
-            if (!counting && index(gacc, morc))
+            if (!counting && index(gacc, uwp_morc))
                 goto group_accel;
             /* fall through to count the zero */
         case '1':
@@ -1966,7 +1866,7 @@ struct WinDesc *cw;
         case '7':
         case '8':
         case '9':
-            count = (count * 10L) + (long)(morc - '0');
+            count = (count * 10L) + (long)(uwp_morc - '0');
             /*
             * It is debatable whether we should allow 0 to
             * start a count.  There is no difference if the
@@ -1990,7 +1890,7 @@ struct WinDesc *cw;
                     curr->selected = FALSE;
                     curr->count = -1L;
                 }
-                cw->flags |= WIN_CANCELLED;
+                cw->flags |= UWP_WIN_CANCELLED;
                 finished = TRUE;
             }
             /* else only stop count */
@@ -2010,7 +1910,7 @@ struct WinDesc *cw;
                 curr_page++;
                 page_start = 0;
             }
-            else if (morc == ' ') {
+            else if (uwp_morc == ' ') {
                 /* ' ' finishes menus here, but stop '>' doing the same. */
                 finished = TRUE;
             }
@@ -2068,7 +1968,7 @@ struct WinDesc *cw;
             break;
         case MENU_SEARCH:
             if (cw->how == PICK_NONE) {
-                tty_nhbell();
+                uwp_nhbell();
                 break;
             }
             else {
@@ -2076,7 +1976,7 @@ struct WinDesc *cw;
                 boolean on_curr_page = FALSE;
                 int lineno = 0;
 
-                tty_getlin("Search for:", tmpbuf);
+                uwp_getlin("Search for:", tmpbuf);
                 if (!tmpbuf[0] || tmpbuf[0] == '\033')
                     break;
                 Sprintf(searchbuf, "*%s*", tmpbuf);
@@ -2101,19 +2001,19 @@ struct WinDesc *cw;
             }
             break;
         case MENU_EXPLICIT_CHOICE:
-            morc = really_morc;
+            uwp_morc = really_morc;
             /*FALLTHRU*/
         default:
-            if (cw->how == PICK_NONE || !index(resp, morc)) {
+            if (cw->how == PICK_NONE || !index(resp, uwp_morc)) {
                 /* unacceptable input received */
-                tty_nhbell();
+                uwp_nhbell();
                 break;
             }
-            else if (index(gacc, morc)) {
+            else if (index(gacc, uwp_morc)) {
             group_accel:
                 /* group accelerator; for the PICK_ONE case, we know that
                 it matches exactly one item in order to be in gacc[] */
-                invert_all(window, page_start, page_end, morc);
+                invert_all(window, page_start, page_end, uwp_morc);
                 if (cw->how == PICK_ONE)
                     finished = TRUE;
                 break;
@@ -2121,7 +2021,7 @@ struct WinDesc *cw;
             /* find, toggle, and possibly update */
             for (n = 0, curr = page_start; curr != page_end;
                 n++, curr = curr->next)
-                if (morc == curr->selector) {
+                if (uwp_morc == curr->selector) {
                     toggle_menu_curr(window, curr, n, TRUE, counting, count);
                     if (cw->how == PICK_ONE)
                         finished = TRUE;
@@ -2138,156 +2038,156 @@ struct WinDesc *cw;
 STATIC_OVL void
 process_text_window(window, cw)
 winid window;
-struct WinDesc *cw;
+struct UwpWinDesc *cw;
 {
     int i, n, attr;
     register char *cp;
 
     for (n = 0, i = 0; i < cw->maxrow; i++) {
-        if (!cw->offx && (n + cw->offy == ttyDisplay->rows - 1)) {
-            tty_curs(window, 1, n);
-            cl_end();
+        if (!cw->offx && (n + cw->offy == uwpDisplay->rows - 1)) {
+            uwp_curs(window, 1, n);
+            uwp_cl_end();
             dmore(cw, quitchars);
-            if (morc == '\033') {
-                cw->flags |= WIN_CANCELLED;
+            if (uwp_morc == '\033') {
+                cw->flags |= UWP_WIN_CANCELLED;
                 break;
             }
             if (cw->offy) {
-                tty_curs(window, 1, 0);
-                cl_eos();
+                uwp_curs(window, 1, 0);
+                uwp_cl_eos();
             }
             else
-                clear_screen();
+                uwp_clear_screen();
             n = 0;
         }
-        tty_curs(window, 1, n++);
+        uwp_curs(window, 1, n++);
 #ifdef H2344_BROKEN
-        cl_end();
+        uwp_cl_end();
 #else
         if (cw->offx)
-            cl_end();
+            uwp_cl_end();
 #endif
         if (cw->data[i]) {
             attr = cw->data[i][0] - 1;
             if (cw->offx) {
                 (void)putchar(' ');
-                ++ttyDisplay->curx;
+                ++uwpDisplay->curx;
             }
-            term_start_attr(attr);
+            uwp_term_start_attr(attr);
             for (cp = &cw->data[i][1];
 #ifndef WIN32CON
-                *cp && (int) ++ttyDisplay->curx < (int)ttyDisplay->cols;
+                *cp && (int) ++uwpDisplay->curx < (int)uwpDisplay->cols;
                 cp++)
 #else
-                *cp && (int)ttyDisplay->curx < (int)ttyDisplay->cols;
-            cp++, ttyDisplay->curx++)
+                *cp && (int)uwpDisplay->curx < (int)uwpDisplay->cols;
+            cp++, uwpDisplay->curx++)
 #endif
                 (void)putchar(*cp);
-            term_end_attr(attr);
+            uwp_term_end_attr(attr);
         }
     }
     if (i == cw->maxrow) {
 #ifdef H2344_BROKEN
         if (cw->type == NHW_TEXT) {
-            tty_curs(BASE_WINDOW, 1, (int)ttyDisplay->cury + 1);
-            cl_eos();
+            uwp_curs(UWP_BASE_WINDOW, 1, (int)uwpDisplay->cury + 1);
+            uwp_cl_eos();
         }
 #endif
-        tty_curs(BASE_WINDOW, (int)cw->offx + 1,
-            (cw->type == NHW_TEXT) ? (int)ttyDisplay->rows - 1 : n);
-        cl_end();
+        uwp_curs(UWP_BASE_WINDOW, (int)cw->offx + 1,
+            (cw->type == NHW_TEXT) ? (int)uwpDisplay->rows - 1 : n);
+        uwp_cl_end();
         dmore(cw, quitchars);
-        if (morc == '\033')
-            cw->flags |= WIN_CANCELLED;
+        if (uwp_morc == '\033')
+            cw->flags |= UWP_WIN_CANCELLED;
     }
 }
 
 /*ARGSUSED*/
 void
-tty_display_nhwindow(window, blocking)
+uwp_display_nhwindow(window, blocking)
 winid window;
 boolean blocking; /* with ttys, all windows are blocking */
 {
-    register struct WinDesc *cw = 0;
+    register struct UwpWinDesc *cw = 0;
     short s_maxcol;
 
-    if (window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0)
-        panic(winpanicstr, window);
-    if (cw->flags & WIN_CANCELLED)
+    if (window == WIN_ERR || (cw = uwp_wins[window]) == (struct UwpWinDesc *) 0)
+        panic(uwp_winpanicstr, window);
+    if (cw->flags & UWP_WIN_CANCELLED)
         return;
-    ttyDisplay->lastwin = window;
-    ttyDisplay->rawprint = 0;
+    uwpDisplay->lastwin = window;
+    uwpDisplay->rawprint = 0;
 
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
+    uwp_print_vt_code2(AVTC_SELECT_WINDOW, window);
 
     switch (cw->type) {
     case NHW_MESSAGE:
-        if (ttyDisplay->toplin == 1) {
-            more();
-            ttyDisplay->toplin = 1; /* more resets this */
-            tty_clear_nhwindow(window);
+        if (uwpDisplay->toplin == 1) {
+            uwp_more();
+            uwpDisplay->toplin = 1; /* uwp_more resets this */
+            uwp_clear_nhwindow(window);
         }
         else
-            ttyDisplay->toplin = 0;
+            uwpDisplay->toplin = 0;
         cw->curx = cw->cury = 0;
         if (!cw->active)
             iflags.window_inited = TRUE;
         break;
     case NHW_MAP:
-        end_glyphout();
+        uwp_end_glyphout();
         if (blocking) {
-            if (!ttyDisplay->toplin)
-                ttyDisplay->toplin = 1;
-            tty_display_nhwindow(WIN_MESSAGE, TRUE);
+            if (!uwpDisplay->toplin)
+                uwpDisplay->toplin = 1;
+            uwp_display_nhwindow(WIN_MESSAGE, TRUE);
             return;
         }
-    case NHW_BASE:
+    case UWP_NHW_BASE:
         (void)fflush(stdout);
         break;
     case NHW_TEXT:
-        cw->maxcol = ttyDisplay->cols; /* force full-screen mode */
+        cw->maxcol = uwpDisplay->cols; /* force full-screen mode */
                                        /*FALLTHRU*/
     case NHW_MENU:
         cw->active = 1;
         /* cw->maxcol is a long, but its value is constrained to
-        be <= ttyDisplay->cols, so is sure to fit within a short */
+        be <= uwpDisplay->cols, so is sure to fit within a short */
         s_maxcol = (short)cw->maxcol;
 #ifdef H2344_BROKEN
         cw->offx = (cw->type == NHW_TEXT)
             ? 0
-            : min(min(82, ttyDisplay->cols / 2),
-                ttyDisplay->cols - s_maxcol - 1);
+            : min(min(82, uwpDisplay->cols / 2),
+                uwpDisplay->cols - s_maxcol - 1);
 #else
         /* avoid converting to uchar before calculations are finished */
         cw->offx = (uchar)max((int)10,
-            (int)(ttyDisplay->cols - s_maxcol - 1));
+            (int)(uwpDisplay->cols - s_maxcol - 1));
 #endif
         if (cw->offx < 0)
             cw->offx = 0;
         if (cw->type == NHW_MENU)
             cw->offy = 0;
-        if (ttyDisplay->toplin == 1)
-            tty_display_nhwindow(WIN_MESSAGE, TRUE);
+        if (uwpDisplay->toplin == 1)
+            uwp_display_nhwindow(WIN_MESSAGE, TRUE);
 #ifdef H2344_BROKEN
-        if (cw->maxrow >= (int)ttyDisplay->rows
+        if (cw->maxrow >= (int)uwpDisplay->rows
             || !iflags.menu_overlay)
 #else
-        if (cw->offx == 10 || cw->maxrow >= (int)ttyDisplay->rows
+        if (cw->offx == 10 || cw->maxrow >= (int)uwpDisplay->rows
             || !iflags.menu_overlay)
 #endif
         {
             cw->offx = 0;
             if (cw->offy || iflags.menu_overlay) {
-                tty_curs(window, 1, 0);
-                cl_eos();
+                uwp_curs(window, 1, 0);
+                uwp_cl_eos();
             }
             else
-                clear_screen();
-            ttyDisplay->toplin = 0;
+                uwp_clear_screen();
+            uwpDisplay->toplin = 0;
         }
         else {
             if (WIN_MESSAGE != WIN_ERR)
-                tty_clear_nhwindow(WIN_MESSAGE);
+                uwp_clear_nhwindow(WIN_MESSAGE);
         }
 
         if (cw->data || !cw->maxrow)
@@ -2300,29 +2200,29 @@ boolean blocking; /* with ttys, all windows are blocking */
 }
 
 void
-tty_dismiss_nhwindow(window)
+uwp_dismiss_nhwindow(window)
 winid window;
 {
-    register struct WinDesc *cw = 0;
+    register struct UwpWinDesc *cw = 0;
 
-    if (window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0)
-        panic(winpanicstr, window);
+    if (window == WIN_ERR || (cw = uwp_wins[window]) == (struct UwpWinDesc *) 0)
+        panic(uwp_winpanicstr, window);
 
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
+    uwp_print_vt_code2(AVTC_SELECT_WINDOW, window);
 
     switch (cw->type) {
     case NHW_MESSAGE:
-        if (ttyDisplay->toplin)
-            tty_display_nhwindow(WIN_MESSAGE, TRUE);
+        if (uwpDisplay->toplin)
+            uwp_display_nhwindow(WIN_MESSAGE, TRUE);
         /*FALLTHRU*/
     case NHW_STATUS:
-    case NHW_BASE:
+    case UWP_NHW_BASE:
     case NHW_MAP:
         /*
         * these should only get dismissed when the game is going away
         * or suspending
         */
-        tty_curs(BASE_WINDOW, 1, (int)ttyDisplay->rows - 1);
+        uwp_curs(UWP_BASE_WINDOW, 1, (int)uwpDisplay->rows - 1);
         cw->active = 0;
         break;
     case NHW_MENU:
@@ -2345,41 +2245,41 @@ winid window;
 }
 
 void
-tty_destroy_nhwindow(window)
+uwp_destroy_nhwindow(window)
 winid window;
 {
-    register struct WinDesc *cw = 0;
+    register struct UwpWinDesc *cw = 0;
 
-    if (window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0)
-        panic(winpanicstr, window);
+    if (window == WIN_ERR || (cw = uwp_wins[window]) == (struct UwpWinDesc *) 0)
+        panic(uwp_winpanicstr, window);
 
     if (cw->active)
-        tty_dismiss_nhwindow(window);
+        uwp_dismiss_nhwindow(window);
     if (cw->type == NHW_MESSAGE)
         iflags.window_inited = 0;
     if (cw->type == NHW_MAP)
-        clear_screen();
+        uwp_clear_screen();
 
-    free_window_info(cw, TRUE);
+    uwp_free_window_info(cw, TRUE);
     free((genericptr_t)cw);
-    wins[window] = 0;
+    uwp_wins[window] = 0;
 }
 
 void
-tty_curs(window, x, y)
+uwp_curs(window, x, y)
 winid window;
 register int x, y; /* not xchar: perhaps xchar is unsigned and
                    curx-x would be unsigned as well */
 {
-    struct WinDesc *cw = 0;
-    int cx = ttyDisplay->curx;
-    int cy = ttyDisplay->cury;
+    struct UwpWinDesc *cw = 0;
+    int cx = uwpDisplay->curx;
+    int cy = uwpDisplay->cury;
 
-    if (window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0)
-        panic(winpanicstr, window);
-    ttyDisplay->lastwin = window;
+    if (window == WIN_ERR || (cw = uwp_wins[window]) == (struct UwpWinDesc *) 0)
+        panic(uwp_winpanicstr, window);
+    uwpDisplay->lastwin = window;
 
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
+    uwp_print_vt_code2(AVTC_SELECT_WINDOW, window);
 
 #if defined(USE_TILES) && defined(MSDOS)
     adjust_cursor_flags(cw);
@@ -2405,7 +2305,7 @@ register int x, y; /* not xchar: perhaps xchar is unsigned and
         case NHW_TEXT:
             s = "[text window]";
             break;
-        case NHW_BASE:
+        case UWP_NHW_BASE:
             s = "[base window]";
             break;
         }
@@ -2418,9 +2318,9 @@ register int x, y; /* not xchar: perhaps xchar is unsigned and
     y += cw->offy;
 
 #ifdef CLIPPING
-    if (clipping && window == WIN_MAP) {
-        x -= clipx;
-        y -= clipy;
+    if (uwp_clipping && window == WIN_MAP) {
+        x -= uwp_clipx;
+        y -= uwp_clipy;
     }
 #endif
 
@@ -2428,11 +2328,11 @@ register int x, y; /* not xchar: perhaps xchar is unsigned and
         return;
 
     if (cw->type == NHW_MAP)
-        end_glyphout();
+        uwp_end_glyphout();
 
 #ifndef NO_TERMS
     if (!nh_ND && (cx != x || x <= 3)) { /* Extremely primitive */
-        cmov(x, y);                      /* bunker!wtm */
+        uwp_cmov(x, y);                      /* bunker!wtm */
         return;
     }
 #endif
@@ -2442,45 +2342,45 @@ register int x, y; /* not xchar: perhaps xchar is unsigned and
     if ((cx -= x) < 0)
         cx = -cx;
     if (cy <= 3 && cx <= 3) {
-        nocmov(x, y);
+        uwp_nocmov(x, y);
 #ifndef NO_TERMS
     }
     else if ((x <= 3 && cy <= 3) || (!nh_CM && x < cx)) {
         (void)putchar('\r');
-        ttyDisplay->curx = 0;
-        nocmov(x, y);
+        uwpDisplay->curx = 0;
+        uwp_nocmov(x, y);
     }
     else if (!nh_CM) {
-        nocmov(x, y);
+        uwp_nocmov(x, y);
 #endif
     }
     else
-        cmov(x, y);
+        uwp_cmov(x, y);
 
-    ttyDisplay->curx = x;
-    ttyDisplay->cury = y;
+    uwpDisplay->curx = x;
+    uwpDisplay->cury = y;
 }
 
 STATIC_OVL void
-tty_putsym(window, x, y, ch)
+uwp_putsym(window, x, y, ch)
 winid window;
 int x, y;
 char ch;
 {
-    register struct WinDesc *cw = 0;
+    register struct UwpWinDesc *cw = 0;
 
-    if (window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0)
-        panic(winpanicstr, window);
+    if (window == WIN_ERR || (cw = uwp_wins[window]) == (struct UwpWinDesc *) 0)
+        panic(uwp_winpanicstr, window);
 
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
+    uwp_print_vt_code2(AVTC_SELECT_WINDOW, window);
 
     switch (cw->type) {
     case NHW_STATUS:
     case NHW_MAP:
-    case NHW_BASE:
-        tty_curs(window, x, y);
+    case UWP_NHW_BASE:
+        uwp_curs(window, x, y);
         (void)putchar(ch);
-        ttyDisplay->curx++;
+        uwpDisplay->curx++;
         cw->curx++;
         break;
     case NHW_MESSAGE:
@@ -2523,12 +2423,12 @@ const char *str;
 }
 
 void
-tty_putstr(window, attr, str)
+uwp_putstr(window, attr, str)
 winid window;
 int attr;
 const char *str;
 {
-    register struct WinDesc *cw = 0;
+    register struct UwpWinDesc *cw = 0;
     register char *ob;
     register const char *nb;
     register long i, j, n0;
@@ -2536,20 +2436,20 @@ const char *str;
     /* Assume there's a real problem if the window is missing --
     * probably a panic message
     */
-    if (window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0) {
-        tty_raw_print(str);
+    if (window == WIN_ERR || (cw = uwp_wins[window]) == (struct UwpWinDesc *) 0) {
+        uwp_raw_print(str);
         return;
     }
 
     if (str == (const char *)0
-        || ((cw->flags & WIN_CANCELLED) && (cw->type != NHW_MESSAGE)))
+        || ((cw->flags & UWP_WIN_CANCELLED) && (cw->type != NHW_MESSAGE)))
         return;
     if (cw->type != NHW_MESSAGE)
         str = compress_str(str);
 
-    ttyDisplay->lastwin = window;
+    uwpDisplay->lastwin = window;
 
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
+    uwp_print_vt_code2(AVTC_SELECT_WINDOW, window);
 
     switch (cw->type) {
     case NHW_MESSAGE:
@@ -2557,7 +2457,7 @@ const char *str;
 #if defined(USER_SOUNDS) && defined(WIN32CON)
         play_sound_for_message(str);
 #endif
-        update_topl(str);
+        uwp_update_topl(str);
         break;
 
     case NHW_STATUS:
@@ -2575,13 +2475,13 @@ const char *str;
             if (!*nb) {
                 if (*ob || context.botlx) {
                     /* last char printed may be in middle of line */
-                    tty_curs(WIN_STATUS, i, cw->cury);
-                    cl_end();
+                    uwp_curs(WIN_STATUS, i, cw->cury);
+                    uwp_cl_end();
                 }
                 break;
             }
             if (*ob != *nb)
-                tty_putsym(WIN_STATUS, i, cw->cury, *nb);
+                uwp_putsym(WIN_STATUS, i, cw->cury, *nb);
             if (*ob)
                 ob++;
         }
@@ -2598,46 +2498,46 @@ const char *str;
 #endif
         break;
     case NHW_MAP:
-        tty_curs(window, cw->curx + 1, cw->cury);
-        term_start_attr(attr);
-        while (*str && (int)ttyDisplay->curx < (int)ttyDisplay->cols - 1) {
+        uwp_curs(window, cw->curx + 1, cw->cury);
+        uwp_term_start_attr(attr);
+        while (*str && (int)uwpDisplay->curx < (int)uwpDisplay->cols - 1) {
             (void)putchar(*str);
             str++;
-            ttyDisplay->curx++;
+            uwpDisplay->curx++;
         }
         cw->curx = 0;
         cw->cury++;
-        term_end_attr(attr);
+        uwp_term_end_attr(attr);
         break;
-    case NHW_BASE:
-        tty_curs(window, cw->curx + 1, cw->cury);
-        term_start_attr(attr);
+    case UWP_NHW_BASE:
+        uwp_curs(window, cw->curx + 1, cw->cury);
+        uwp_term_start_attr(attr);
         while (*str) {
-            if ((int)ttyDisplay->curx >= (int)ttyDisplay->cols - 1) {
+            if ((int)uwpDisplay->curx >= (int)uwpDisplay->cols - 1) {
                 cw->curx = 0;
                 cw->cury++;
-                tty_curs(window, cw->curx + 1, cw->cury);
+                uwp_curs(window, cw->curx + 1, cw->cury);
             }
             (void)putchar(*str);
             str++;
-            ttyDisplay->curx++;
+            uwpDisplay->curx++;
         }
         cw->curx = 0;
         cw->cury++;
-        term_end_attr(attr);
+        uwp_term_end_attr(attr);
         break;
     case NHW_MENU:
     case NHW_TEXT:
 #ifdef H2344_BROKEN
         if (cw->type == NHW_TEXT
-            && (cw->cury + cw->offy) == ttyDisplay->rows - 1)
+            && (cw->cury + cw->offy) == uwpDisplay->rows - 1)
 #else
-        if (cw->type == NHW_TEXT && cw->cury == ttyDisplay->rows - 1)
+        if (cw->type == NHW_TEXT && cw->cury == uwpDisplay->rows - 1)
 #endif
         {
             /* not a menu, so save memory and output 1 page at a time */
-            cw->maxcol = ttyDisplay->cols; /* force full-screen mode */
-            tty_display_nhwindow(window, TRUE);
+            cw->maxcol = uwpDisplay->cols; /* force full-screen mode */
+            uwp_display_nhwindow(window, TRUE);
             for (i = 0; i < cw->maxrow; i++)
                 if (cw->data[i]) {
                     free((genericptr_t)cw->data[i]);
@@ -2677,7 +2577,7 @@ const char *str;
                 i--;
             if (i) {
                 cw->data[cw->cury - 1][++i] = '\0';
-                tty_putstr(window, attr, &str[i]);
+                uwp_putstr(window, attr, &str[i]);
             }
         }
         break;
@@ -2685,7 +2585,7 @@ const char *str;
 }
 
 void
-tty_display_file(fname, complain)
+uwp_display_file(fname, complain)
 const char *fname;
 boolean complain;
 {
@@ -2730,22 +2630,22 @@ boolean complain;
         char buf[BUFSZ];
         char *cr;
 
-        tty_clear_nhwindow(WIN_MESSAGE);
+        uwp_clear_nhwindow(WIN_MESSAGE);
         f = dlb_fopen(fname, "r");
         if (!f) {
             if (complain) {
-                home();
-                tty_mark_synch();
-                tty_raw_print("");
+                uwp_home();
+                uwp_mark_synch();
+                uwp_raw_print("");
                 perror(fname);
-                tty_wait_synch();
+                uwp_wait_synch();
                 pline("Cannot open \"%s\".", fname);
             }
             else if (u.ux)
                 docrt();
         }
         else {
-            winid datawin = tty_create_nhwindow(NHW_TEXT);
+            winid datawin = uwp_create_nhwindow(NHW_TEXT);
             boolean empty = TRUE;
 
             if (complain
@@ -2754,9 +2654,9 @@ boolean complain;
 #endif
                 ) {
                 /* attempt to scroll text below map window if there's room */
-                wins[datawin]->offy = wins[WIN_STATUS]->offy + 3;
-                if ((int)wins[datawin]->offy + 12 > (int)ttyDisplay->rows)
-                    wins[datawin]->offy = 0;
+                uwp_wins[datawin]->offy = uwp_wins[WIN_STATUS]->offy + 3;
+                if ((int)uwp_wins[datawin]->offy + 12 > (int)uwpDisplay->rows)
+                    uwp_wins[datawin]->offy = 0;
             }
             while (dlb_fgets(buf, BUFSZ, f)) {
                 if ((cr = index(buf, '\n')) != 0)
@@ -2768,13 +2668,13 @@ boolean complain;
                 if (index(buf, '\t') != 0)
                     (void) tabexpand(buf);
                 empty = FALSE;
-                tty_putstr(datawin, 0, buf);
-                if (wins[datawin]->flags & WIN_CANCELLED)
+                uwp_putstr(datawin, 0, buf);
+                if (uwp_wins[datawin]->flags & UWP_WIN_CANCELLED)
                     break;
             }
             if (!empty)
-                tty_display_nhwindow(datawin, FALSE);
-            tty_destroy_nhwindow(datawin);
+                uwp_display_nhwindow(datawin, FALSE);
+            uwp_destroy_nhwindow(datawin);
             (void)dlb_fclose(f);
         }
     }
@@ -2782,10 +2682,10 @@ boolean complain;
 }
 
 void
-tty_start_menu(window)
+uwp_start_menu(window)
 winid window;
 {
-    tty_clear_nhwindow(window);
+    uwp_clear_nhwindow(window);
     return;
 }
 
@@ -2795,18 +2695,18 @@ winid window;
 * later.
 */
 void
-tty_add_menu(window, glyph, identifier, ch, gch, attr, str, preselected)
+uwp_add_menu(window, glyph, identifier, ch, gch, attr, str, preselected)
 winid window;               /* window to use, must be of type NHW_MENU */
 int glyph UNUSED;           /* glyph to display with item (not used) */
 const anything *identifier; /* what to return if selected */
 char ch;                    /* keyboard accelerator (0 = pick our own) */
 char gch;                   /* group accelerator (0 = no group) */
-int attr;                   /* attribute for string (like tty_putstr()) */
+int attr;                   /* attribute for string (like uwp_putstr()) */
 const char *str;            /* menu string */
 boolean preselected;        /* item is marked as selected */
 {
-    register struct WinDesc *cw = 0;
-    tty_menu_item *item;
+    register struct UwpWinDesc *cw = 0;
+    uwp_menu_item *item;
     const char *newstr;
     char buf[4 + BUFSZ];
 
@@ -2814,9 +2714,9 @@ boolean preselected;        /* item is marked as selected */
         return;
 
     if (window == WIN_ERR
-        || (cw = wins[window]) == (struct WinDesc *) 0
+        || (cw = uwp_wins[window]) == (struct UwpWinDesc *) 0
         || cw->type != NHW_MENU)
-        panic(winpanicstr, window);
+        panic(uwp_winpanicstr, window);
 
     cw->nitems++;
     if (identifier->a_void) {
@@ -2835,7 +2735,7 @@ boolean preselected;        /* item is marked as selected */
     else
         newstr = str;
 
-    item = (tty_menu_item *)alloc(sizeof(tty_menu_item));
+    item = (uwp_menu_item *)alloc(sizeof(uwp_menu_item));
     item->identifier = *identifier;
     item->count = -1L;
     item->selected = preselected;
@@ -2849,11 +2749,11 @@ boolean preselected;        /* item is marked as selected */
 }
 
 /* Invert the given list, can handle NULL as an input. */
-STATIC_OVL tty_menu_item *
+STATIC_OVL uwp_menu_item *
 reverse(curr)
-tty_menu_item *curr;
+uwp_menu_item *curr;
 {
-    tty_menu_item *next, *head = 0;
+    uwp_menu_item *next, *head = 0;
 
     while (curr) {
         next = curr->next;
@@ -2871,19 +2771,19 @@ tty_menu_item *curr;
 * height of the window.
 */
 void
-tty_end_menu(window, prompt)
+uwp_end_menu(window, prompt)
 winid window;       /* menu to use */
 const char *prompt; /* prompt to for menu */
 {
-    struct WinDesc *cw = 0;
-    tty_menu_item *curr;
+    struct UwpWinDesc *cw = 0;
+    uwp_menu_item *curr;
     short len;
     int lmax, n;
     char menu_ch;
 
-    if (window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0
+    if (window == WIN_ERR || (cw = uwp_wins[window]) == (struct UwpWinDesc *) 0
         || cw->type != NHW_MENU)
-        panic(winpanicstr, window);
+        panic(uwp_winpanicstr, window);
 
     /* Reverse the list so that items are in correct order. */
     cw->mlist = reverse(cw->mlist);
@@ -2893,14 +2793,14 @@ const char *prompt; /* prompt to for menu */
         anything any;
 
         any = zeroany; /* not selectable */
-        tty_add_menu(window, NO_GLYPH, &any, 0, 0, ATR_NONE, "",
+        uwp_add_menu(window, NO_GLYPH, &any, 0, 0, ATR_NONE, "",
             MENU_UNSELECTED);
-        tty_add_menu(window, NO_GLYPH, &any, 0, 0, ATR_NONE, prompt,
+        uwp_add_menu(window, NO_GLYPH, &any, 0, 0, ATR_NONE, prompt,
             MENU_UNSELECTED);
     }
 
     /* XXX another magic number? 52 */
-    lmax = min(52, (int)ttyDisplay->rows - 1);    /* # lines per page */
+    lmax = min(52, (int)uwpDisplay->rows - 1);    /* # lines per page */
     cw->npages = (cw->nitems + (lmax - 1)) / lmax; /* # of pages */
 
                                                    /* make sure page list is large enough */
@@ -2908,8 +2808,8 @@ const char *prompt; /* prompt to for menu */
         if (cw->plist)
             free((genericptr_t)cw->plist);
         cw->plist_size = cw->npages + 1;
-        cw->plist = (tty_menu_item **)alloc(cw->plist_size
-            * sizeof(tty_menu_item *));
+        cw->plist = (uwp_menu_item **)alloc(cw->plist_size
+            * sizeof(uwp_menu_item *));
     }
 
     cw->cols = 0;  /* cols is set when the win is initialized... (why?) */
@@ -2928,9 +2828,9 @@ const char *prompt; /* prompt to for menu */
 
         /* cut off any lines that are too long */
         len = strlen(curr->str) + 2; /* extra space at beg & end */
-        if (len > (int)ttyDisplay->cols) {
-            curr->str[ttyDisplay->cols - 2] = 0;
-            len = ttyDisplay->cols;
+        if (len > (int)uwpDisplay->cols) {
+            curr->str[uwpDisplay->cols - 2] = 0;
+            len = uwpDisplay->cols;
         }
         if (len > cw->cols)
             cw->cols = len;
@@ -2952,11 +2852,11 @@ const char *prompt; /* prompt to for menu */
         len = strlen(cw->morestr);
     }
 
-    if (len > (int)ttyDisplay->cols) {
+    if (len > (int)uwpDisplay->cols) {
         /* truncate the prompt if it's too long for the screen */
         if (cw->npages <= 1) /* only str in single page case */
-            cw->morestr[ttyDisplay->cols] = 0;
-        len = ttyDisplay->cols;
+            cw->morestr[uwpDisplay->cols] = 0;
+        len = uwpDisplay->cols;
     }
     if (len > cw->cols)
         cw->cols = len;
@@ -2974,26 +2874,26 @@ const char *prompt; /* prompt to for menu */
 }
 
 int
-tty_select_menu(window, how, menu_list)
+uwp_select_menu(window, how, menu_list)
 winid window;
 int how;
 menu_item **menu_list;
 {
-    register struct WinDesc *cw = 0;
-    tty_menu_item *curr;
+    register struct UwpWinDesc *cw = 0;
+    uwp_menu_item *curr;
     menu_item *mi;
     int n, cancelled;
 
-    if (window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0
+    if (window == WIN_ERR || (cw = uwp_wins[window]) == (struct UwpWinDesc *) 0
         || cw->type != NHW_MENU)
-        panic(winpanicstr, window);
+        panic(uwp_winpanicstr, window);
 
     *menu_list = (menu_item *)0;
     cw->how = (short)how;
-    morc = 0;
-    tty_display_nhwindow(window, TRUE);
-    cancelled = !!(cw->flags & WIN_CANCELLED);
-    tty_dismiss_nhwindow(window); /* does not destroy window data */
+    uwp_morc = 0;
+    uwp_display_nhwindow(window, TRUE);
+    cancelled = !!(cw->flags & UWP_WIN_CANCELLED);
+    uwp_dismiss_nhwindow(window); /* does not destroy window data */
 
     if (cancelled) {
         n = -1;
@@ -3019,90 +2919,90 @@ menu_item **menu_list;
 
 /* special hack for treating top line --More-- as a one item menu */
 char
-tty_message_menu(let, how, mesg)
+uwp_message_menu(let, how, mesg)
 char let;
 int how;
 const char *mesg;
 {
-    /* "menu" without selection; use ordinary pline, no more() */
+    /* "menu" without selection; use ordinary pline, no uwp_more() */
     if (how == PICK_NONE) {
         pline("%s", mesg);
         return 0;
     }
 
-    ttyDisplay->dismiss_more = let;
-    morc = 0;
+    uwpDisplay->dismiss_more = let;
+    uwp_morc = 0;
     /* barebones pline(); since we're only supposed to be called after
     response to a prompt, we'll assume that the display is up to date */
-    tty_putstr(WIN_MESSAGE, 0, mesg);
+    uwp_putstr(WIN_MESSAGE, 0, mesg);
     /* if `mesg' didn't wrap (triggering --More--), force --More-- now */
-    if (ttyDisplay->toplin == 1) {
-        more();
-        ttyDisplay->toplin = 1; /* more resets this */
-        tty_clear_nhwindow(WIN_MESSAGE);
+    if (uwpDisplay->toplin == 1) {
+        uwp_more();
+        uwpDisplay->toplin = 1; /* uwp_more resets this */
+        uwp_clear_nhwindow(WIN_MESSAGE);
     }
     /* normally <ESC> means skip further messages, but in this case
     it means cancel the current prompt; any other messages should
     continue to be output normally */
-    wins[WIN_MESSAGE]->flags &= ~WIN_CANCELLED;
-    ttyDisplay->dismiss_more = 0;
+    uwp_wins[WIN_MESSAGE]->flags &= ~UWP_WIN_CANCELLED;
+    uwpDisplay->dismiss_more = 0;
 
-    return ((how == PICK_ONE && morc == let) || morc == '\033') ? morc : '\0';
+    return ((how == PICK_ONE && uwp_morc == let) || uwp_morc == '\033') ? uwp_morc : '\0';
 }
 
 void
-tty_update_inventory()
+uwp_update_inventory()
 {
     return;
 }
 
 void
-tty_mark_synch()
+uwp_mark_synch()
 {
     (void)fflush(stdout);
 }
 
 void
-tty_wait_synch()
+uwp_wait_synch()
 {
     /* we just need to make sure all windows are synch'd */
-    if (!ttyDisplay || ttyDisplay->rawprint) {
+    if (!uwpDisplay || uwpDisplay->rawprint) {
         getret();
-        if (ttyDisplay)
-            ttyDisplay->rawprint = 0;
+        if (uwpDisplay)
+            uwpDisplay->rawprint = 0;
     }
     else {
-        tty_display_nhwindow(WIN_MAP, FALSE);
-        if (ttyDisplay->inmore) {
-            addtopl("--More--");
+        uwp_display_nhwindow(WIN_MAP, FALSE);
+        if (uwpDisplay->inmore) {
+            uwp_addtopl("--More--");
             (void)fflush(stdout);
         }
-        else if (ttyDisplay->inread > program_state.gameover) {
+        else if (uwpDisplay->inread > program_state.gameover) {
             /* this can only happen if we were reading and got interrupted */
-            ttyDisplay->toplin = 3;
+            uwpDisplay->toplin = 3;
             /* do this twice; 1st time gets the Quit? message again */
-            (void)tty_doprev_message();
-            (void)tty_doprev_message();
-            ttyDisplay->intr++;
+            (void)uwp_doprev_message();
+            (void)uwp_doprev_message();
+            uwpDisplay->intr++;
             (void)fflush(stdout);
         }
     }
 }
 
 void
-docorner(xmin, ymax)
+uwp_docorner(xmin, ymax)
 register int xmin, ymax;
 {
     register int y;
-    register struct WinDesc *cw = wins[WIN_MAP];
+    register struct UwpWinDesc *cw = uwp_wins[WIN_MAP];
 
 #if 0   /* this optimization is not valuable enough to justify
         abusing core internals... */
-    if (u.uswallow) { /* Can be done more efficiently */
+    if (u.uswallow) { /* Can be done uwp_more efficiently */
         swallowed(1);
         /* without this flush, if we happen to follow --More-- displayed in
         leftmost column, the cursor gets left in the wrong place after
-        <docorner<more<update_topl<tty_putstr calls unwind back to core */
+        <uwp_docorner<more<uwp_update_topl<uwp_putstr calls unwind back to core */
         flush_screen(0);
         return;
     }
@@ -3113,19 +3013,19 @@ register int xmin, ymax;
         ymax = LI; /* can happen if window gets smaller */
 #endif
     for (y = 0; y < ymax; y++) {
-        tty_curs(BASE_WINDOW, xmin, y); /* move cursor */
-        cl_end();                       /* clear to end of line */
+        uwp_curs(UWP_BASE_WINDOW, xmin, y); /* move cursor */
+        uwp_cl_end();                       /* clear to end of line */
 #ifdef CLIPPING
-        if (y < (int)cw->offy || y + clipy > ROWNO)
+        if (y < (int)cw->offy || y + uwp_clipy > ROWNO)
             continue; /* only refresh board */
 #if defined(USE_TILES) && defined(MSDOS)
         if (iflags.tile_view)
-            row_refresh((xmin / 2) + clipx - ((int)cw->offx / 2), COLNO - 1,
-                y + clipy - (int)cw->offy);
+            row_refresh((xmin / 2) + uwp_clipx - ((int)cw->offx / 2), COLNO - 1,
+                y + uwp_clipy - (int)cw->offy);
         else
 #endif
-            row_refresh(xmin + clipx - (int)cw->offx, COLNO - 1,
-                y + clipy - (int)cw->offy);
+            row_refresh(xmin + uwp_clipx - (int)cw->offx, COLNO - 1,
+                y + uwp_clipy - (int)cw->offy);
 #else
         if (y < cw->offy || y > ROWNO)
             continue; /* only refresh board  */
@@ -3133,8 +3033,8 @@ register int xmin, ymax;
 #endif
     }
 
-    end_glyphout();
-    if (ymax >= (int)wins[WIN_STATUS]->offy) {
+    uwp_end_glyphout();
+    if (ymax >= (int)uwp_wins[WIN_STATUS]->offy) {
         /* we have wrecked the bottom line */
         context.botlx = 1;
         bot();
@@ -3142,7 +3042,7 @@ register int xmin, ymax;
 }
 
 void
-end_glyphout()
+uwp_end_glyphout()
 {
 #if defined(ASCIIGRAPH) && !defined(NO_TERMS)
     if (GFlag) {
@@ -3151,16 +3051,16 @@ end_glyphout()
     }
 #endif
 #ifdef TEXTCOLOR
-    if (ttyDisplay->color != NO_COLOR) {
-        term_end_color();
-        ttyDisplay->color = NO_COLOR;
+    if (uwpDisplay->color != NO_COLOR) {
+        uwp_term_end_color();
+        uwpDisplay->color = NO_COLOR;
     }
 #endif
 }
 
 #ifndef WIN32
 void
-g_putch(in_ch)
+uwp_g_putch(in_ch)
 int in_ch;
 {
     register char ch = (char)in_ch;
@@ -3198,38 +3098,38 @@ int in_ch;
 void
 setclipped()
 {
-    clipping = TRUE;
-    clipx = clipy = 0;
-    clipxmax = CO;
-    clipymax = LI - 3;
+    uwp_clipping = TRUE;
+    uwp_clipx = uwp_clipy = 0;
+    uwp_clipxmax = CO;
+    uwp_clipymax = LI - 3;
 }
 
 void
-tty_cliparound(x, y)
+uwp_cliparound(x, y)
 int x, y;
 {
     extern boolean restoring;
-    int oldx = clipx, oldy = clipy;
+    int oldx = uwp_clipx, oldy = uwp_clipy;
 
-    if (!clipping)
+    if (!uwp_clipping)
         return;
-    if (x < clipx + 5) {
-        clipx = max(0, x - 20);
-        clipxmax = clipx + CO;
+    if (x < uwp_clipx + 5) {
+        uwp_clipx = max(0, x - 20);
+        uwp_clipxmax = uwp_clipx + CO;
     }
-    else if (x > clipxmax - 5) {
-        clipxmax = min(COLNO, clipxmax + 20);
-        clipx = clipxmax - CO;
+    else if (x > uwp_clipxmax - 5) {
+        uwp_clipxmax = min(COLNO, uwp_clipxmax + 20);
+        uwp_clipx = uwp_clipxmax - CO;
     }
-    if (y < clipy + 2) {
-        clipy = max(0, y - (clipymax - clipy) / 2);
-        clipymax = clipy + (LI - 3);
+    if (y < uwp_clipy + 2) {
+        uwp_clipy = max(0, y - (uwp_clipymax - uwp_clipy) / 2);
+        uwp_clipymax = uwp_clipy + (LI - 3);
     }
-    else if (y > clipymax - 2) {
-        clipymax = min(ROWNO, clipymax + (clipymax - clipy) / 2);
-        clipy = clipymax - (LI - 3);
+    else if (y > uwp_clipymax - 2) {
+        uwp_clipymax = min(ROWNO, uwp_clipymax + (uwp_clipymax - uwp_clipy) / 2);
+        uwp_clipy = uwp_clipymax - (LI - 3);
     }
-    if (clipx != oldx || clipy != oldy) {
+    if (uwp_clipx != oldx || uwp_clipy != oldy) {
         if (on_level(&u.uz0, &u.uz) && !restoring)
             (void) doredraw();
     }
@@ -3237,7 +3137,7 @@ int x, y;
 #endif /* CLIPPING */
 
 /*
-*  tty_print_glyph
+*  uwp_print_glyph
 *
 *  Print the glyph to the output device.  Don't flush the output device.
 *
@@ -3246,7 +3146,7 @@ int x, y;
 */
 
 void
-tty_print_glyph(window, x, y, glyph, bkglyph)
+uwp_print_glyph(window, x, y, glyph, bkglyph)
 winid window;
 xchar x, y;
 int glyph;
@@ -3258,20 +3158,20 @@ int bkglyph UNUSED;
     unsigned special;
 
 #ifdef CLIPPING
-    if (clipping) {
-        if (x <= clipx || y < clipy || x >= clipxmax || y >= clipymax)
+    if (uwp_clipping) {
+        if (x <= uwp_clipx || y < uwp_clipy || x >= uwp_clipxmax || y >= uwp_clipymax)
             return;
     }
 #endif
     /* map glyph to character and color */
     (void)mapglyph(glyph, &ch, &color, &special, x, y);
 
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
+    uwp_print_vt_code2(AVTC_SELECT_WINDOW, window);
 
     /* Move the cursor. */
-    tty_curs(window, x, y);
+    uwp_curs(window, x, y);
 
-    print_vt_code3(AVTC_GLYPH_START, glyph2tile[glyph], special);
+    uwp_print_vt_code3(AVTC_GLYPH_START, glyph2tile[glyph], special);
 
 #ifndef NO_TERMS
     if (ul_hack && ch == '_') { /* non-destructive underscore */
@@ -3281,21 +3181,21 @@ int bkglyph UNUSED;
 #endif
 
 #ifdef TEXTCOLOR
-    if (color != ttyDisplay->color) {
-        if (ttyDisplay->color != NO_COLOR)
-            term_end_color();
-        ttyDisplay->color = color;
+    if (color != uwpDisplay->color) {
+        if (uwpDisplay->color != NO_COLOR)
+            uwp_term_end_color();
+        uwpDisplay->color = color;
         if (color != NO_COLOR)
-            term_start_color(color);
+            uwp_term_start_color(color);
     }
 #endif /* TEXTCOLOR */
 
-    /* must be after color check; term_end_color may turn off inverse too */
+    /* must be after color check; uwp_term_end_color may turn off inverse too */
     if (((special & MG_PET) && iflags.hilite_pet)
         || ((special & MG_OBJPILE) && iflags.hilite_pile)
         || ((special & MG_DETECT) && iflags.use_inverse)
         || ((special & MG_BW_LAVA) && iflags.use_inverse)) {
-        term_start_attr(ATR_INVERSE);
+        uwp_term_start_attr(ATR_INVERSE);
         reverse_on = TRUE;
     }
 
@@ -3304,34 +3204,34 @@ int bkglyph UNUSED;
         xputg(glyph, ch, special);
     else
 #endif
-        g_putch(ch); /* print the character */
+        uwp_g_putch(ch); /* print the character */
 
     if (reverse_on) {
-        term_end_attr(ATR_INVERSE);
+        uwp_term_end_attr(ATR_INVERSE);
 #ifdef TEXTCOLOR
         /* turn off color as well, ATR_INVERSE may have done this already */
-        if (ttyDisplay->color != NO_COLOR) {
-            term_end_color();
-            ttyDisplay->color = NO_COLOR;
+        if (uwpDisplay->color != NO_COLOR) {
+            uwp_term_end_color();
+            uwpDisplay->color = NO_COLOR;
         }
 #endif
     }
 
-    print_vt_code1(AVTC_GLYPH_END);
+    uwp_print_vt_code1(AVTC_GLYPH_END);
 
-    wins[window]->curx++; /* one character over */
-    ttyDisplay->curx++;   /* the real cursor moved too */
+    uwp_wins[window]->curx++; /* one character over */
+    uwpDisplay->curx++;   /* the real cursor moved too */
 }
 
 void
-tty_raw_print(str)
+uwp_raw_print(str)
 const char *str;
 {
-    if (ttyDisplay)
-        ttyDisplay->rawprint++;
-    print_vt_code2(AVTC_SELECT_WINDOW, NHW_BASE);
+    if (uwpDisplay)
+        uwpDisplay->rawprint++;
+    uwp_print_vt_code2(AVTC_SELECT_WINDOW, UWP_NHW_BASE);
 #if defined(MICRO) || defined(WIN32CON)
-    msmsg("%s\n", str);
+    uwp_msmsg("%s\n", str);
 #else
     puts(str);
     (void)fflush(stdout);
@@ -3339,21 +3239,21 @@ const char *str;
 }
 
 void
-tty_raw_print_bold(str)
+uwp_raw_print_bold(str)
 const char *str;
 {
-    if (ttyDisplay)
-        ttyDisplay->rawprint++;
-    print_vt_code2(AVTC_SELECT_WINDOW, NHW_BASE);
-    term_start_raw_bold();
+    if (uwpDisplay)
+        uwpDisplay->rawprint++;
+    uwp_print_vt_code2(AVTC_SELECT_WINDOW, UWP_NHW_BASE);
+    uwp_term_start_raw_bold();
 #if defined(MICRO) || defined(WIN32CON)
-    msmsg("%s", str);
+    uwp_msmsg("%s", str);
 #else
     (void)fputs(str, stdout);
 #endif
-    term_end_raw_bold();
+    uwp_term_end_raw_bold();
 #if defined(MICRO) || defined(WIN32CON)
-    msmsg("\n");
+    uwp_msmsg("\n");
 #else
     puts("");
     (void)fflush(stdout);
@@ -3361,7 +3261,7 @@ const char *str;
 }
 
 int
-tty_nhgetch()
+uwp_nhgetch()
 {
     int i;
 #ifdef UNIX
@@ -3374,37 +3274,37 @@ tty_nhgetch()
     char nestbuf;
 #endif
 
-    print_vt_code1(AVTC_INLINE_SYNC);
+    uwp_print_vt_code1(AVTC_INLINE_SYNC);
     (void)fflush(stdout);
     /* Note: if raw_print() and wait_synch() get called to report terminal
-    * initialization problems, then wins[] and ttyDisplay might not be
+    * initialization problems, then uwp_wins[] and uwpDisplay might not be
     * available yet.  Such problems will probably be fatal before we get
     * here, but validate those pointers just in case...
     */
-    if (WIN_MESSAGE != WIN_ERR && wins[WIN_MESSAGE])
-        wins[WIN_MESSAGE]->flags &= ~WIN_STOP;
+    if (WIN_MESSAGE != WIN_ERR && uwp_wins[WIN_MESSAGE])
+        uwp_wins[WIN_MESSAGE]->flags &= ~UWP_WIN_STOP;
 #ifdef UNIX
-    i = (++nesting == 1) ? tgetch()
+    i = (++nesting == 1) ? uwp_tgetch()
         : (read(fileno(stdin), (genericptr_t)&nestbuf, 1)
             == 1) ? (int)nestbuf : EOF;
     --nesting;
 #else
-    i = tgetch();
+    i = uwp_tgetch();
 #endif
     if (!i)
         i = '\033'; /* map NUL to ESC since nethack doesn't expect NUL */
     else if (i == EOF)
         i = '\033'; /* same for EOF */
-    if (ttyDisplay && ttyDisplay->toplin == 1)
-        ttyDisplay->toplin = 2;
-#ifdef TTY_TILES_ESCCODES
+    if (uwpDisplay && uwpDisplay->toplin == 1)
+        uwpDisplay->toplin = 2;
+#ifdef UWP_TILES_ESCCODES
     {
         /* hack to force output of the window select code */
         int tmp = vt_tile_current_window;
         vt_tile_current_window++;
-        print_vt_code2(AVTC_SELECT_WINDOW, tmp);
+        uwp_print_vt_code2(AVTC_SELECT_WINDOW, tmp);
     }
-#endif /* TTY_TILES_ESCCODES */
+#endif /* UWP_TILES_ESCCODES */
     return i;
 }
 
@@ -3415,36 +3315,36 @@ tty_nhgetch()
 */
 /*ARGSUSED*/
 int
-tty_nh_poskey(x, y, mod)
+uwp_nh_poskey(x, y, mod)
 int *x, *y, *mod;
 {
 #if defined(WIN32CON)
     int i;
     (void)fflush(stdout);
     /* Note: if raw_print() and wait_synch() get called to report terminal
-    * initialization problems, then wins[] and ttyDisplay might not be
+    * initialization problems, then uwp_wins[] and uwpDisplay might not be
     * available yet.  Such problems will probably be fatal before we get
     * here, but validate those pointers just in case...
     */
-    if (WIN_MESSAGE != WIN_ERR && wins[WIN_MESSAGE])
-        wins[WIN_MESSAGE]->flags &= ~WIN_STOP;
-    i = ntposkey(x, y, mod);
+    if (WIN_MESSAGE != WIN_ERR && uwp_wins[WIN_MESSAGE])
+        uwp_wins[WIN_MESSAGE]->flags &= ~UWP_WIN_STOP;
+    i = uwp_ntposkey(x, y, mod);
     if (!i && mod && (*mod == 0 || *mod == EOF))
         i = '\033'; /* map NUL or EOF to ESC, nethack doesn't expect either */
-    if (ttyDisplay && ttyDisplay->toplin == 1)
-        ttyDisplay->toplin = 2;
+    if (uwpDisplay && uwpDisplay->toplin == 1)
+        uwpDisplay->toplin = 2;
     return i;
 #else /* !WIN32CON */
     nhUse(x);
     nhUse(y);
     nhUse(mod);
 
-    return tty_nhgetch();
+    return uwp_nhgetch();
 #endif /* ?WIN32CON */
 }
 
 void
-win_tty_init(dir)
+win_uwp_init(dir)
 int dir;
 {
     if (dir != WININIT)
@@ -3458,7 +3358,7 @@ int dir;
 
 #ifdef POSITIONBAR
 void
-tty_update_positionbar(posbar)
+uwp_update_positionbar(posbar)
 char *posbar;
 {
 #ifdef MSDOS
@@ -3488,8 +3388,8 @@ typedef struct hilite_data_struct {
     int under;
     int over;
 } hilite_data_t;
-static hilite_data_t tty_status_hilites[MAXBLSTATS];
-static int tty_status_colors[MAXBLSTATS];
+static hilite_data_t uwp_status_hilites[MAXBLSTATS];
+static int uwp_status_colors[MAXBLSTATS];
 
 struct color_option {
     int color;
@@ -3503,7 +3403,7 @@ static void FDECL(add_colored_text, (const char *, char *));
 #endif
 
 void
-tty_status_init()
+uwp_status_init()
 {
     int i;
 
@@ -3512,11 +3412,11 @@ tty_status_init()
 
     for (i = 0; i < MAXBLSTATS; ++i) {
 #ifdef STATUS_HILITES
-        tty_status_colors[i] = NO_COLOR; /* no color */
-        tty_status_hilites[i].thresholdtype = 0;
-        tty_status_hilites[i].behavior = BL_TH_NONE;
-        tty_status_hilites[i].under = BL_HILITE_NONE;
-        tty_status_hilites[i].over = BL_HILITE_NONE;
+        uwp_status_colors[i] = NO_COLOR; /* no color */
+        uwp_status_hilites[i].thresholdtype = 0;
+        uwp_status_hilites[i].behavior = BL_TH_NONE;
+        uwp_status_hilites[i].under = BL_HILITE_NONE;
+        uwp_status_hilites[i].over = BL_HILITE_NONE;
 #endif /* STATUS_HILITES */
     }
 }
@@ -3557,7 +3457,7 @@ tty_status_init()
 *         have to skip past ':' in the passed "ptr" for the BL_GOLD case.
 */
 void
-tty_status_update(fldidx, ptr, chg, percent)
+uwp_status_update(fldidx, ptr, chg, percent)
 int fldidx, chg, percent;
 genericptr_t ptr;
 {
@@ -3631,41 +3531,41 @@ genericptr_t ptr;
         }
 
 #ifdef STATUS_HILITES
-        switch (tty_status_hilites[fldidx].behavior) {
+        switch (uwp_status_hilites[fldidx].behavior) {
         case BL_TH_NONE:
-            tty_status_colors[fldidx] = NO_COLOR;
+            uwp_status_colors[fldidx] = NO_COLOR;
             break;
         case BL_TH_UPDOWN:
             if (chg > 0)
-                tty_status_colors[fldidx] = tty_status_hilites[fldidx].over;
+                uwp_status_colors[fldidx] = uwp_status_hilites[fldidx].over;
             else if (chg < 0)
-                tty_status_colors[fldidx] = tty_status_hilites[fldidx].under;
+                uwp_status_colors[fldidx] = uwp_status_hilites[fldidx].under;
             else
-                tty_status_colors[fldidx] = NO_COLOR;
+                uwp_status_colors[fldidx] = NO_COLOR;
             break;
         case BL_TH_VAL_PERCENTAGE: {
             int pct_th = 0;
 
-            if (tty_status_hilites[fldidx].thresholdtype != ANY_INT) {
+            if (uwp_status_hilites[fldidx].thresholdtype != ANY_INT) {
                 impossible(
-                    "tty_status_update: unsupported percentage threshold type %d",
-                    tty_status_hilites[fldidx].thresholdtype);
+                    "uwp_status_update: unsupported percentage threshold type %d",
+                    uwp_status_hilites[fldidx].thresholdtype);
             }
             else {
-                pct_th = tty_status_hilites[fldidx].threshold.a_int;
-                tty_status_colors[fldidx] = (percent >= pct_th)
-                    ? tty_status_hilites[fldidx].over
-                    : tty_status_hilites[fldidx].under;
+                pct_th = uwp_status_hilites[fldidx].threshold.a_int;
+                uwp_status_colors[fldidx] = (percent >= pct_th)
+                    ? uwp_status_hilites[fldidx].over
+                    : uwp_status_hilites[fldidx].under;
             }
             break;
         }
         case BL_TH_VAL_ABSOLUTE: {
             int c = NO_COLOR;
-            int o = tty_status_hilites[fldidx].over;
-            int u = tty_status_hilites[fldidx].under;
-            anything *t = &tty_status_hilites[fldidx].threshold;
+            int o = uwp_status_hilites[fldidx].over;
+            int u = uwp_status_hilites[fldidx].under;
+            anything *t = &uwp_status_hilites[fldidx].threshold;
 
-            switch (tty_status_hilites[fldidx].thresholdtype) {
+            switch (uwp_status_hilites[fldidx].thresholdtype) {
             case ANY_LONG:
                 c = (value >= t->a_long) ? o : u;
                 break;
@@ -3683,11 +3583,11 @@ genericptr_t ptr;
                 break;
             default:
                 impossible(
-                    "tty_status_update: unsupported absolute threshold type %d\n",
-                    tty_status_hilites[fldidx].thresholdtype);
+                    "uwp_status_update: unsupported absolute threshold type %d\n",
+                    uwp_status_hilites[fldidx].thresholdtype);
                 break;
             }
-            tty_status_colors[fldidx] = c;
+            uwp_status_colors[fldidx] = c;
             break;
         } /* case */
         } /* switch */
@@ -3730,22 +3630,22 @@ genericptr_t ptr;
 
         if (status_activefields[fldidx1]) {
 #ifdef STATUS_HILITES
-            if (tty_status_colors[fldidx1] < 0
-                && tty_status_colors[fldidx1] >= -3) {
+            if (uwp_status_colors[fldidx1] < 0
+                && uwp_status_colors[fldidx1] >= -3) {
                 /* attribute, not a color */
-                attridx = tty_status_colors[fldidx1] + 3;
-                term_start_attr(statusattr[attridx]);
+                attridx = uwp_status_colors[fldidx1] + 3;
+                uwp_term_start_attr(statusattr[attridx]);
                 putstr(WIN_STATUS, 0, status_vals[fldidx1]);
-                term_end_attr(statusattr[attridx]);
+                uwp_term_end_attr(statusattr[attridx]);
             }
             else
 #ifdef TEXTCOLOR
-                if (tty_status_colors[fldidx1] != CLR_MAX) {
-                    if (tty_status_colors[fldidx1] != NO_COLOR)
-                        term_start_color(tty_status_colors[fldidx1]);
+                if (uwp_status_colors[fldidx1] != CLR_MAX) {
+                    if (uwp_status_colors[fldidx1] != NO_COLOR)
+                        uwp_term_start_color(uwp_status_colors[fldidx1]);
                     putstr(WIN_STATUS, 0, status_vals[fldidx1]);
-                    if (tty_status_colors[fldidx1] != NO_COLOR)
-                        term_end_color();
+                    if (uwp_status_colors[fldidx1] != NO_COLOR)
+                        uwp_term_end_color();
                 }
                 else
 #endif
@@ -3759,19 +3659,19 @@ genericptr_t ptr;
 
         if (status_activefields[fldidx2]) {
 #ifdef STATUS_HILITES
-            if (tty_status_colors[fldidx2] < 0
-                && tty_status_colors[fldidx2] >= -3) {
+            if (uwp_status_colors[fldidx2] < 0
+                && uwp_status_colors[fldidx2] >= -3) {
                 /* attribute, not a color */
-                attridx = tty_status_colors[fldidx2] + 3;
-                term_start_attr(statusattr[attridx]);
+                attridx = uwp_status_colors[fldidx2] + 3;
+                uwp_term_start_attr(statusattr[attridx]);
                 putstr(WIN_STATUS, 0, status_vals[fldidx2]);
-                term_end_attr(statusattr[attridx]);
+                uwp_term_end_attr(statusattr[attridx]);
             }
             else
 #ifdef TEXTCOLOR
-                if (tty_status_colors[fldidx2] != CLR_MAX) {
-                    if (tty_status_colors[fldidx2] != NO_COLOR)
-                        term_start_color(tty_status_colors[fldidx2]);
+                if (uwp_status_colors[fldidx2] != CLR_MAX) {
+                    if (uwp_status_colors[fldidx2] != NO_COLOR)
+                        uwp_term_start_color(uwp_status_colors[fldidx2]);
                     if (fldidx2 == BL_GOLD) {
                         /* putmixed() due to GOLD glyph */
                         putmixed(WIN_STATUS, 0, status_vals[fldidx2]);
@@ -3779,8 +3679,8 @@ genericptr_t ptr;
                     else {
                         putstr(WIN_STATUS, 0, status_vals[fldidx2]);
                     }
-                    if (tty_status_colors[fldidx2] != NO_COLOR)
-                        term_end_color();
+                    if (uwp_status_colors[fldidx2] != NO_COLOR)
+                        uwp_term_end_color();
                 }
                 else
 #endif
@@ -3833,22 +3733,31 @@ genericptr_t ptr;
 *           CLR_BRIGHT_MAGENTA, CLR_BRIGHT_CYAN, or CLR_WHITE (0 - 15).
 */
 void
-tty_status_threshold(fldidx, thresholdtype, threshold, behavior, under, over)
+uwp_status_threshold(fldidx, thresholdtype, threshold, behavior, under, over)
 int fldidx, thresholdtype;
 int behavior, under, over;
 anything threshold;
 {
-    tty_status_hilites[fldidx].thresholdtype = thresholdtype;
-    tty_status_hilites[fldidx].threshold = threshold;
-    tty_status_hilites[fldidx].behavior = behavior;
-    tty_status_hilites[fldidx].under = under;
-    tty_status_hilites[fldidx].over = over;
+    uwp_status_hilites[fldidx].thresholdtype = thresholdtype;
+    uwp_status_hilites[fldidx].threshold = threshold;
+    uwp_status_hilites[fldidx].behavior = behavior;
+    uwp_status_hilites[fldidx].under = under;
+    uwp_status_hilites[fldidx].over = over;
     return;
 }
 
 #endif /* STATUS_HILITES */
 #endif /*STATUS_VIA_WINDOWPORT*/
 
-#endif // brh
+void
+uwp_nhbell()
+{
+    if (flags.silent)
+        return;
 
-/*wintty.c*/
+    // TODO(bhouse): Figure out how we can play a beep sounds
+    // Beep(8000, 500);
+}
+
+#endif // UWP_GRAPHICS
+
