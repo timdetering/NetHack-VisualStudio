@@ -54,7 +54,7 @@ namespace Nethack
                 wchar_t * wname = new wchar_t[length + 1];
                 DX::ThrowIfFailed(names->GetString(nameIndex, wname, length + 1));
                 
-                std::string name = brh::to_string(std::wstring(wname));
+                std::string name = Nethack::to_string(std::wstring(wname));
                 m_fonts[name] = Font(font, name);
             }
         }
@@ -95,7 +95,7 @@ namespace Nethack
                 wchar_t * wfamilyName = new wchar_t[familyNameLength + 1];
                 DX::ThrowIfFailed(familyNames->GetString(nameIndex, wfamilyName, familyNameLength + 1));
 
-                std::string familyName = brh::to_string(std::wstring(wfamilyName));
+                std::string familyName = Nethack::to_string(std::wstring(wfamilyName));
                 m_fontFamilies[familyName] = FontFamily(fontFamily, familyName);
             }
         }

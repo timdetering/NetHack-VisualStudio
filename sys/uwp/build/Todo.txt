@@ -4,23 +4,16 @@ High Priority
 - Look into port_help().  Do we have a port help file?
 - Polish windows store description.
 - Polish GIT hub wiki pages.
-- Fix flashing problem seen when transitioning pages.  Likely caused by vertex buffers getting caught with ongoing edits.  Are we taking the lock during draw?
+- Review all code looking for more static locals.  This can be a problem since we can't re-initialize.
 
 Medium Priority
 - Clean up UWP file naming and placement.
 - Place TextGrid positioned at top of window.
-- add support for bold characters (assuming they get used)
-- look into what other character attributes (other then bold) should be supported
-- rethink when we ask to hit enter on exit.  We should wait until we have implemented
-  the outer shell.  This will have to come after we make changes to support starting
-  main loop a second time.
 - review decl_clean_up() to see if we need to free memory before NULLing pointers
 
 Low Priority
 - see if we can remove WIN32CON definition (currently defined in vcxproj )
 - persist options which are set (low priority since NETHACKOPTIONS environment variable can be used)
-- add start menu before game start allowing player to edit persistent configuration settings
-- consider copying data files to user data area allowing user to modify
 - add arm and arm64 support
 - Add more advanced gesturing support.
 - Consider supporting tiles.

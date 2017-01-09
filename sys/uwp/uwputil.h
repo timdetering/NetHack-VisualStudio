@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <string>
 
-namespace brh
+namespace Nethack
 {
     inline std::string to_string(const std::wstring & inString)
     {
@@ -34,14 +34,14 @@ namespace brh
 namespace Nethack
 {
 
-    inline Platform::String ^ to_string(const std::string & inString)
+    inline Platform::String ^ to_platform_string(const std::string & inString)
     {
         std::wstring string;
         string.assign(inString.begin(), inString.end());
         return ref new Platform::String(string.c_str());
     }
 
-    inline Platform::String ^ to_string(const std::wstring & inString)
+    inline Platform::String ^ to_platform_string(const std::wstring & inString)
     {
         return ref new Platform::String(inString.c_str());
     }

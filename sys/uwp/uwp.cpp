@@ -604,7 +604,7 @@ void remove_option()
 
 }
 
-bool change_options()
+void change_options()
 {
     bool done = false;
     while (!done)
@@ -630,7 +630,12 @@ bool change_options()
 
         char c = raw_getchar();
 
-        if (c == EOF || c == ESCAPE) return false;
+        if (c == EOF || c == ESCAPE) return;
+
+        c = tolower(c);
+
+        if (c >= 'a' && c <= 'b')
+            Nethack::g_textGrid.Put(Nethack::TextColor::White, Nethack::TextAttribute::None, c);
 
         switch (c)
         {
@@ -638,8 +643,6 @@ bool change_options()
         case 'b': remove_option();  break;
         }
     }
-
-    return true;
 }
 
 char * uwp_getenv(const char * env)
@@ -683,10 +686,15 @@ bool main_menu(const char * localDir)
 
         if (c == EOF) return false;
 
+        c = tolower(c);
+
+        if (c >= 'a' && c <= 'd') 
+            Nethack::g_textGrid.Put(Nethack::TextColor::White, Nethack::TextAttribute::None,c);
+
         switch (c)
         {
         case 'a': done = true; break;
-        case 'b': if (!change_options()) return false; break;
+        case 'b': change_options(); break;
         case 'c':
             {
                 std::string readText;
@@ -702,7 +710,7 @@ bool main_menu(const char * localDir)
                     readText = std::string(bytes.data(), size);
                 }
 
-                fileText = Nethack::to_string(readText);
+                fileText = Nethack::to_platform_string(readText);
 
                 Nethack::FileHandler::s_instance->SaveFilePicker(fileText);
                 break;
