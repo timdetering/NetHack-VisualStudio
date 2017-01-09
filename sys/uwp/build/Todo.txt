@@ -4,6 +4,7 @@ High Priority
 - Look into port_help().  Do we have a port help file?
 - Polish windows store description.
 - Polish GIT hub wiki pages.
+- Fix flashing problem seen when transitioning pages.  Likely caused by vertex buffers getting caught with ongoing edits.  Are we taking the lock during draw?
 
 Medium Priority
 - Clean up UWP file naming and placement.
