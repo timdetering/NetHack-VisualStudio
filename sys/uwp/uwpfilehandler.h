@@ -8,7 +8,7 @@
 namespace Nethack
 {
 
-    public ref class FileHandler sealed
+    ref class FileHandler sealed
     {
     public:
 
