@@ -264,6 +264,7 @@
     <ClInclude Include="..\uwpfilehandler.h" />
     <ClInclude Include="..\uwpfont.h" />
     <ClInclude Include="..\uwputil.h" />
+    <ClInclude Include="VirtualKey.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(SrcDir)sys.c">

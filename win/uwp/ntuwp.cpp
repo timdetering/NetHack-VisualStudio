@@ -19,7 +19,7 @@ struct uwp_console_t {
     WORD current_nhattr;
     COORD cursor;
 };
-    
+
 struct uwp_console_t uwp_console = {
     0,
     (FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED),
@@ -54,7 +54,7 @@ void uwp_getreturn(const char * str)
 * system isn't initialized yet
 */
 void uwp_msmsg
-VA_DECL(const char *, fmt)
+    VA_DECL(const char *, fmt)
 {
     char buf[ROWNO * COLNO]; /* worst case scenario */
     VA_START(fmt);
@@ -76,7 +76,7 @@ void uwp_number_pad(int state)
 }
 
 void
-uwp_startup(int * wid, int * hgt)
+    uwp_startup(int * wid, int * hgt)
 {
     *wid = Nethack::g_textGrid.GetDimensions().m_x;
     *hgt = Nethack::g_textGrid.GetDimensions().m_y;
@@ -85,28 +85,28 @@ uwp_startup(int * wid, int * hgt)
 }
 
 void
-uwp_start_screen()
+    uwp_start_screen()
 {
     if (iflags.num_pad)
         uwp_number_pad(1); /* make keypad send digits */
 }
 
 void
-uwp_home()
+    uwp_home()
 {
     uwp_console.cursor.X = uwp_console.cursor.Y = 0;
     uwpDisplay->curx = uwpDisplay->cury = 0;
 }
 
 void
-uwp_end_screen()
+    uwp_end_screen()
 {
     uwp_clear_screen();
     uwp_really_move_cursor();
 }
 
 void
-uwp_cmov(int x, int y)
+    uwp_cmov(int x, int y)
 {
     uwpDisplay->cury = y;
     uwpDisplay->curx = x;
@@ -115,7 +115,7 @@ uwp_cmov(int x, int y)
 }
 
 void
-uwp_nocmov(int x, int y)
+    uwp_nocmov(int x, int y)
 {
     uwp_console.cursor.X = x;
     uwp_console.cursor.Y = y;
@@ -124,31 +124,31 @@ uwp_nocmov(int x, int y)
 }
 
 void
-uwp_term_start_color(int color)
+    uwp_term_start_color(int color)
 {
     uwp_console.current_nhcolor = color;
 }
 
 void
-uwp_term_end_color(void)
+    uwp_term_end_color(void)
 {
     uwp_console.current_nhcolor = NO_COLOR;
 }
 
 void
-uwp_term_end_raw_bold(void)
+    uwp_term_end_raw_bold(void)
 {
     uwp_term_end_attr(ATR_BOLD);
 }
 
 void
-uwp_term_start_raw_bold(void)
+    uwp_term_start_raw_bold(void)
 {
     uwp_term_start_attr(ATR_BOLD);
 }
 
 void
-uwp_term_start_attr(int attrib)
+    uwp_term_start_attr(int attrib)
 {
     assert(uwp_console.current_nhattr == 0);
     if (attrib != ATR_NONE && uwp_console.current_nhattr == 0)
@@ -156,14 +156,14 @@ uwp_term_start_attr(int attrib)
 }
 
 void
-uwp_term_end_attr(int attrib)
+    uwp_term_end_attr(int attrib)
 {
     uwp_console.current_nhattr &= ~(1 << attrib);
     assert(uwp_console.current_nhattr == 0);
 }
 
 void
-uwp_cl_eos()
+    uwp_cl_eos()
 {
     int x = uwpDisplay->curx;
     int y = uwpDisplay->cury;
@@ -177,7 +177,7 @@ uwp_cl_eos()
 }
 
 void
-uwp_cl_end()
+    uwp_cl_end()
 {
     int cx;
     uwp_console.cursor.X = uwpDisplay->curx;
@@ -186,7 +186,7 @@ uwp_cl_end()
 
     Nethack::g_textGrid.Put(uwp_console.cursor.X, uwp_console.cursor.Y, Nethack::TextCell(), cx);
 
-     uwp_curs(UWP_BASE_WINDOW, (int)uwpDisplay->curx + 1, (int)uwpDisplay->cury);
+    uwp_curs(UWP_BASE_WINDOW, (int)uwpDisplay->curx + 1, (int)uwpDisplay->cury);
 }
 
 void uwp_clear_screen(void)
@@ -196,19 +196,19 @@ void uwp_clear_screen(void)
 }
 
 void
-uwp_standoutbeg()
+    uwp_standoutbeg()
 {
     uwp_term_start_attr(ATR_BOLD);
 }
 
 void
-uwp_standoutend()
+    uwp_standoutend()
 {
     uwp_term_end_attr(ATR_BOLD);
 }
 
 void
-uwp_g_putch(int in_ch)
+    uwp_g_putch(int in_ch)
 {
     uwp_console.cursor.X = uwpDisplay->curx;
     uwp_console.cursor.Y = uwpDisplay->cury;
@@ -219,7 +219,7 @@ uwp_g_putch(int in_ch)
 }
 
 void
-uwp_xputc_core(char ch)
+    uwp_xputc_core(char ch)
 {
     switch (ch) {
     case '\n':
@@ -250,7 +250,7 @@ void uwp_xputc(char ch)
 }
 
 void
-uwp_xputs(const char *s)
+    uwp_xputs(const char *s)
 {
     int k;
     int slen = strlen(s);
@@ -267,7 +267,7 @@ uwp_xputs(const char *s)
 }
 
 void
-uwp_backsp()
+    uwp_backsp()
 {
     uwp_console.cursor.X = uwpDisplay->curx;
     uwp_console.cursor.Y = uwpDisplay->cury;
@@ -275,14 +275,14 @@ uwp_backsp()
 }
 
 void
-uwp_delay_output()
+    uwp_delay_output()
 {
     // Delay 50ms
     Sleep(50);
 }
 
 int
-uwp_tgetch()
+    uwp_tgetch()
 {
     uwp_really_move_cursor();
     char c = raw_getchar();
@@ -297,7 +297,7 @@ uwp_tgetch()
 }
 
 void
-uwp_settty(const char *s)
+    uwp_settty(const char *s)
 {
     uwp_cmov(uwpDisplay->curx, uwpDisplay->cury);
     end_screen();
@@ -306,7 +306,7 @@ uwp_settty(const char *s)
 }
 
 int
-uwp_ntposkey(int *x, int *y, int * mod)
+    uwp_ntposkey(int *x, int *y, int * mod)
 {
     uwp_really_move_cursor();
 
@@ -316,7 +316,8 @@ uwp_ntposkey(int *x, int *y, int * mod)
     Nethack::Event e;
 
     while (e.m_type == Nethack::Event::Type::Undefined ||
-        (e.m_type == Nethack::Event::Type::Mouse && !iflags.wc_mouse_support))
+            (e.m_type == Nethack::Event::Type::Mouse && !iflags.wc_mouse_support) ||
+            (e.m_type == Nethack::Event::Type::ScanCode && MapScanCode(e) == 0))
         e = Nethack::g_eventQueue.PopFront();
 
     if (e.m_type == Nethack::Event::Type::Char)

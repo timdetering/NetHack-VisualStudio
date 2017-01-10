@@ -165,30 +165,6 @@ void App::Run()
     }
 }
 
-void App::OnAcceleratorKeyActivated(Windows::UI::Core::CoreDispatcher ^ dispatcher, Windows::UI::Core::AcceleratorKeyEventArgs ^ args)
-{
-    Windows::System::VirtualKey virtualKey = args->VirtualKey;
-    bool isExtended = args->KeyStatus.IsExtendedKey;
-    bool wasKeyDown = args->KeyStatus.WasKeyDown; ;
-    Windows::UI::Core::CoreAcceleratorKeyEventType eventType = args->EventType;
-
-    if (virtualKey == Windows::System::VirtualKey::Menu && eventType == Windows::UI::Core::CoreAcceleratorKeyEventType::SystemKeyDown)
-    {
-        args->Handled = true;
-        return;
-    }
-
-    if (virtualKey == Windows::System::VirtualKey::Menu && eventType == Windows::UI::Core::CoreAcceleratorKeyEventType::SystemKeyUp)
-    {
-        args->Handled = true;
-        return;
-    }
-
-    static int count = 0;
-    count++;
-
-}
-
 // Required for IFrameworkView.
 // Terminate events do not cause Uninitialize to be called. It will be called if your IFrameworkView
 // class is torn down while the app is in the foreground.
@@ -324,6 +300,12 @@ void App::OnCharacterReceived(Windows::UI::Core::CoreWindow^ sender, Windows::UI
 {
     if (m_main != nullptr)
         m_main->OnCharacterReceived(sender, args);
+}
+
+void App::OnAcceleratorKeyActivated(Windows::UI::Core::CoreDispatcher ^ dispatcher, Windows::UI::Core::AcceleratorKeyEventArgs ^ args)
+{
+    if (m_main != nullptr)
+        m_main->OnAcceleratorKeyActivated(dispatcher, args);
 }
 
 

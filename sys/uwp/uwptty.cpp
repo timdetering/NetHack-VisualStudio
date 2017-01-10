@@ -350,7 +350,8 @@ extern "C" {
         Nethack::Event e;
 
         while (e.m_type == Nethack::Event::Type::Undefined ||
-            (e.m_type == Nethack::Event::Type::Mouse && !iflags.wc_mouse_support))
+            (e.m_type == Nethack::Event::Type::Mouse && !iflags.wc_mouse_support) ||
+            (e.m_type == Nethack::Event::Type::ScanCode && MapScanCode(e) == 0))
             e = Nethack::g_eventQueue.PopFront();
 
         if (e.m_type == Nethack::Event::Type::Char)

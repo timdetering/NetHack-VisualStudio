@@ -10,6 +10,7 @@
 #include "uwpconditionvariable.h"
 #include "MyMath.h"
 #include "ScaneCode.h"
+#include "VirtualKey.h"
 
 namespace Nethack
 {
@@ -39,12 +40,13 @@ namespace Nethack
             m_pos = pos;
         }
 
-        Event(ScanCode scanCode, bool shift, bool control)
+        Event(ScanCode scanCode, bool shift, bool control, bool alt = false)
         {
             m_type = Type::ScanCode;
             m_scanCode = scanCode;
             m_shift = shift;
             m_control = control;
+            m_alt = alt;
         }
 
         Type m_type;
@@ -54,9 +56,11 @@ namespace Nethack
 
         char m_char;
 
-        int m_scanCode;
+        ScanCode m_scanCode;
+
         bool m_shift;
         bool m_control;
+        bool m_alt;
 
     };
 

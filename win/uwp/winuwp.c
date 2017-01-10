@@ -3356,6 +3356,20 @@ int dir;
     return;
 }
 
+// TODO: This shoudl be move to system support which
+//       in turn leverages either the windowing system
+//       or raw output system.
+void getreturn(const char * str)
+{
+    uwp_msmsg("Hit <Enter> %s.", str);
+
+    while (pgetchar() != '\n')
+        ;
+    return;
+}
+
+
+
 #ifdef POSITIONBAR
 void
 uwp_update_positionbar(posbar)

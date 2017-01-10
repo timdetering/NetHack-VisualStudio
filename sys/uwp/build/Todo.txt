@@ -5,6 +5,7 @@ High Priority
 - Polish windows store description.
 - Polish GIT hub wiki pages.
 - Review all code looking for more static locals.  This can be a problem since we can't re-initialize.
+- Fix clearing screen issues when recovering game file
 
 Medium Priority
 - Clean up UWP file naming and placement.

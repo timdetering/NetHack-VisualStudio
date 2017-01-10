@@ -201,8 +201,7 @@ void NethackMain::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::
 
        bool shift = ((shiftKeyState & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down);
        bool control = ((controlKeyState & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down);
-        bool numLock = (numLockState == Windows::UI::Core::CoreVirtualKeyStates::Down) ||
-                       (numLockState == Windows::UI::Core::CoreVirtualKeyStates::Locked);
+       bool numLock = ((numLockState & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down);
 
         // If num lock, then we will get the corresponding character received so ignore
         if (!numLock)
@@ -226,6 +225,47 @@ void NethackMain::OnCharacterReceived(Windows::UI::Core::CoreWindow^ sender, Win
     g_eventQueue.PushBack(Event(c));
 }
 
+void NethackMain::OnAcceleratorKeyActivated(Windows::UI::Core::CoreDispatcher ^ dispatcher, Windows::UI::Core::AcceleratorKeyEventArgs ^ args)
+{
+    Windows::UI::Core::CoreWindow^ sender = Windows::UI::Core::CoreWindow::GetForCurrentThread();
+    Windows::System::VirtualKey virtualKey = args->VirtualKey;
+    bool isExtended = args->KeyStatus.IsExtendedKey;
+    bool wasKeyDown = args->KeyStatus.WasKeyDown;
+    Windows::UI::Core::CoreAcceleratorKeyEventType eventType = args->EventType;
+    Windows::UI::Core::CoreVirtualKeyStates menuState = sender->GetKeyState(Windows::System::VirtualKey::Menu);
+    ScanCode scanCode = (ScanCode)args->KeyStatus.ScanCode;
+    Windows::UI::Core::CoreVirtualKeyStates shiftKeyState =
+        sender->GetKeyState(Windows::System::VirtualKey::Shift);
+    Windows::UI::Core::CoreVirtualKeyStates controlKeyState =
+        sender->GetKeyState(Windows::System::VirtualKey::Control);
+    bool shift = ((shiftKeyState & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down);
+    bool control = ((controlKeyState & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down);
+
+    bool menu = ((menuState & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down);
+
+    if (menu && virtualKey != Windows::System::VirtualKey::Menu && eventType == Windows::UI::Core::CoreAcceleratorKeyEventType::SystemKeyDown)
+    {
+        g_eventQueue.PushBack(Event(scanCode, shift, control, menu));
+        args->Handled = true;
+        return;
+    }
+
+
+#if 0
+    if (virtualKey == Windows::System::VirtualKey::Menu && eventType == Windows::UI::Core::CoreAcceleratorKeyEventType::SystemKeyDown)
+    {
+        args->Handled = true;
+        return;
+    }
+
+    if (virtualKey == Windows::System::VirtualKey::Menu && eventType == Windows::UI::Core::CoreAcceleratorKeyEventType::SystemKeyUp)
+    {
+        args->Handled = true;
+        return;
+    }
+#endif
+
+}
 
 //
 // Gesture Event Handlers

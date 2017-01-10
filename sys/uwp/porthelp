@@ -4,28 +4,22 @@
                    (Last Revision: March 16, 2003)
 
 This file details specifics for NetHack built for the Universal Windows
-Platform (UWP). 
-
-Please note that "NetHack for Windows - Graphical Interface" requires 
-an installation of Internet Explorer 4 or an installation of 
-version 4.71 of the common controls. See the following internet page: 
-    http://www.nethack.org/v340/ports/download-win.html#cc
-for more information. If the game runs for you, you are not affected.
+Platform (UWP).  We will to this port as the NetHack UWP port.
 
 New players should be sure to read GuideBook.txt which contains 
-essential information about playing NetHack. It can be found in the
-same directory as your NetHack executable.
+essential information about playing NetHack.  It can be saved to a
+folder from the main menu.
 
-The NetHack for Windows port supports some additional or enhanced 
-commands as well as some defaults.nh file options specific to 
-configuration choices used during the building of NetHack for 
-Windows. Listed below are those commands and defaults.nh file 
+The UWP port supports some additional or enhanced commands as well as some 
+defaults.nh file options specific to configuration choices used during the
+building of NetHack. Listed below are those commands and defaults.nh file 
 options. 
 
-Some options are applicable only to the "Graphical Interface." 
-These are discussed separately in their own section. 
+Some sections of this file have not yet been updated for the UWP port as noted
+below.
 
 Contents
+0. Main Menu
 1. ALT Key Combinations
 2. Boolean options - Option that you can toggle on or off
 3. Graphical Interface - Options you can assign a value to
@@ -34,16 +28,40 @@ Contents
 6. Numeric Keypad (for number_pad mode)
 
 
+0. Main Menu
+----------------------------------------------
+When the application is launched, you are placed at a main menu which allows
+the player to perform some additional actions before entering the standard
+NetHack game.
+
+Theses are the currently suported actions:
+
+    Play - enters the NetHack game.
+	
+	Change NETHACKOPTIONS - the NetHack UWP port can not support Windows
+	environment variables due to lack of operating system support.  This action
+	allows the player to modify NETHACKOPTIONS as needed.
+
+    Save defaults.nh to file - this will save the game's internal version of
+	defaults.nh to a file the user picks.
+	
+	Load defaults.nh from file - loads a file the user picks replacing the 
+	game's internal version of defaults.nh.
+	
+	Reset defaults.nh - resets the game's internal version of defaults.nh to
+	its original version which was installed with the game.
+
+	Save Guidebook.txt - stores the text file Guidebook.txt to a location the
+	user picks.  It is highly recommended that any new player reads this file.
+	
+
 1. ALT Key Combinations
 ----------------------------------------------
-The non-graphical (tty) interface always operates in "NetHack mode",
-while the "NetHack for Windows - Graphical Interface" lets you
-toggle the mode.  In non-NetHack mode, all ALT-key combinations
-are sent to the Windows itself, rather than to NetHack.
 
-While playing in NetHack mode you can press the ALT key in 
-combination with another key to execute an extended command
-as an alternative method to pressing a # key sequence.
+While playing you can press the ALT key in combination with another key to
+execute an extended command as an alternative method to pressing a # key
+sequence.
+
 The available commands are:
 
     Alt-2    #twoweapon      - toggle two-weapon combat (unavailable
@@ -68,10 +86,12 @@ The available commands are:
     Alt-v    #version        - list compile time options for this version of
                                NetHack.
     Alt-w    #wipe           - wipe off your face.
-    Alt-?    #?              - display list of extended menu commands
+    Alt-/    #?              - display list of extended menu commands
 
 2. Boolean Options (Options that can be toggled on or off)
 ----------------------------------------------------------
+
+!!!!THIS SECTION HAS NOT BEEN UPDATED FOR UWP PORT!!!!
 
 Listed here are any options not discussed in the main help, options 
 which may be slightly different from the main help file, and options 
@@ -99,6 +119,8 @@ which may need a slightly more explanatory note:
 
 3. Options that you assign a value to (Graphical Interface only)
 ----------------------------------------------------------------
+
+!!!!THIS SECTION HAS NOT BEEN UPDATED FOR UWP PORT!!!!
 
 "NetHack for Windows - Graphical Interface" recognizes the following 
 additional options, which the non-graphical (tty) version will
@@ -210,6 +232,9 @@ Miscellaneous options:
 4. NetHack for Windows - Graphical Interface, Additional/Enhanced Commands
 -------------------------------------------------------------------------
 
+!!!!THIS SECTION HAS NOT BEEN UPDATED FOR UWP PORT!!!!
+
+
 The following function keys are active in
 the "NetHack for Windows - Graphical Interface": 
 
@@ -233,6 +258,8 @@ the "NetHack for Windows - Graphical Interface":
 5. Graphical Port Menus
 -----------------------
 
+!!!!THIS SECTION HAS NOT BEEN UPDATED FOR UWP PORT!!!!
+
 File
   Save - Allows you to save and exit the game
   Quit - Allows you to quit the game
@@ -253,6 +280,9 @@ Help - Provides help about various portions of NetHack.
 
 6. Numeric Keypad (for "OPTION=number_pad" mode)
 ------------------------------------------------
+
+!!!!THIS SECTION HAS NOT BEEN UPDATED FOR UWP PORT!!!!
+
 
 The numeric keypad and surrounding characters act as macros for different
 commands in NetHack.  The Num Lock should be toggled to "on" to make the

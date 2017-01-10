@@ -22,8 +22,6 @@
 #define UWP_GRAPHICS
 
 // Test defines used to ensure UWP and TTY support are independent.
-// Uncommand out one to test having support for one only windowing
-// system.
 //#define UWP_ONLY
 #define TTY_ONLY
 

@@ -242,58 +242,164 @@ nttty_preference_update(const char * pref)
 char MapScanCode(const Nethack::Event & e)
 {
     assert(e.m_type == Nethack::Event::Type::ScanCode);
-    assert(e.m_scanCode >= ScanCode::Home && e.m_scanCode <= ScanCode::Delete);
 
-    typedef struct {
-        char normal, shift, control;
-    } PadMapping;
+    char c = 0;
 
-    PadMapping keypad[] =
+    if (!e.m_alt)
     {
-        { 'y', 'Y', C('y') },    /* 7 */
-        { 'k', 'K', C('k') },    /* 8 */
-        { 'u', 'U', C('u') },    /* 9 */
-        { 'm', C('p'), C('p') }, /* - */
-        { 'h', 'H', C('h') },    /* 4 */
-        { 'g', 'G', 'g' },       /* 5 */
-        { 'l', 'L', C('l') },    /* 6 */
-        { '+', 'P', C('p') },    /* + */
-        { 'b', 'B', C('b') },    /* 1 */
-        { 'j', 'J', C('j') },    /* 2 */
-        { 'n', 'N', C('n') },    /* 3 */
-        { 'i', 'I', C('i') },    /* Ins */
-        { '.', ':', ':' }        /* Del */
-    };
+        if (e.m_scanCode >= Nethack::ScanCode::Home && e.m_scanCode <= Nethack::ScanCode::Delete)
+        {
+            typedef struct {
+                char normal, shift, control;
+            } PadMapping;
 
-    PadMapping numpad[] = {
-        { '7', M('7'), '7' },    /* 7 */
-        { '8', M('8'), '8' },    /* 8 */
-        { '9', M('9'), '9' },    /* 9 */
-        { 'm', C('p'), C('p') }, /* - */
-        { '4', M('4'), '4' },    /* 4 */
-        { '5', M('5'), '5' },    /* 5 */
-        { '6', M('6'), '6' },    /* 6 */
-        { '+', 'P', C('p') },    /* + */
-        { '1', M('1'), '1' },    /* 1 */
-        { '2', M('2'), '2' },    /* 2 */
-        { '3', M('3'), '3' },    /* 3 */
-        { '0', M('0'), '0' },    /* Ins */
-        { '.', ':', ':' }        /* Del */
-    };
+            static const PadMapping keypad[] =
+            {
+                { 'y', 'Y', C('y') },    /* 7 */
+                { 'k', 'K', C('k') },    /* 8 */
+                { 'u', 'U', C('u') },    /* 9 */
+                { 'm', C('p'), C('p') }, /* - */
+                { 'h', 'H', C('h') },    /* 4 */
+                { 'g', 'G', 'g' },       /* 5 */
+                { 'l', 'L', C('l') },    /* 6 */
+                { '+', 'P', C('p') },    /* + */
+                { 'b', 'B', C('b') },    /* 1 */
+                { 'j', 'J', C('j') },    /* 2 */
+                { 'n', 'N', C('n') },    /* 3 */
+                { 'i', 'I', C('i') },    /* Ins */
+                { '.', ':', ':' }        /* Del */
+            };
 
-    PadMapping * pad = iflags.num_pad ? numpad : keypad;
+            static const PadMapping numpad[] = {
+                { '7', M('7'), '7' },    /* 7 */
+                { '8', M('8'), '8' },    /* 8 */
+                { '9', M('9'), '9' },    /* 9 */
+                { 'm', C('p'), C('p') }, /* - */
+                { '4', M('4'), '4' },    /* 4 */
+                { '5', M('5'), '5' },    /* 5 */
+                { '6', M('6'), '6' },    /* 6 */
+                { '+', 'P', C('p') },    /* + */
+                { '1', M('1'), '1' },    /* 1 */
+                { '2', M('2'), '2' },    /* 2 */
+                { '3', M('3'), '3' },    /* 3 */
+                { '0', M('0'), '0' },    /* Ins */
+                { '.', ':', ':' }        /* Del */
+            };
 
-    char c;
-    int i = e.m_scanCode - ScanCode::Home;
+            const PadMapping * pad = iflags.num_pad ? numpad : keypad;
 
-    if (e.m_shift) {
-        c = pad[i].shift;
+            int i = (int) e.m_scanCode - (int)Nethack::ScanCode::Home;
+
+            if (e.m_shift) {
+                c = pad[i].shift;
+            }
+            else if (e.m_control) {
+                c = pad[i].control;
+            }
+            else {
+                c = pad[i].normal;
+            }
+        }
     }
-    else if (e.m_control) {
-        c = pad[i].control;
-    }
-    else {
-        c = pad[i].normal;
+    else
+    {
+        int scanToChar[(int)Nethack::ScanCode::Count] = {
+            0, // Unknown
+            0, // Escape
+            '1' | 0x80, // One
+            '2' | 0x80, // Two
+            '3' | 0x80, // Three
+            '4' | 0x80, // Four
+            '5' | 0x80, // Five
+            '6' | 0x80, // Six
+            '7' | 0x80, // Seven
+            '8' | 0x80, // Eight
+            '9' | 0x80, // Nine
+            '0' | 0x80, // Zero
+            0, // Minus
+            0, // Equal
+            0, // Backspace
+            0, // Tab
+            'q' | 0x80, // Q
+            'w' | 0x80, // W
+            'e' | 0x80, // E
+            'r' | 0x80, // R
+            't' | 0x80, // T
+            'y' | 0x80, // Y
+            'u' | 0x80, // U
+            'i' | 0x80, // I
+            'o' | 0x80, // O
+            'p' | 0x80, // P
+            0, // LeftBracket
+            0, //  RightBracket
+            0, // Enter
+            0, // Control
+            'a' | 0x80, // A
+            's' | 0x80, // S
+            'd' | 0x80, // D
+            'f' | 0x80, // F
+            'g' | 0x80, // G
+            'h' | 0x80, // H
+            'j' | 0x80, // J
+            'k' | 0x80, // K
+            'l' | 0x80, // L
+            0, // SemiColon
+            0, // Quote
+            0, // BackQuote
+            0, // LeftShift
+            0, // BackSlash
+            'z' | 0x80, // Z
+            'x' | 0x80, // X
+            'c' | 0x80, // C
+            'v' | 0x80, // V
+            'b' | 0x80, // B
+            'n' | 0x80, // N
+            'm' | 0x80, // M
+            0, // Comma
+            0, // Period
+            '?' | 0x80, // ForwardSlash
+            0, // RightShift
+            0, // NotSure
+            0, // Alt
+            0, // Space
+            0, // Caps
+            0, // F1
+            0, // F2
+            0, // F3
+            0, // F4
+            0, // F5
+            0, // F6
+            0, // F7
+            0, // F8
+            0, // F9
+            0, // F10
+            0, // Num
+            0, // Scroll
+            0, // Home
+            0, // Up
+            0, // PageUp
+            0, // PadMinus
+            0, // Left
+            0, // Center
+            0, // Right
+            0, // PadPlus
+            0, // End
+            0, // Down
+            0, // PageDown
+            0, // Insert
+            0, // Delete
+            0, // Scan84
+            0, // Scan85
+            0, // Scan86
+            0, // F11
+            0, // F12
+        };
+
+        assert(e.m_scanCode >= 0 && e.m_scanCode < Nethack::ScanCode::Count);
+
+        if (e.m_scanCode >= Nethack::ScanCode::Unknown && e.m_scanCode < Nethack::ScanCode::Count)
+            c = (char) scanToChar[(int) e.m_scanCode];
+        
     }
 
     return c;
@@ -306,8 +412,9 @@ int raw_getchar()
 
     Nethack::Event e;
 
-    while (e.m_type != Nethack::Event::Type::Char &&
-           e.m_type != Nethack::Event::Type::ScanCode)
+    while (e.m_type == Nethack::Event::Type::Undefined ||
+           (e.m_type == Nethack::Event::Type::ScanCode && MapScanCode(e) == 0) ||
+           (e.m_type == Nethack::Event::Type::Mouse))
     {
         e = Nethack::g_eventQueue.PopFront();
     }
@@ -316,6 +423,7 @@ int raw_getchar()
         return MapScanCode(e);
     else
     {
+        assert(m_type == Nethack::Event::Type::Char);
         return e.m_char;
     }
 }

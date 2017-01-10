@@ -793,6 +793,9 @@
     <ClInclude Include="..\..\..\win\uwp\winuwp.h">
       <Filter>win\uwp</Filter>
     </ClInclude>
+    <ClInclude Include="VirtualKey.h">
+      <Filter>sys\uwp\common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="$(SysDir)uwp\Package.appxmanifest">
