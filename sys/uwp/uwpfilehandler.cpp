@@ -21,17 +21,17 @@ namespace Nethack
         s_instance = this;
     }
 
-    void FileHandler::SaveFilePicker(String ^ fileText)
+    void FileHandler::SaveFilePicker(String ^ fileText, String ^ fileName, String ^ fileExtension)
     {
-        auto delegate = [this]()
+        auto delegate = [this,fileName,fileExtension]()
         {
             FileSavePicker^ picker = ref new FileSavePicker();
             picker->SuggestedStartLocation = PickerLocationId::DocumentsLibrary;
 
             auto extensions = ref new Platform::Collections::Vector<String ^>();
-            extensions->Append(".nh");
-            picker->FileTypeChoices->Insert("Nethack Options", extensions);
-            picker->SuggestedFileName = "defaults";
+            extensions->Append(fileExtension);
+            picker->FileTypeChoices->Insert("", extensions);
+            picker->SuggestedFileName = fileName;
 
             auto pickFileTask = create_task(picker->PickSaveFileAsync());
 
@@ -67,14 +67,14 @@ namespace Nethack
         }
     }
 
-    String ^ FileHandler::LoadFilePicker(void)
+    String ^ FileHandler::LoadFilePicker(String ^ extension)
     {
-        auto delegate = [this]()
+        auto delegate = [this, extension]()
         {
             FileOpenPicker^ openPicker = ref new FileOpenPicker();
             openPicker->ViewMode = PickerViewMode::List;
             openPicker->SuggestedStartLocation = PickerLocationId::DocumentsLibrary;
-            openPicker->FileTypeFilter->Append(".nh");
+            openPicker->FileTypeFilter->Append(extension);
 
             auto pickFileTask = create_task(openPicker->PickSingleFileAsync());
             

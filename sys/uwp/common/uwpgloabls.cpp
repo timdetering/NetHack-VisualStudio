@@ -12,5 +12,7 @@ namespace Nethack
     jmp_buf         g_mainLoopJmpBuf;
     Options         g_options;
     FontCollection  g_fontCollection;
+    std::string     g_installDir;
+    std::string     g_localDir;
 
 }

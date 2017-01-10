@@ -21,8 +21,8 @@ namespace Nethack
             m_coreDispatcher = coreDispatcher;
         }
 
-        void SaveFilePicker(Platform::String ^ fileText);
-        Platform::String ^ LoadFilePicker(void);
+        void SaveFilePicker(Platform::String ^ fileText, Platform::String ^ fileName, Platform::String ^ extension);
+        Platform::String ^ LoadFilePicker(Platform::String ^ extension);
 
     private:
 

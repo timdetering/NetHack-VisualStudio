@@ -7,6 +7,8 @@
 #include <setjmp.h>
 
 #ifdef __cplusplus
+#include <string>
+
 #include "uwpeventqueue.h"
 #include "TextGrid.h"
 #include "uwpoption.h"
@@ -19,6 +21,8 @@ namespace Nethack
     extern jmp_buf          g_mainLoopJmpBuf;
     extern Options          g_options;
     extern FontCollection   g_fontCollection;
+    extern std::string      g_localDir;
+    extern std::string      g_installDir;
     
 }
 #endif

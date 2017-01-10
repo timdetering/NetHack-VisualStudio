@@ -565,6 +565,52 @@ bool get_string(std::string & string, unsigned int maxLength)
     }
 }
 
+bool file_exists(std::string & filePath)
+{
+    std::ifstream f(filePath.c_str());
+    return f.good();
+}
+
+void copy_to_local(std::string & fileName, bool onlyIfMissing)
+{
+    std::string localPath = Nethack::g_localDir;
+    localPath += "\\";
+    localPath += fileName;
+
+    std::string installPath = Nethack::g_installDir;
+    installPath += "\\";
+    installPath += fileName;
+
+    if (onlyIfMissing && file_exists(localPath))
+        return;
+
+    FILE * dstFp = fopen(localPath.c_str(), "wb+");
+    assert(dstFp != NULL);
+
+    FILE * srcFp = fopen(installPath.c_str(), "rb");
+    assert(srcFp != NULL);
+
+    int failure = fseek(srcFp, 0, SEEK_END);
+    assert(!failure);
+
+    size_t fileSize = ftell(srcFp);
+    rewind(srcFp);
+
+    char * data = (char *)malloc(fileSize);
+    assert(data != NULL);
+
+    int readBytes = fread(data, 1, fileSize, srcFp);
+    assert(readBytes == fileSize);
+
+    int writeBytes = fwrite(data, 1, fileSize, dstFp);
+    assert(writeBytes == fileSize);
+
+    free(data);
+    fclose(srcFp);
+    fclose(dstFp);
+}
+
+
 void add_option()
 {
     Nethack::g_textGrid.Clear();
@@ -630,12 +676,9 @@ void change_options()
 
         char c = raw_getchar();
 
-        if (c == EOF || c == ESCAPE) return;
+        if (c == EOF || c == ESCAPE || c == '\n') return;
 
         c = tolower(c);
-
-        if (c >= 'a' && c <= 'b')
-            Nethack::g_textGrid.Put(Nethack::TextColor::White, Nethack::TextAttribute::None, c);
 
         switch (c)
         {
@@ -651,15 +694,58 @@ char * uwp_getenv(const char * env)
     return (char *) options.c_str();
 }
 
-bool main_menu(const char * localDir)
+void save_file(std::string & filePath)
 {
-    std::string optionsFilePath(localDir);
-    optionsFilePath += "\\envoptions.nh";
+    std::string readText;
+    std::fstream input(filePath.c_str(), std::fstream::in | std::fstream::binary);
+    if (input.is_open())
+    {
+        input.seekg(0, std::ios::end);
+        size_t size = (size_t)input.tellg();
+        input.seekg(0, std::ios::beg);
+        std::vector<char> bytes(size);
+        input.read(bytes.data(), size);
+        input.close();
+        readText = std::string(bytes.data(), size);
+    }
 
-    Nethack::g_options.Load(optionsFilePath);
+    std::string fileExtension = filePath.substr(filePath.rfind('.'), std::string::npos);
+    std::string fileName = filePath.substr(filePath.rfind('\\') + 1, filePath.rfind('.') - filePath.rfind('\\') - 1);
+
+    Platform::String ^ fileText = Nethack::to_platform_string(readText);
+    Platform::String ^ fileNameStr = Nethack::to_platform_string(fileName);
+    Platform::String ^ extensionStr = Nethack::to_platform_string(fileExtension);
+    Nethack::FileHandler::s_instance->SaveFilePicker(fileText, fileNameStr, extensionStr);
+}
+
+void load_file(std::string & filePath)
+{
+    std::string fileExtension = filePath.substr(filePath.rfind('.'), std::string::npos);
+    Platform::String ^ extensionStr = Nethack::to_platform_string(fileExtension);
+    Platform::String ^ fileText = Nethack::FileHandler::s_instance->LoadFilePicker(extensionStr);
+    if (fileText != nullptr)
+    {
+        std::string writeText = Nethack::to_string(fileText);
+        std::fstream output(filePath.c_str(), std::fstream::out | std::fstream::trunc | std::fstream::binary);
+        if (output.is_open())
+        {
+            output.write(writeText.c_str(), writeText.length());
+            output.close();
+        }
+    }
+}
+
+bool main_menu(void)
+{
+    std::string defaultsFileName = "defaults.nh";
+    std::string defaultsFilePath = Nethack::g_localDir;
+    defaultsFilePath += "\\";
+    defaultsFilePath += defaultsFileName;
+
+    std::string guidebookFilePath = Nethack::g_installDir;
+    guidebookFilePath += "\\Guidebook.txt";
 
     Platform::String ^ fileText = ref new Platform::String();
-
 
     bool done = false;
     while (!done)
@@ -672,14 +758,17 @@ bool main_menu(const char * localDir)
 
         Nethack::g_textGrid.Putstr(19, 4, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "a - Play");
-        Nethack::g_textGrid.Putstr(19, 5, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "b - Change NETHACKOPTIONS");
         Nethack::g_textGrid.Putstr(19, 6, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "c - Save default options to file");
+            "b - Change NETHACKOPTIONS");
         Nethack::g_textGrid.Putstr(19, 7, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "d - Load default options from file");
-
+            "c - Save defaults.nh to file");
+        Nethack::g_textGrid.Putstr(19, 8, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "d - Load defaults.nh from file");
         Nethack::g_textGrid.Putstr(19, 9, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "e - Reset defaults.nh");
+        Nethack::g_textGrid.Putstr(19, 10, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "f - Save Guidebook.txt");
+        Nethack::g_textGrid.Putstr(19, 11, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "Select action:");
 
         char c = raw_getchar();
@@ -688,48 +777,19 @@ bool main_menu(const char * localDir)
 
         c = tolower(c);
 
-        if (c >= 'a' && c <= 'd') 
-            Nethack::g_textGrid.Put(Nethack::TextColor::White, Nethack::TextAttribute::None,c);
-
         switch (c)
         {
         case 'a': done = true; break;
         case 'b': change_options(); break;
-        case 'c':
-            {
-                std::string readText;
-                std::fstream input(optionsFilePath.c_str(), std::fstream::in | std::fstream::binary);
-                if (input.is_open())
-                {
-                    input.seekg(0, std::ios::end);
-                    size_t size = (size_t) input.tellg();
-                    input.seekg(0, std::ios::beg);
-                    std::vector<char> bytes(size);
-                    input.read(bytes.data(), size);
-                    input.close();
-                    readText = std::string(bytes.data(), size);
-                }
-
-                fileText = Nethack::to_platform_string(readText);
-
-                Nethack::FileHandler::s_instance->SaveFilePicker(fileText);
-                break;
-
-            }
-        case 'd': 
-            {
-                fileText = Nethack::FileHandler::s_instance->LoadFilePicker();
-                std::string writeText = Nethack::to_string(fileText);
-                std::fstream output(optionsFilePath.c_str(), std::fstream::out | std::fstream::trunc | std::fstream::binary);
-                if (output.is_open())
-                {
-                    output.write(writeText.c_str(), writeText.length());
-                    output.close();
-                }
-
-                break;
-
-            }
+        case 'c': save_file(defaultsFilePath); break;
+        case 'd': load_file(defaultsFilePath); break;
+        case 'e': 
+            copy_to_local(defaultsFileName, false);
+            Nethack::g_textGrid.Putstr(19, 12, Nethack::TextColor::White, Nethack::TextAttribute::None,
+                "Reset complete <hit key to continue>");
+            raw_getchar();
+            break;
+        case 'f': save_file(guidebookFilePath); break;
         }
 
     }
@@ -738,56 +798,23 @@ bool main_menu(const char * localDir)
 
 }
 
-void copy_missing_file(const char * filename, const char * srcDir, const char * dstDir)
-{
-    // TODO(bhouse) Copy files from install dir to local dir
-    char srcPath[256];
-    sprintf(srcPath, "%s\\%s", srcDir, filename);
-
-    char dstPath[256];
-    sprintf(dstPath, "%s\\%s", dstDir, filename);
-
-    FILE * dstFp = fopen(dstPath, "rb");
-    if (dstFp != NULL)
-    {
-        fclose(dstFp);
-    }
-    else
-    {
-        dstFp = fopen(dstPath, "wb+");
-        assert(dstFp != NULL);
-
-        FILE * srcFp = fopen(srcPath, "rb");
-        assert(srcFp != NULL);
-
-        int failure = fseek(srcFp, 0, SEEK_END);
-        assert(!failure);
-
-        size_t fileSize = ftell(srcFp);
-        rewind(srcFp);
-
-        char * data = (char *)malloc(fileSize);
-        assert(data != NULL);
-
-        int readBytes = fread(data, 1, fileSize, srcFp);
-        assert(readBytes == fileSize);
-
-        int writeBytes = fwrite(data, 1, fileSize, dstFp);
-        assert(writeBytes == fileSize);
-
-        free(data);
-        fclose(srcFp);
-        fclose(dstFp);
-    }
-}
-
 extern boolean FDECL(uwpmain, (const char *, const char *));
 
 void mainloop(const char * localDir, const char * installDir)
 {
-    copy_missing_file("defaults.nh", installDir, localDir);
+    Nethack::g_localDir = std::string(localDir);
+    Nethack::g_installDir = std::string(installDir);
 
-    if (!main_menu(localDir))
+    std::string defaultsFileName("defaults.nh");
+
+    copy_to_local(defaultsFileName, true);
+
+    std::string optionsFilePath = Nethack::g_localDir;
+    optionsFilePath += "\\nethackoptions";
+
+    Nethack::g_options.Load(optionsFilePath);
+
+    if (!main_menu())
         return;
 
     if (setjmp(Nethack::g_mainLoopJmpBuf) == 0)
