@@ -2158,6 +2158,7 @@ int src;
         parseautocomplete(bufp, TRUE);
     } else if (match_varname(buf, "MSGTYPE", 7)) {
         (void) msgtype_parse_add(bufp);
+#ifndef UWP
 #ifdef NOCWD_ASSUMPTIONS
     } else if (match_varname(buf, "HACKDIR", 4)) {
         adjust_prefix(bufp, HACKPREFIX);
@@ -2225,6 +2226,7 @@ int src;
         append_slash(SAVEP);
 #endif /* MICRO */
 #endif /*NOCWD_ASSUMPTIONS*/
+#endif /* UWP */
 
     } else if (match_varname(buf, "NAME", 4)) {
         (void) strncpy(plname, bufp, PL_NSIZ - 1);
