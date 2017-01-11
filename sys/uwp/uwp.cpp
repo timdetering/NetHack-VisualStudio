@@ -679,6 +679,16 @@ bool file_exists(std::string & filePath)
     return f.good();
 }
 
+void rename_file(const char * from, const char * to)
+{
+    std::string toPath(to);
+
+    if (file_exists(toPath))
+        return;
+
+    rename(from, to);
+}
+
 void copy_to_local(std::string & fileName, bool onlyIfMissing)
 {
     std::string localPath = Nethack::g_localDir;

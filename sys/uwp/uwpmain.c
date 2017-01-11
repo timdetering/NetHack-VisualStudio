@@ -73,6 +73,36 @@ verify_record_file()
         (void)nhclose(fd);
 }
 
+extern void rename_file(const char * from, const char * to);
+
+void rename_save_files()
+{
+    char *foundfile;
+    const char *fq_save;
+
+    const char * oldsave = "bhouse-*.NetHack-saved-game";
+
+    fq_save = fqname(oldsave, SAVEPREFIX, 0);
+
+    foundfile = foundfile_buffer();
+    if (findfirst((char *)fq_save)) {
+        do {
+            char oldPath[512];
+            char newname[512];
+
+            strcpy(newname, "noname-");
+            strcpy(&newname[7], &foundfile[7]);
+
+            fq_save = fqname(foundfile, SAVEPREFIX, 0);
+            strcpy(oldPath, fq_save);
+
+            const char * newPath = fqname(newname, SAVEPREFIX, 0);
+
+            rename_file(oldPath, newPath);
+
+        } while (findnext());
+    }
+}
 
 boolean
 uwpmain(const char * inLocalDir, const char * inInstallDir)
@@ -122,6 +152,8 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     fqn_prefix[TROUBLEPREFIX] = localDir;
 
     raw_clear_screen();
+
+    rename_save_files();
 
     initoptions();
 

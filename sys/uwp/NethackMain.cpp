@@ -182,6 +182,7 @@ void NethackMain::OnDeviceRestored()
 void NethackMain::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
 {
     ScanCode scanCode = (ScanCode)args->KeyStatus.ScanCode;
+    Windows::System::VirtualKey virtualKey = args->VirtualKey;
 
 #if 0
     bool isExtendedKey = args->KeyStatus.IsExtendedKey;
@@ -203,11 +204,22 @@ void NethackMain::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::
        bool control = ((controlKeyState & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down);
        bool numLock = ((numLockState & Windows::UI::Core::CoreVirtualKeyStates::Down) == Windows::UI::Core::CoreVirtualKeyStates::Down);
 
-        // If num lock, then we will get the corresponding character received so ignore
-        if (!numLock)
-        {
-            g_eventQueue.PushBack(Event(scanCode, shift, control));
-        }
+       switch (virtualKey)
+       {
+       case Windows::System::VirtualKey::Up:
+       case Windows::System::VirtualKey::Down:
+       case Windows::System::VirtualKey::Left:
+       case Windows::System::VirtualKey::Right:
+       case Windows::System::VirtualKey::Home:
+       case Windows::System::VirtualKey::PageUp:
+       case Windows::System::VirtualKey::PageDown:
+       case Windows::System::VirtualKey::End:
+       case Windows::System::VirtualKey::Clear:
+       case Windows::System::VirtualKey::Insert:
+       case Windows::System::VirtualKey::Delete:
+           g_eventQueue.PushBack(Event(scanCode, shift, control));
+           break;
+       }
 
     }
 

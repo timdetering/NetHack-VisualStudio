@@ -6,6 +6,8 @@
 #ifndef UWPCONF_H
 #define UWPCONF_H
 
+#define UWP
+
 #ifndef TTY_GRAPHICS
 #error TTY_GRAPHICS is expected to be defined at this point
 #endif
