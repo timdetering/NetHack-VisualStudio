@@ -395,7 +395,7 @@ char MapScanCode(const Nethack::Event & e)
             0, // F12
         };
 
-        assert(e.m_scanCode >= 0 && e.m_scanCode < Nethack::ScanCode::Count);
+        assert(((int) e.m_scanCode >= 0) && ((int) e.m_scanCode < (int) Nethack::ScanCode::Count));
 
         if (e.m_scanCode >= Nethack::ScanCode::Unknown && e.m_scanCode < Nethack::ScanCode::Count)
             c = (char) scanToChar[(int) e.m_scanCode];
@@ -423,7 +423,7 @@ int raw_getchar()
         return MapScanCode(e);
     else
     {
-        assert(m_type == Nethack::Event::Type::Char);
+        assert(e.m_type == Nethack::Event::Type::Char);
         return e.m_char;
     }
 }
