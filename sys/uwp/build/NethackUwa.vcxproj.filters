@@ -490,20 +490,14 @@
     <None Include="$(DatDir)license">
       <Filter>dat</Filter>
     </None>
-    <None Include="$(DatDir)opthelp">
-      <Filter>dat</Filter>
-    </None>
     <None Include="$(DatDir)symbols">
-      <Filter>dat</Filter>
-    </None>
-    <None Include="$(SysWinntDir)sysconf">
-      <Filter>sys\winnt</Filter>
-    </None>
-    <None Include="..\..\..\dat\nhdat">
       <Filter>dat</Filter>
     </None>
     <None Include="Package.StoreAssociation.xml" />
     <None Include="NethackUwa_StoreKey.pfx" />
+    <None Include="$(SysUwpDir)nhdat">
+      <Filter>sys\uwp</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\content\SamplePixelShader.hlsl">
