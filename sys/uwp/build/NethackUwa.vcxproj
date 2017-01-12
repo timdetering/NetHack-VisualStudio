@@ -138,7 +138,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(IntermediateOutputPath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UWP;WIN32CON;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Manifest>
@@ -154,7 +154,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(IntermediateOutputPath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UWP;WIN32CON;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <Optimization>Disabled</Optimization>
     </ClCompile>
@@ -172,7 +172,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(IntermediateOutputPath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
-      <PreprocessorDefinitions>WIN32CON;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UWP;WIN32CON;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Manifest>
@@ -189,7 +189,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(IntermediateOutputPath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
-      <PreprocessorDefinitions>WIN32CON;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UWP;WIN32CON;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <Optimization>Disabled</Optimization>
     </ClCompile>
@@ -207,7 +207,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(IntermediateOutputPath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
-      <PreprocessorDefinitions>WIN32CON;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UWP;WIN32CON;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Manifest>
@@ -224,7 +224,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(IntermediateOutputPath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
-      <PreprocessorDefinitions>WIN32CON;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UWP;WIN32CON;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <Optimization>Disabled</Optimization>
     </ClCompile>
@@ -1270,48 +1270,42 @@
     <Import Project="$(VSINSTALLDIR)\Common7\IDE\Extensions\Microsoft\VsGraphics\MeshContentTask.targets" />
     <Import Project="$(VSINSTALLDIR)\Common7\IDE\Extensions\Microsoft\VsGraphics\ShaderGraphContentTask.targets" />
   </ImportGroup>
-
   <Target Name="AfterClean">
-	<Delete Files="$(SysUwpDir)nhdat"/>
+    <Delete Files="$(SysUwpDir)nhdat" />
   </Target>
-
   <ItemGroup>
     <!-- Should $(DatDir)symbols be in this list? If not, why not? -->
-    <DlbList Include = "$(DatDir)data"/>
-    <DlbList Include = "$(DatDir)oracles"/>
-    <DlbList Include = "$(DatDir)options"/>
-    <DlbList Include = "$(DatDir)quest.dat"/>
-    <DlbList Include = "$(DatDir)rumors"/>
-    <DlbList Include = "$(DatDir)engrave"/>
-    <DlbList Include = "$(DatDir)epitaph"/>
-    <DlbList Include = "$(DatDir)bogusmon"/>
-    <DlbList Include = "$(DatDir)tribute"/>
-    <DlbList Include = "$(DatDir)help"/>
-    <DlbList Include = "$(DatDir)porthelp"/>
-    <DlbList Include = "$(DatDir)hh"/>
-    <DlbList Include = "$(DatDir)cmdhelp"/>
-    <DlbList Include = "$(DatDir)history"/>
-    <DlbList Include = "$(DatDir)opthelp"/>
-    <DlbList Include = "$(DatDir)wizhelp"/>
-    <DlbList Include = "$(DatDir)dungeon"/>
-    <DlbList Include = "$(DatDir)license"/>
-    <DlbList Include = "$(DatDir)*.lev"/>
+    <DlbList Include="$(DatDir)data" />
+    <DlbList Include="$(DatDir)oracles" />
+    <DlbList Include="$(DatDir)options" />
+    <DlbList Include="$(DatDir)quest.dat" />
+    <DlbList Include="$(DatDir)rumors" />
+    <DlbList Include="$(DatDir)engrave" />
+    <DlbList Include="$(DatDir)epitaph" />
+    <DlbList Include="$(DatDir)bogusmon" />
+    <DlbList Include="$(DatDir)tribute" />
+    <DlbList Include="$(DatDir)help" />
+    <DlbList Include="$(DatDir)porthelp" />
+    <DlbList Include="$(DatDir)hh" />
+    <DlbList Include="$(DatDir)cmdhelp" />
+    <DlbList Include="$(DatDir)history" />
+    <DlbList Include="$(DatDir)opthelp" />
+    <DlbList Include="$(DatDir)wizhelp" />
+    <DlbList Include="$(DatDir)dungeon" />
+    <DlbList Include="$(DatDir)license" />
+    <DlbList Include="$(DatDir)*.lev" />
   </ItemGroup>
-
   <PropertyGroup>
     <BuildDependsOn>
         BuildNhdat;
         $(BuildDependsOn);
     </BuildDependsOn>
   </PropertyGroup>
-
-  <Target Name="BuildNhdat"
-     Inputs="$(SysUwpDir)defaults.nh;$(DatDir)symbols;@(DlbList);$(SysUwpDir)porthelp;$(ToolsBinDir)dlb.exe"
-	 Outputs="$(SysUwpDir)nhdat">
-    <Message Text="Building nhdat" Importance="high"/>
-	<Copy SourceFiles="$(SysUwpDir)porthelp" DestinationFolder="$(DatDir)"/>
-	<WriteLinesToFile File="$(DatDir)dlb.lst" Lines="@(DlbList->'%(filename)%(extension)')" Overwrite="true"/>
-	<Exec Command="$(ToolsBinDir)dlb.exe cIf $(DatDir)dlb.lst $(SysUwpDir)nhdat" WorkingDirectory="$(DatDir)"/>
-	<Delete Files="$(DatDir)porthelp"/>
+  <Target Name="BuildNhdat" Inputs="$(SysUwpDir)defaults.nh;$(DatDir)symbols;@(DlbList);$(SysUwpDir)porthelp;$(ToolsBinDir)dlb.exe" Outputs="$(SysUwpDir)nhdat">
+    <Message Text="Building nhdat" Importance="high" />
+    <Copy SourceFiles="$(SysUwpDir)porthelp" DestinationFolder="$(DatDir)" />
+    <WriteLinesToFile File="$(DatDir)dlb.lst" Lines="@(DlbList->'%(filename)%(extension)')" Overwrite="true" />
+    <Exec Command="$(ToolsBinDir)dlb.exe cIf $(DatDir)dlb.lst $(SysUwpDir)nhdat" WorkingDirectory="$(DatDir)" />
+    <Delete Files="$(DatDir)porthelp" />
   </Target>
 </Project>

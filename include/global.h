@@ -140,17 +140,17 @@ typedef uchar nhsym;
 #include "beconf.h"
 #endif
 
-#ifdef WIN32
+#ifdef UWP
+#include "uwpconf.h"
+#endif
+
+#if defined(WIN32) && !defined(UWP)
 #ifdef WIN_CE
 #include "wceconf.h"
 #else
-#if (WINAPI_FAMILY==2)
-#include "uwpconf.h"
-#else
 #include "ntconf.h"
-#endif
-#endif
-#endif
+#endif /* WIN_CE */
+#endif /* WIN32 */
 
 /* Displayable name of this port; don't redefine if defined in *conf.h */
 #ifndef PORT_ID

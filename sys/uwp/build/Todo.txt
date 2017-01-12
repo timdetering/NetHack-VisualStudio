@@ -1,14 +1,13 @@
 12/31/2016
 
 High Priority
-- Look into port_help().  Do we have a port help file?
 - Review all code looking for more static locals.  This can be a problem since we can't re-initialize.
 - Fix clearing screen issues when recovering game file.
-- Allow setting of font information.
-- Review all options and note which are supported and not supported.
-- Verify porthelp file is the correct porthelp file in game.
+- Need to create seperate projects for makedefs for compiling the different options.
 
 Medium Priority
+- Review all options and note which are supported and not supported.
+- Allow setting of font information.
 - Polish windows store description.
 - Polish GIT hub wiki pages.
 - Clean up UWP file naming and placement.

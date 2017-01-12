@@ -6,7 +6,9 @@
 #ifndef UWPCONF_H
 #define UWPCONF_H
 
-#define UWP
+#ifndef UWP
+#error UWP is expected to be defined at this point
+#endif
 
 #ifndef TTY_GRAPHICS
 #error TTY_GRAPHICS is expected to be defined at this point
@@ -18,6 +20,10 @@
 
 #ifdef UWP_GRAPHICS
 #error UWP_GRAPHICS is not expected to be defined at this point
+#endif
+
+#ifdef MSWIN_GRAPHICS
+#error MSWIN_GRAPHICS is not expected to be defined
 #endif
 
 // By default we will enable both TTY and UWP graphics

@@ -60,7 +60,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_CONSOLE;WIN32CON;DLB;MSWIN_GRAPHICS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UWP;_DEBUG;WIN32;_CONSOLE;WIN32CON;DLB;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -75,7 +75,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_CONSOLE;WIN32CON;DLB;MSWIN_GRAPHICS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UWP;NDEBUG;WIN32;_CONSOLE;WIN32CON;DLB</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(IncDir);$(SysDir)winnt</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
