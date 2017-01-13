@@ -868,25 +868,40 @@ bool main_menu(void)
     bool done = false;
     while (!done)
     {
+        int y = 0;
         Nethack::g_textGrid.Clear();
-        Nethack::g_textGrid.Putstr(10, 0, Nethack::TextColor::White, Nethack::TextAttribute::None, 
+        Nethack::g_textGrid.Putstr(10, y++, Nethack::TextColor::White, Nethack::TextAttribute::None, 
             "NetHack, Universal Windows Port by Bart House");
-        Nethack::g_textGrid.Putstr(19, 1, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "Copyright 2016-2017");
+        Nethack::g_textGrid.Putstr(10, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "         Copyright 2016-2017");
 
-        Nethack::g_textGrid.Putstr(19, 4, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        y++; // blank
+
+        Nethack::g_textGrid.Putstr(10, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "Source: https://github.com/barthouse/NetHackPublic");
+        Nethack::g_textGrid.Putstr(10, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "Support: https://github.com/barthouse/NetHackPublic/wiki/Support");
+        Nethack::g_textGrid.Putstr(10, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            "Email: nethack@barthouse.com");
+
+        y++; // blank
+        y++; // blank
+
+        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "a - Play");
-        Nethack::g_textGrid.Putstr(19, 6, Nethack::TextColor::White, Nethack::TextAttribute::None,
+
+        y++; // blank
+        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "b - Change NETHACKOPTIONS");
-        Nethack::g_textGrid.Putstr(19, 7, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "c - Save defaults.nh to file");
-        Nethack::g_textGrid.Putstr(19, 8, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "d - Load defaults.nh from file");
-        Nethack::g_textGrid.Putstr(19, 9, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "e - Reset defaults.nh");
-        Nethack::g_textGrid.Putstr(19, 10, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "f - Save Guidebook.txt");
-        Nethack::g_textGrid.Putstr(19, 11, Nethack::TextColor::White, Nethack::TextAttribute::None,
+        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
             "Select action:");
 
         char c = raw_getchar();
@@ -903,7 +918,7 @@ bool main_menu(void)
         case 'd': load_file(defaultsFilePath); break;
         case 'e': 
             copy_to_local(defaultsFileName, false);
-            Nethack::g_textGrid.Putstr(19, 12, Nethack::TextColor::White, Nethack::TextAttribute::None,
+            Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
                 "Reset complete <hit key to continue>");
             raw_getchar();
             break;

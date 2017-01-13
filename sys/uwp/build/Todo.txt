@@ -6,6 +6,7 @@ High Priority
 - Need to create seperate projects for makedefs for compiling the different options.
 
 Medium Priority
+- Add ability to load/store/restore symbols
 - Review all options and note which are supported and not supported.
 - Allow setting of font information.
 - Polish windows store description.
