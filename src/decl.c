@@ -346,4 +346,173 @@ decl_init()
     return;
 }
 
+// TODO: These are either not needed or should
+//       be declared extern appropriately.
+extern struct menucoloring *menu_colorings;
+extern unsigned nhUse_dummy;
+
+#include <assert.h>
+
+void decl_clean_up(void)
+{
+    // TODO: Should review to see if we need to free memory before NULLing pointers
+
+    hname = NULL;
+
+    hackpid = 0;
+
+#define ZEROARRAY(x) memset((void *) &x[0], 0, sizeof(x))
+#define ZEROARRAYN(x,n) memset((void *) &x[0], 0, sizeof(x[0])*(n))
+#define ZERO(x) memset((void *) &x, 0, sizeof(x))
+#define ZEROPTR(x) { assert(x == NULL); x = NULL; }
+
+    ZEROARRAY(bases);
+
+    multi = 0;
+    multi_reason = NULL;
+
+    nroom = 0;
+    nsubroom = 0;
+    occtime = 0;
+
+    ZERO(dungeon_topology);
+    ZERO(quest_status);
+
+    warn_obj_cnt = 0;
+    ZEROARRAYN(smeq, MAXNROFROOMS + 1);
+    doorindex = 0;
+    save_cm = NULL;
+
+    ZERO(killer);
+    done_money = 0;
+    nomovemsg = NULL;
+    ZEROARRAY(plname);
+    ZEROARRAY(pl_character);
+    pl_race = '\0';
+
+    ZEROARRAY(pl_fruit);
+    ffruit = NULL;
+
+    ZEROARRAY(tune);
+
+    occtxt = NULL;
+
+    yn_number = 0;
+
+    ZEROARRAYN(hackdir, PATHLEN);
+
+    ZEROARRAY(level_info);
+    ZERO(program_state);
+
+    tbx = 0;
+    tby = 0;
+
+    ZERO(m_shot);
+
+    ZEROARRAYN(dungeons, MAXDUNGEON);
+    ZEROPTR(sp_levchn);
+    ZERO(upstair);
+    ZERO(dnstair);
+    ZERO(upladder);
+    ZERO(dnladder);
+    ZERO(sstairs);
+    ZERO(updest);
+    ZERO(dndest);
+    ZERO(inv_pos);
+
+    defer_see_monsters = FALSE;
+    in_mklev = FALSE;
+    stoned = FALSE;
+    unweapon = FALSE;
+    mrg_to_wielded = FALSE;
+
+    in_steed_dismounting = FALSE;
+
+    ZERO(bhitpos);
+    ZEROARRAY(doors);
+
+    ZEROARRAY(rooms);
+    upstairs_room = NULL;
+    dnstairs_room = NULL;
+    sstairs_room = NULL;
+
+    ZERO(level);
+    ZEROPTR(ftrap);
+    ZERO(youmonst);
+    ZERO(context);
+    ZERO(flags);
+    ZERO(iflags);
+    ZERO(u);
+    ZERO(ubirthday);
+    ZERO(urealtime);
+    ZEROARRAY(lastseentyp);
+
+    ZEROPTR(invent);
+    ZEROPTR(uwep);
+    ZEROPTR(uarm);
+    ZEROPTR(uswapwep);
+    ZEROPTR(uquiver);
+    ZEROPTR(uarmu);
+    ZEROPTR(uskin);
+    ZEROPTR(uarmc);
+    ZEROPTR(uarmh);
+    ZEROPTR(uarms);
+    ZEROPTR(uarmg);
+    ZEROPTR(uarmf);
+    ZEROPTR(uamul);
+    ZEROPTR(uright);
+    ZEROPTR(uleft);
+    ZEROPTR(ublindf);
+    ZEROPTR(uchain);
+    ZEROPTR(uball);
+
+    ZEROPTR(current_wand);
+    ZEROPTR(thrownobj);
+    ZEROPTR(kickedobj);
+
+    ZEROARRAYN(spl_book, MAXSPELL + 1);
+
+    moves = 1;
+    monstermoves = 1;
+
+    wailmsg = 0L;
+
+    ZEROPTR(migrating_objs);
+    ZEROPTR(billobjs);
+
+    ZERO(zeroobj);
+    ZERO(zeromonst);
+    ZERO(zeroany);
+
+    ZEROARRAYN(plname, PL_PSIZ);
+    ZEROARRAYN(dogname, PL_PSIZ);
+    ZEROARRAYN(catname, PL_PSIZ);
+    ZEROARRAYN(horsename, PL_PSIZ);
+
+    ZEROPTR(mydogs);
+    ZEROPTR(migrating_mons);
+
+    ZEROARRAY(mvitals);
+
+    ZEROPTR(menu_colorings);
+
+    vision_full_recalc = 0;
+
+    WIN_MESSAGE = WIN_ERR;
+    WIN_STATUS = WIN_ERR;
+    WIN_MAP = WIN_ERR;
+    WIN_INVEN = WIN_ERR;
+
+    ZEROARRAYN(toplines, TBUFSZ);
+
+    ZERO(tc_gbl_data);
+
+    ZEROARRAY(fqn_prefix);
+
+    ZEROPTR(plinemsg_types);
+
+    nhUse_dummy = 0;
+}
+
+
 /*decl.c*/

@@ -1689,15 +1689,13 @@ int *color, *attr;
 void
 free_menu_coloring()
 {
-    struct menucoloring *tmp = menu_colorings;
+    while (menu_colorings) {
+        struct menucoloring *tmp = menu_colorings->next;
 
-    while (tmp) {
-        struct menucoloring *tmp2 = tmp->next;
-
-        regex_free(tmp->match);
-        free((genericptr_t) tmp->origstr);
-        free((genericptr_t) tmp);
-        tmp = tmp2;
+        regex_free(menu_colorings->match);
+        free((genericptr_t)menu_colorings->origstr);
+        free((genericptr_t)menu_colorings);
+        menu_colorings = tmp;
     }
 }
 
