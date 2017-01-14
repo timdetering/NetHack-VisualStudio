@@ -36,6 +36,8 @@
 #include "uwpfilehandler.h"
 #include "uwputil.h"
 
+using namespace Nethack;
+
 CellBuffer g_cellBuffer;
 
 extern "C"  {
@@ -526,11 +528,9 @@ void rename_file(const char * from, const char * to)
 void copy_to_local(std::string & fileName, bool onlyIfMissing)
 {
     std::string localPath = Nethack::g_localDir;
-    localPath += "\\";
     localPath += fileName;
 
     std::string installPath = Nethack::g_installDir;
-    installPath += "\\";
     installPath += fileName;
 
     if (onlyIfMissing && file_exists(localPath))
@@ -638,6 +638,8 @@ void change_options()
         case 'b': remove_option();  break;
         }
     }
+
+    Nethack::g_textGrid.Clear();
 }
 
 char * uwp_getenv(const char * env)
@@ -687,21 +689,118 @@ void load_file(std::string & filePath)
     }
 }
 
+#if 0
+winid tmpwin;
+anything any;
+char **saved;
+menu_item *chosen_game = (menu_item *)0;
+int k, clet, ch = 0; /* ch: 0 => new game */
+
+*plname = '\0';
+saved = get_saved_games(); /* array of character names */
+if (saved && *saved) {
+    tmpwin = create_nhwindow(NHW_MENU);
+    start_menu(tmpwin);
+    any = zeroany; /* no selection */
+    if (bannerwin != WIN_ERR) {
+        /* for tty; erase copyright notice and redo it in the menu */
+        clear_nhwindow(bannerwin);
+        /* COPYRIGHT_BANNER_[ABCD] */
+        for (k = 1; k <= 4; ++k)
+            add_menu(tmpwin, NO_GLYPH, &any, 0, 0, ATR_NONE,
+                copyright_banner_line(k), MENU_UNSELECTED);
+        add_menu(tmpwin, NO_GLYPH, &any, 0, 0, ATR_NONE, "",
+            MENU_UNSELECTED);
+    }
+    add_menu(tmpwin, NO_GLYPH, &any, 0, 0, ATR_NONE,
+        "Select one of your saved games", MENU_UNSELECTED);
+    for (k = 0; saved[k]; ++k) {
+        any.a_int = k + 1;
+        add_menu(tmpwin, NO_GLYPH, &any, 0, 0, ATR_NONE, saved[k],
+            MENU_UNSELECTED);
+    }
+    clet = (k <= 'n' - 'a') ? 'n' : 0; /* new game */
+    any.a_int = -1;                    /* not >= 0 */
+    add_menu(tmpwin, NO_GLYPH, &any, clet, 0, ATR_NONE,
+        "Start a new character", MENU_UNSELECTED);
+    clet = (k + 1 <= 'q' - 'a') ? 'q' : 0; /* quit */
+    any.a_int = -2;
+    add_menu(tmpwin, NO_GLYPH, &any, clet, 0, ATR_NONE,
+        "Never mind (quit)", MENU_SELECTED);
+    /* no prompt on end_menu, as we've done our own at the top */
+    end_menu(tmpwin, (char *)0);
+    if (select_menu(tmpwin, PICK_ONE, &chosen_game) > 0) {
+        ch = chosen_game->item.a_int;
+        if (ch > 0)
+            Strcpy(plname, saved[ch - 1]);
+        else if (ch < 0)
+            ++ch; /* -1 -> 0 (new game), -2 -> -1 (quit) */
+        free((genericptr_t)chosen_game);
+    }
+    else {
+        ch = -1; /* quit menu without making a selection => quit */
+    }
+    destroy_nhwindow(tmpwin);
+    if (bannerwin != WIN_ERR) {
+        /* for tty; clear the menu away and put subset of copyright back
+        */
+        clear_nhwindow(bannerwin);
+        /* COPYRIGHT_BANNER_A, preceding "Who are you?" prompt */
+        if (ch == 0)
+            putstr(bannerwin, 0, copyright_banner_line(1));
+    }
+}
+free_saved_games(saved);
+return (ch > 0) ? 1 : ch;
+#endif
+
+
 bool main_menu(void)
 {
-    std::string defaultsFileName = "defaults.nh";
-    std::string defaultsFilePath = Nethack::g_localDir;
-    defaultsFilePath += "\\";
-    defaultsFilePath += defaultsFileName;
-
-    std::string guidebookFilePath = Nethack::g_installDir;
-    guidebookFilePath += "\\Guidebook.txt";
-
+    anything any;
     Platform::String ^ fileText = ref new Platform::String();
 
+    // TODO: This is windowing system specific
+    clear_nhwindow(BASE_WINDOW);
+
+    bool play = false;
     bool done = false;
-    while (!done)
+    while (!done && !play)
     {
+        // TODO: this can be removed when we switch to using nh menus for all actions
+        Nethack::g_textGrid.Clear();
+
+        any = zeroany;
+
+        winid menu = create_nhwindow(NHW_MENU);
+        start_menu(menu);
+
+        const char * items[] = {
+            "[ ]NetHack, Universal Windows Port by Bart House",
+            "[ ]         Copyright 2016-2017",
+            "[ ]",
+            "[ ]",
+            "[ ]Source: https://github.com/barthouse/NetHackPublic",
+            "[ ]Support: https://github.com/barthouse/NetHackPublic/wiki/Support",
+            "[ ]Email: nethack@barthouse.com",
+            "[ ]",
+            "[ ]Pick an action",
+            "[ ]",
+            "[a]Play",
+            "[b]Change NETHACKOPTIONS",
+            "[c]Save defaults.nh to file",
+            "[d]Load defaults.nh from file",
+            "[e]Reset defaults.nh",
+            "[f]Save Guidebook.txt"
+        };
+
+        for (int i = 0; i < sizeof(items) / sizeof(items[0]); i++)
+        {
+            any.a_int = items[i][1] == ' ' ? 0 : items[i][1];
+            add_menu(menu, NO_GLYPH, &any, 0, 0, ATR_NONE, &items[i][3], MENU_UNSELECTED);
+        }
+
+#if 0
         int y = 0;
         Nethack::g_textGrid.Clear();
         Nethack::g_textGrid.Putstr(10, y++, Nethack::TextColor::White, Nethack::TextAttribute::None, 
@@ -739,30 +838,77 @@ bool main_menu(void)
             "Select action:");
 
         char c = raw_getchar();
-
         if (c == EOF) return false;
 
         c = tolower(c);
 
-        switch (c)
+#endif
+        end_menu(menu, (char *)0);
+
+        menu_item *pick = NULL;
+        int count = select_menu(menu, PICK_ONE, &pick);
+
+        destroy_nhwindow(menu);
+
+        if (count == 1)
         {
-        case 'a': done = true; break;
-        case 'b': change_options(); break;
-        case 'c': save_file(defaultsFilePath); break;
-        case 'd': load_file(defaultsFilePath); break;
-        case 'e': 
-            copy_to_local(defaultsFileName, false);
-            Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
-                "Reset complete <hit key to continue>");
-            raw_getchar();
-            break;
-        case 'f': save_file(guidebookFilePath); break;
+            switch (pick->item.a_int)
+            {
+            case 'a': play = true; break;
+            case 'b': change_options(); break;
+            case 'c': save_file(g_defaultsFilePath); break;
+            case 'd': load_file(g_defaultsFilePath); break;
+            case 'e':
+                copy_to_local(g_defaultsFileName, false);
+                g_textGrid.Putstr(22, 10, Nethack::TextColor::White, Nethack::TextAttribute::None,
+                    "Reset complete <hit key to continue>");
+                raw_getchar();
+                break;
+            case 'f': save_file(g_guidebookFilePath); break;
+            }
         }
+        else if (count == -1)
+        {
+            done = true;
+        }
+
+        free((genericptr_t)pick);
 
     }
 
-    return true;
+    return play;
 
+}
+
+extern void rename_file(const char * from, const char * to);
+
+void rename_save_files()
+{
+    char *foundfile;
+    const char *fq_save;
+
+    const char * oldsave = "bhouse-*.NetHack-saved-game";
+
+    fq_save = fqname(oldsave, SAVEPREFIX, 0);
+
+    foundfile = foundfile_buffer();
+    if (findfirst((char *)fq_save)) {
+        do {
+            char oldPath[512];
+            char newname[512];
+
+            strcpy(newname, "noname-");
+            strcpy(&newname[7], &foundfile[7]);
+
+            fq_save = fqname(foundfile, SAVEPREFIX, 0);
+            strcpy(oldPath, fq_save);
+
+            const char * newPath = fqname(newname, SAVEPREFIX, 0);
+
+            rename_file(oldPath, newPath);
+
+        } while (findnext());
+    }
 }
 
 extern boolean FDECL(uwpmain, (const char *, const char *));
@@ -770,30 +916,71 @@ extern void decl_clean_up(void);
 
 void mainloop(const char * localDir, const char * installDir)
 {
-    Nethack::g_localDir = std::string(localDir);
-    Nethack::g_installDir = std::string(installDir);
+    hname = "NetHack"; /* used for syntax messages */
 
-    std::string defaultsFileName("defaults.nh");
+    g_localDir = std::string(localDir);
+    g_localDir += "\\";
 
-    copy_to_local(defaultsFileName, true);
+    g_installDir = std::string(installDir);
+    g_installDir += "\\";
 
-    std::string optionsFilePath = Nethack::g_localDir;
-    optionsFilePath += "\\nethackoptions";
+    fqn_prefix[HACKPREFIX] = (char *) g_installDir.c_str();
+    fqn_prefix[LEVELPREFIX] = (char *) g_localDir.c_str();
+    fqn_prefix[SAVEPREFIX] = (char *)g_localDir.c_str();
+    fqn_prefix[BONESPREFIX] = (char *)g_localDir.c_str();
+    fqn_prefix[DATAPREFIX] = (char *) g_installDir.c_str();
+    fqn_prefix[SCOREPREFIX] = (char *)g_localDir.c_str();
+    fqn_prefix[LOCKPREFIX] = (char *)g_localDir.c_str();
+    fqn_prefix[SYSCONFPREFIX] = (char *) g_installDir.c_str();
+    fqn_prefix[CONFIGPREFIX] = (char *)g_localDir.c_str();
+    fqn_prefix[TROUBLEPREFIX] = (char *)g_localDir.c_str();
 
-    Nethack::g_options.Load(optionsFilePath);
+    copy_to_local(g_defaultsFileName, true);
+    rename_save_files();
 
-    if (!main_menu())
-        return;
+    g_nethackOptionsFilePath = g_localDir;
+    g_nethackOptionsFilePath += g_nethackOptionsFileName;
+
+    g_defaultsFilePath = Nethack::g_localDir;
+    g_defaultsFilePath += g_defaultsFileName;
+
+    g_guidebookFilePath = Nethack::g_installDir;
+    g_guidebookFilePath += g_guidebookFileName;
+
+    Nethack::g_options.Load(g_nethackOptionsFilePath);
 
     if (setjmp(Nethack::g_mainLoopJmpBuf) == 0)
     {
-        boolean resuming;
+        choose_windows(DEFAULT_WINDOW_SYS);
 
-        sys_early_init();
+        initoptions();
 
-        resuming = uwpmain(localDir, installDir);
+        int argc = 1;
+        char * argv[1] = { "nethack" };
 
-        moveloop(resuming);
+        init_nhwindows(&argc, argv);
+        // TODO: we need to clear text grid for now since init_nhwindows() will draw banner
+        //       we will have the same banner on splash screen making this uncessary
+        Nethack::g_textGrid.Clear();
+        display_gamewindows();
+
+        assert(iflags.window_inited);
+
+        // TODO: should we use panic here?
+        if (!iflags.window_inited) exit(0);
+
+        bool bPlay = main_menu();
+
+        exit_nhwindows((char *)0);
+
+        if (bPlay)
+        {
+            sys_early_init();
+
+            bool resuming = uwpmain(localDir, installDir);
+
+            moveloop(resuming);
+        }
     }
 
     decl_clean_up();

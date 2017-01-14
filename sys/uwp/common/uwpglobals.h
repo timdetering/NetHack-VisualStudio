@@ -23,7 +23,13 @@ namespace Nethack
     extern FontCollection   g_fontCollection;
     extern std::string      g_localDir;
     extern std::string      g_installDir;
-    
+    extern std::string      g_defaultsFileName;
+    extern std::string      g_defaultsFilePath;
+    extern std::string      g_nethackOptionsFileName;
+    extern std::string      g_nethackOptionsFilePath;
+    extern std::string      g_guidebookFileName;
+    extern std::string      g_guidebookFilePath;
+
 }
 #endif
 

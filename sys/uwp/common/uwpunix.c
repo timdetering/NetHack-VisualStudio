@@ -17,7 +17,7 @@
 #endif
 
 #if defined(WIN32) || defined(MSDOS)
-extern char orgdir[];
+//extern char orgdir[];
 #ifdef WIN32
 extern void NDECL(backsp);
 #endif

@@ -30,7 +30,7 @@
 #error NO_SIGNAL must be defined
 #endif
 
-char * orgdir = NULL;
+//char * orgdir = NULL;
 
 STATIC_DCL void FDECL(process_options, (int argc, char **argv));
 STATIC_DCL void NDECL(nhusage);
@@ -41,8 +41,6 @@ extern int redirect_stdout;       /* from sys/share/pcsys.c */
 extern int GUILaunched;
 HANDLE hStdOut;
 char *NDECL(exename);
-
-char default_window_sys[] = DEFAULT_WINDOW_SYS;
 
 boolean NDECL(fakeconsole);
 void NDECL(freefakeconsole);
@@ -73,36 +71,7 @@ verify_record_file()
         (void)nhclose(fd);
 }
 
-extern void rename_file(const char * from, const char * to);
 
-void rename_save_files()
-{
-    char *foundfile;
-    const char *fq_save;
-
-    const char * oldsave = "bhouse-*.NetHack-saved-game";
-
-    fq_save = fqname(oldsave, SAVEPREFIX, 0);
-
-    foundfile = foundfile_buffer();
-    if (findfirst((char *)fq_save)) {
-        do {
-            char oldPath[512];
-            char newname[512];
-
-            strcpy(newname, "noname-");
-            strcpy(&newname[7], &foundfile[7]);
-
-            fq_save = fqname(foundfile, SAVEPREFIX, 0);
-            strcpy(oldPath, fq_save);
-
-            const char * newPath = fqname(newname, SAVEPREFIX, 0);
-
-            rename_file(oldPath, newPath);
-
-        } while (findnext());
-    }
-}
 
 boolean
 uwpmain(const char * inLocalDir, const char * inInstallDir)
@@ -115,45 +84,7 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     char failbuf[BUFSZ];
     boolean resuming = FALSE; /* assume new game */
 
-#ifdef _MSC_VER
-# ifdef DEBUG
-                              /* set these appropriately for VS debugging */
-    _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG);
-    _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG); 
-    _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG);
-# endif
-#endif
-
-    hname = "NetHack"; /* used for syntax messages */
-
-    choose_windows(default_window_sys);
-
-    Strcpy(hackdir, inInstallDir);
-
-    char * installDir = (char *)malloc(strlen(inInstallDir) + 2);
-    char * localDir = (char *)malloc(strlen(inLocalDir) + 2);
-
-    strcpy(installDir, inInstallDir);
-    strcpy(localDir, inLocalDir);
-
-    append_slash(installDir);
-    append_slash(localDir);
-
-    orgdir = installDir;
-    fqn_prefix[HACKPREFIX] = installDir;
-    fqn_prefix[LEVELPREFIX] = localDir;
-    fqn_prefix[SAVEPREFIX] = localDir;
-    fqn_prefix[BONESPREFIX] = localDir;
-    fqn_prefix[DATAPREFIX] = installDir;
-    fqn_prefix[SCOREPREFIX] = localDir;
-    fqn_prefix[LOCKPREFIX] = localDir;
-    fqn_prefix[SYSCONFPREFIX] = installDir;
-    fqn_prefix[CONFIGPREFIX] = localDir;
-    fqn_prefix[TROUBLEPREFIX] = localDir;
-
     raw_clear_screen();
-
-    rename_save_files();
 
     initoptions();
 
@@ -162,9 +93,6 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
             failbuf);
         nethack_exit(EXIT_FAILURE);
     }
-
-    if (!hackdir[0])
-        Strcpy(hackdir, orgdir);
 
     /*
     * It seems you really want to play.

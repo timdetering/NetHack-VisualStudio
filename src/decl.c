@@ -68,7 +68,7 @@ NEARDATA long yn_number = 0L;
 
 const char disclosure_options[] = "iavgco";
 
-#if defined(MICRO) || defined(WIN32)
+#if (defined(MICRO) || defined(WIN32)) && !defined(UWP)
 char hackdir[PATHLEN]; /* where rumors, help, record are */
 #ifdef MICRO
 char levels[PATHLEN]; /* where levels are */
@@ -400,7 +400,9 @@ void decl_clean_up(void)
 
     yn_number = 0;
 
+#ifndef UWP
     ZEROARRAYN(hackdir, PATHLEN);
+#endif
 
     ZEROARRAY(level_info);
     ZERO(program_state);

@@ -14,5 +14,11 @@ namespace Nethack
     FontCollection  g_fontCollection;
     std::string     g_installDir;
     std::string     g_localDir;
+    std::string     g_defaultsFileName("defaults.nh");
+    std::string     g_defaultsFilePath;
+    std::string     g_nethackOptionsFileName("nethackoptions");
+    std::string     g_nethackOptionsFilePath;
+    std::string     g_guidebookFileName("Guidebook.txt");
+    std::string     g_guidebookFilePath;
 
 }
