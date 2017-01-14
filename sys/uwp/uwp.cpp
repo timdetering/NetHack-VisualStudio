@@ -49,6 +49,9 @@ extern "C"  {
 #include "wintty.h"
 #endif
 
+#include "date.h"
+#include "patchlevel.h"
+
 
 #ifndef HANGUPHANDLING
 #error HANGUPHANDLING must be defined
@@ -776,9 +779,12 @@ bool main_menu(void)
         start_menu(menu);
 
         const char * items[] = {
-            "[ ]NetHack, Universal Windows Port by Bart House",
-            "[ ]         Copyright 2016-2017",
-            "[ ]",
+            "[ ]" COPYRIGHT_BANNER_A,
+            "[ ]" COPYRIGHT_BANNER_B,
+            "[ ]Universal Windows Port, Copyright 2016-2017",
+            "[ ]         By Bart House",
+            "[ ]" COPYRIGHT_BANNER_C,
+            "[ ]" COPYRIGHT_BANNER_D,
             "[ ]",
             "[ ]Source: https://github.com/barthouse/NetHackPublic",
             "[ ]Support: https://github.com/barthouse/NetHackPublic/wiki/Support",
