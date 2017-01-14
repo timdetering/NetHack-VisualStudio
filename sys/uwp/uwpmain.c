@@ -84,15 +84,13 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     char failbuf[BUFSZ];
     boolean resuming = FALSE; /* assume new game */
 
-    raw_clear_screen();
-
-    initoptions();
-
+#if 0
     if (!validate_prefix_locations(failbuf)) {
         raw_printf("Some invalid directory locations were specified:\n\t%s\n",
             failbuf);
         nethack_exit(EXIT_FAILURE);
     }
+#endif
 
     /*
     * It seems you really want to play.

@@ -977,6 +977,16 @@ void mainloop(const char * localDir, const char * installDir)
         {
             sys_early_init();
 
+            // TODO(bhouse): should we have cleared during exit_nhwindows
+            raw_clear_screen();
+
+            char failbuf[BUFSZ];
+            if (!validate_prefix_locations(failbuf)) {
+                raw_printf("Some invalid directory locations were specified:\n\t%s\n",
+                    failbuf);
+                nethack_exit(EXIT_FAILURE);
+            }
+
             bool resuming = uwpmain(localDir, installDir);
 
             moveloop(resuming);
