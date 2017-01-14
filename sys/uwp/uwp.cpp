@@ -250,10 +250,8 @@ char MapScanCode(const Nethack::Event & e)
 
     char c = 0;
 
-    if (!e.m_alt)
-    {
-        if (e.m_scanCode >= Nethack::ScanCode::Home && e.m_scanCode <= Nethack::ScanCode::Delete)
-        {
+    if (!e.m_alt) {
+        if (e.m_scanCode >= Nethack::ScanCode::Home && e.m_scanCode <= Nethack::ScanCode::Delete) {
             typedef struct {
                 char normal, shift, control;
             } PadMapping;
@@ -297,17 +295,13 @@ char MapScanCode(const Nethack::Event & e)
 
             if (e.m_shift) {
                 c = pad[i].shift;
-            }
-            else if (e.m_control) {
+            } else if (e.m_control) {
                 c = pad[i].control;
-            }
-            else {
+            } else {
                 c = pad[i].normal;
             }
         }
-    }
-    else
-    {
+    } else {
         int scanToChar[(int)Nethack::ScanCode::Count] = {
             0, // Unknown
             0, // Escape
@@ -419,15 +413,13 @@ int raw_getchar()
 
     while (e.m_type == Nethack::Event::Type::Undefined ||
            (e.m_type == Nethack::Event::Type::ScanCode && MapScanCode(e) == 0) ||
-           (e.m_type == Nethack::Event::Type::Mouse))
-    {
+           (e.m_type == Nethack::Event::Type::Mouse)) {
         e = Nethack::g_eventQueue.PopFront();
     }
 
     if (e.m_type == Nethack::Event::Type::ScanCode)
         return MapScanCode(e);
-    else
-    {
+    else  {
         assert(e.m_type == Nethack::Event::Type::Char);
         return e.m_char;
     }
@@ -483,18 +475,15 @@ bool get_string(std::string & string, unsigned int maxLength)
     string = "";
 
     bool done = false;
-    while (1)
-    {
+    while (1) {
         char c = raw_getchar();
 
         if (c == EOF || c == ESCAPE) return false;
 
         if (c == '\n') return true;
 
-        if (c == '\b')
-        {
-            if (string.length() > 0)
-            {
+        if (c == '\b') {
+            if (string.length() > 0) {
                 Nethack::g_textGrid.Putstr(Nethack::TextColor::White, Nethack::TextAttribute::None, "\b");
                 string = string.substr(0, string.length() - 1);
             }
@@ -504,8 +493,7 @@ bool get_string(std::string & string, unsigned int maxLength)
         if (!isprint(c))
             continue;
 
-        if (string.length() < maxLength)
-        {
+        if (string.length() < maxLength)  {
             Nethack::g_textGrid.Put(Nethack::TextColor::White, Nethack::TextAttribute::None, c);
             string += c;
         }
@@ -608,8 +596,7 @@ void remove_option()
 void change_options()
 {
     bool done = false;
-    while (!done)
-    {
+    while (!done) {
         std::string optionsString = Nethack::g_options.GetString();
 
         Nethack::g_textGrid.Clear();
@@ -655,8 +642,7 @@ void save_file(std::string & filePath)
 {
     std::string readText;
     std::fstream input(filePath.c_str(), std::fstream::in | std::fstream::binary);
-    if (input.is_open())
-    {
+    if (input.is_open())  {
         input.seekg(0, std::ios::end);
         size_t size = (size_t)input.tellg();
         input.seekg(0, std::ios::beg);
@@ -680,12 +666,10 @@ void load_file(std::string & filePath)
     std::string fileExtension = filePath.substr(filePath.rfind('.'), std::string::npos);
     Platform::String ^ extensionStr = Nethack::to_platform_string(fileExtension);
     Platform::String ^ fileText = Nethack::FileHandler::s_instance->LoadFilePicker(extensionStr);
-    if (fileText != nullptr)
-    {
+    if (fileText != nullptr)  {
         std::string writeText = Nethack::to_string(fileText);
         std::fstream output(filePath.c_str(), std::fstream::out | std::fstream::trunc | std::fstream::binary);
-        if (output.is_open())
-        {
+        if (output.is_open())  {
             output.write(writeText.c_str(), writeText.length());
             output.close();
         }
@@ -768,9 +752,8 @@ bool main_menu(void)
 
     bool play = false;
     bool done = false;
-    while (!done && !play)
-    {
-        // TODO: this can be removed when we switch to using nh menus for all actions
+    while (!done && !play) {
+        // TODO(bhouse): this can be removed when we switch to using nh menus for all actions
         Nethack::g_textGrid.Clear();
 
         any = zeroany;
@@ -800,55 +783,11 @@ bool main_menu(void)
             "[f]Save Guidebook.txt"
         };
 
-        for (int i = 0; i < sizeof(items) / sizeof(items[0]); i++)
-        {
+        for (int i = 0; i < SIZE(items); i++) {
             any.a_int = items[i][1] == ' ' ? 0 : items[i][1];
             add_menu(menu, NO_GLYPH, &any, 0, 0, ATR_NONE, &items[i][3], MENU_UNSELECTED);
         }
 
-#if 0
-        int y = 0;
-        Nethack::g_textGrid.Clear();
-        Nethack::g_textGrid.Putstr(10, y++, Nethack::TextColor::White, Nethack::TextAttribute::None, 
-            "NetHack, Universal Windows Port by Bart House");
-        Nethack::g_textGrid.Putstr(10, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "         Copyright 2016-2017");
-
-        y++; // blank
-
-        Nethack::g_textGrid.Putstr(10, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "Source: https://github.com/barthouse/NetHackPublic");
-        Nethack::g_textGrid.Putstr(10, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "Support: https://github.com/barthouse/NetHackPublic/wiki/Support");
-        Nethack::g_textGrid.Putstr(10, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "Email: nethack@barthouse.com");
-
-        y++; // blank
-        y++; // blank
-
-        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "a - Play");
-
-        y++; // blank
-        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "b - Change NETHACKOPTIONS");
-        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "c - Save defaults.nh to file");
-        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "d - Load defaults.nh from file");
-        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "e - Reset defaults.nh");
-        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "f - Save Guidebook.txt");
-        Nethack::g_textGrid.Putstr(19, y++, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "Select action:");
-
-        char c = raw_getchar();
-        if (c == EOF) return false;
-
-        c = tolower(c);
-
-#endif
         end_menu(menu, (char *)0);
 
         menu_item *pick = NULL;
@@ -856,10 +795,8 @@ bool main_menu(void)
 
         destroy_nhwindow(menu);
 
-        if (count == 1)
-        {
-            switch (pick->item.a_int)
-            {
+        if (count == 1) {
+            switch (pick->item.a_int) {
             case 'a': play = true; break;
             case 'b': change_options(); break;
             case 'c': save_file(g_defaultsFilePath); break;
@@ -872,9 +809,7 @@ bool main_menu(void)
                 break;
             case 'f': save_file(g_guidebookFilePath); break;
             }
-        }
-        else if (count == -1)
-        {
+        } else if (count == -1) {
             done = true;
         }
 
@@ -955,8 +890,7 @@ void mainloop(const char * localDir, const char * installDir)
 
     Nethack::g_options.Load(g_nethackOptionsFilePath);
 
-    if (setjmp(Nethack::g_mainLoopJmpBuf) == 0)
-    {
+    if (setjmp(Nethack::g_mainLoopJmpBuf) == 0) {
         choose_windows(DEFAULT_WINDOW_SYS);
 
         initoptions();
@@ -979,8 +913,7 @@ void mainloop(const char * localDir, const char * installDir)
 
         exit_nhwindows((char *)0);
 
-        if (bPlay)
-        {
+        if (bPlay) {
             sys_early_init();
 
             // TODO(bhouse): should we have cleared during exit_nhwindows
