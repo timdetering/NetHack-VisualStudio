@@ -656,78 +656,18 @@ void load_file(std::string & filePath)
     }
 }
 
-#if 0
-winid tmpwin;
-anything any;
-char **saved;
-menu_item *chosen_game = (menu_item *)0;
-int k, clet, ch = 0; /* ch: 0 => new game */
-
-*plname = '\0';
-saved = get_saved_games(); /* array of character names */
-if (saved && *saved) {
-    tmpwin = create_nhwindow(NHW_MENU);
-    start_menu(tmpwin);
-    any = zeroany; /* no selection */
-    if (bannerwin != WIN_ERR) {
-        /* for tty; erase copyright notice and redo it in the menu */
-        clear_nhwindow(bannerwin);
-        /* COPYRIGHT_BANNER_[ABCD] */
-        for (k = 1; k <= 4; ++k)
-            add_menu(tmpwin, NO_GLYPH, &any, 0, 0, ATR_NONE,
-                copyright_banner_line(k), MENU_UNSELECTED);
-        add_menu(tmpwin, NO_GLYPH, &any, 0, 0, ATR_NONE, "",
-            MENU_UNSELECTED);
-    }
-    add_menu(tmpwin, NO_GLYPH, &any, 0, 0, ATR_NONE,
-        "Select one of your saved games", MENU_UNSELECTED);
-    for (k = 0; saved[k]; ++k) {
-        any.a_int = k + 1;
-        add_menu(tmpwin, NO_GLYPH, &any, 0, 0, ATR_NONE, saved[k],
-            MENU_UNSELECTED);
-    }
-    clet = (k <= 'n' - 'a') ? 'n' : 0; /* new game */
-    any.a_int = -1;                    /* not >= 0 */
-    add_menu(tmpwin, NO_GLYPH, &any, clet, 0, ATR_NONE,
-        "Start a new character", MENU_UNSELECTED);
-    clet = (k + 1 <= 'q' - 'a') ? 'q' : 0; /* quit */
-    any.a_int = -2;
-    add_menu(tmpwin, NO_GLYPH, &any, clet, 0, ATR_NONE,
-        "Never mind (quit)", MENU_SELECTED);
-    /* no prompt on end_menu, as we've done our own at the top */
-    end_menu(tmpwin, (char *)0);
-    if (select_menu(tmpwin, PICK_ONE, &chosen_game) > 0) {
-        ch = chosen_game->item.a_int;
-        if (ch > 0)
-            Strcpy(plname, saved[ch - 1]);
-        else if (ch < 0)
-            ++ch; /* -1 -> 0 (new game), -2 -> -1 (quit) */
-        free((genericptr_t)chosen_game);
-    }
-    else {
-        ch = -1; /* quit menu without making a selection => quit */
-    }
-    destroy_nhwindow(tmpwin);
-    if (bannerwin != WIN_ERR) {
-        /* for tty; clear the menu away and put subset of copyright back
-        */
-        clear_nhwindow(bannerwin);
-        /* COPYRIGHT_BANNER_A, preceding "Who are you?" prompt */
-        if (ch == 0)
-            putstr(bannerwin, 0, copyright_banner_line(1));
-    }
+void reset_defaults_file(void)
+{
+    copy_to_local(g_defaultsFileName, false);
+    clear_nhwindow(BASE_WINDOW);
+    getreturn("Reset complete");
 }
-free_saved_games(saved);
-return (ch > 0) ? 1 : ch;
-#endif
-
 
 bool main_menu(void)
 {
-    anything any;
-    Platform::String ^ fileText = ref new Platform::String();
-
-    // TODO: This is windowing system specific
+    // TODO(bhouse): Need to review use of BASE_WINDOW.  Really like to have this code be
+    //               windowing system agnostic.  Use and knowledge of BASE_WINDOW breaks
+    //               that goal.
     clear_nhwindow(BASE_WINDOW);
 
     bool play = false;
@@ -736,7 +676,7 @@ bool main_menu(void)
         // TODO(bhouse): this can be removed when we switch to using nh menus for all actions
         Nethack::g_textGrid.Clear();
 
-        any = zeroany;
+        anything any = zeroany;
 
         winid menu = create_nhwindow(NHW_MENU);
         start_menu(menu);
@@ -781,12 +721,7 @@ bool main_menu(void)
             case 'b': change_options(); break;
             case 'c': save_file(g_defaultsFilePath); break;
             case 'd': load_file(g_defaultsFilePath); break;
-            case 'e':
-                copy_to_local(g_defaultsFileName, false);
-                g_textGrid.Putstr(22, 10, Nethack::TextColor::White, Nethack::TextAttribute::None,
-                    "Reset complete <hit key to continue>");
-                raw_getchar();
-                break;
+            case 'e': reset_defaults_file(); break;
             case 'f': save_file(g_guidebookFilePath); break;
             }
         } else if (count == -1) {
@@ -794,11 +729,9 @@ bool main_menu(void)
         }
 
         free((genericptr_t)pick);
-
     }
 
     return play;
-
 }
 
 extern void rename_file(const char * from, const char * to);

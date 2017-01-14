@@ -6,6 +6,9 @@ High Priority
 
 Medium Priority
 - Change font size as window is resized
+- Add mip-map levels to font texture to see if we can get better texturing
+- Protoype just calling into DWrite to render grid instead of trying to use D3D11 (although we
+  we still need a means to render tiles eventually)
 - Review all code looking for more static locals.  This can be a problem since we can't re-initialize.
 - number_pad option value is not preserved across saves -- is this documented?  Is this how it is
   supposed to be?  What options are saved with game?
