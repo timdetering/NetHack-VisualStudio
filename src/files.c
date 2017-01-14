@@ -892,9 +892,14 @@ boolean regularize_it;
         const char *legal = okchars;
         char fnamebuf[BUFSZ], encodedfnamebuf[BUFSZ];
 
+#if !defined(UWP)
         /* Obtain the name of the logged on user and incorporate
          * it into the name. */
         Sprintf(fnamebuf, "%s-%s", get_username(0), plname);
+#else /* UWP */
+        /* UWP applications are unable to get user name */
+        Sprintf(fnamebuf, "%s", plname);
+#endif
         if (regularize_it)
             ++legal; /* skip '*' wildcard character */
         (void) fname_encode(legal, '%', fnamebuf, encodedfnamebuf, BUFSZ);

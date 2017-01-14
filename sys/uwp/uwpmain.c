@@ -172,12 +172,11 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     */
     /* Obtain the name of the logged on user and incorporate
     * it into the name. */
-    Sprintf(fnamebuf, "%s-%s", get_username(0), plname);
+    Sprintf(fnamebuf, "%s", plname);
     (void)fname_encode(
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-.", '%',
         fnamebuf, encodedfnamebuf, BUFSZ);
     Sprintf(lock, "%s", encodedfnamebuf);
-    /* regularize(lock); */ /* we encode now, rather than substitute */
     getlock();
 #endif /* PC_LOCKING */
 

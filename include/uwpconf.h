@@ -56,9 +56,6 @@
 #define EXEPATH              /* Allow .exe location to be used as HACKDIR */
 #define TRADITIONAL_GLYPHMAP /* Store glyph mappings at level change time */
 
-#define LAN_FEATURES /* Include code for lan-aware features. Untested in \
-                        3.4.0*/
-
 #define PC_LOCKING /* Prevent overwrites of aborted or in-progress games */
 /* without first receiving confirmation. */
 

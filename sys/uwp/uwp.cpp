@@ -142,33 +142,13 @@ char * foundfile_buffer()
     return &ffd.cFileName[0];
 }
 
-char * get_username(int * lan_username_size)
-{
-#if 0
-    static TCHAR username_buffer[BUFSZ];
-    unsigned int status;
-    DWORD i = BUFSZ - 1;
-
-    /* i gets updated with actual size */
-    status = GetUserName(username_buffer, &i);
-    if (status)
-        username_buffer[i] = '\0';
-    else
-        Strcpy(username_buffer, "NetHack");
-    if (lan_username_size)
-        *lan_username_size = strlen(username_buffer);
-    return username_buffer;
-#endif
-    // TODO: Determine the right way to get user name in UWP
-    return "noname";
-}
-
 void Delay(int ms)
 {
     Sleep(ms);
 }
 
-// TODO: Dangerous call ... string needs to have been allocated with enough space
+// TODO(bhouse): Dangerous call ... string needs to have been allocated with enough space.
+//               Caller should pass in length of allocation.
 void append_slash(char * name)
 {
     char *ptr;
@@ -823,32 +803,36 @@ bool main_menu(void)
 
 extern void rename_file(const char * from, const char * to);
 
+/* to support previous releases, we rename save games to new save game format */
 void rename_save_files()
 {
     char *foundfile;
     const char *fq_save;
 
-    const char * oldsave = "bhouse-*.NetHack-saved-game";
+    const char * oldsaves[] = { 
+        "bhouse-*.NetHack-saved-game",
+        "noname-*.NetHack-saved-game" };
 
-    fq_save = fqname(oldsave, SAVEPREFIX, 0);
+    for (int i = 0; i < SIZE(oldsaves); i++) {
+        fq_save = fqname(oldsaves[i], SAVEPREFIX, 0);
 
-    foundfile = foundfile_buffer();
-    if (findfirst((char *)fq_save)) {
-        do {
-            char oldPath[512];
-            char newname[512];
+        foundfile = foundfile_buffer();
+        if (findfirst((char *)fq_save)) {
+            do {
+                char oldPath[512];
+                char newname[512];
 
-            strcpy(newname, "noname-");
-            strcpy(&newname[7], &foundfile[7]);
+                strcpy(newname, &foundfile[7]);
 
-            fq_save = fqname(foundfile, SAVEPREFIX, 0);
-            strcpy(oldPath, fq_save);
+                fq_save = fqname(foundfile, SAVEPREFIX, 0);
+                strcpy(oldPath, fq_save);
 
-            const char * newPath = fqname(newname, SAVEPREFIX, 0);
+                const char * newPath = fqname(newname, SAVEPREFIX, 0);
 
-            rename_file(oldPath, newPath);
+                rename_file(oldPath, newPath);
 
-        } while (findnext());
+            } while (findnext());
+        }
     }
 }
 
