@@ -365,6 +365,7 @@ void decl_clean_up(void)
 #define ZEROARRAYN(x,n) memset((void *) &x[0], 0, sizeof(x[0])*(n))
 #define ZERO(x) memset((void *) &x, 0, sizeof(x))
 #define ZEROPTR(x) { assert(x == NULL); x = NULL; }
+#define ZEROPTRNOCHECK(x) { x = NULL; }
 
     ZEROARRAY(bases);
 
@@ -448,23 +449,24 @@ void decl_clean_up(void)
     ZEROARRAY(lastseentyp);
 
     ZEROPTR(invent);
-    ZEROPTR(uwep);
-    ZEROPTR(uarm);
-    ZEROPTR(uswapwep);
-    ZEROPTR(uquiver);
-    ZEROPTR(uarmu);
-    ZEROPTR(uskin);
-    ZEROPTR(uarmc);
-    ZEROPTR(uarmh);
-    ZEROPTR(uarms);
-    ZEROPTR(uarmg);
-    ZEROPTR(uarmf);
-    ZEROPTR(uamul);
-    ZEROPTR(uright);
-    ZEROPTR(uleft);
-    ZEROPTR(ublindf);
-    ZEROPTR(uchain);
-    ZEROPTR(uball);
+
+    ZEROPTRNOCHECK(uwep);
+    ZEROPTRNOCHECK(uarm);
+    ZEROPTRNOCHECK(uswapwep);
+    ZEROPTRNOCHECK(uquiver);
+    ZEROPTRNOCHECK(uarmu);
+    ZEROPTRNOCHECK(uskin);
+    ZEROPTRNOCHECK(uarmc);
+    ZEROPTRNOCHECK(uarmh);
+    ZEROPTRNOCHECK(uarms);
+    ZEROPTRNOCHECK(uarmg);
+    ZEROPTRNOCHECK(uarmf);
+    ZEROPTRNOCHECK(uamul);
+    ZEROPTRNOCHECK(uright);
+    ZEROPTRNOCHECK(uleft);
+    ZEROPTRNOCHECK(ublindf);
+    ZEROPTRNOCHECK(uchain);
+    ZEROPTRNOCHECK(uball);
 
     ZEROPTR(current_wand);
     ZEROPTR(thrownobj);
