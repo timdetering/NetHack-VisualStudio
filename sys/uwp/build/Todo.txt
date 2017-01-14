@@ -2,10 +2,6 @@
 
 High Priority
 - Review all code looking for more static locals.  This can be a problem since we can't re-initialize.
-- Exit application if we hit a panic.
-- Assuming we don't try to re-enter mainloop after panic, attempt to verify that most dynamic state
-  has been freed.  Assuming all dynamic state is free, we should generally be able to assume all
-  global pointers shoudl be NULL (assuming dynamic free routines NULL as appropriate)
 
 Medium Priority
 - number_pad option value is not preserved across saves -- is this documented?  Is this how it is
