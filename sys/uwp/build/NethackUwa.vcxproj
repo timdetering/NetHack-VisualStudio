@@ -1225,23 +1225,15 @@
     </AppxManifest>
     <None Include="$(SysUwpDir)defaults.nh">
       <DeploymentContent>true</DeploymentContent>
-      <ExcludedFromBuild>true</ExcludedFromBuild>
     </None>
     <None Include="$(SysUwpDir)nhdat">
       <DeploymentContent>true</DeploymentContent>
-      <ExcludedFromBuild>true</ExcludedFromBuild>
     </None>
     <None Include="$(DatDir)symbols">
       <DeploymentContent>true</DeploymentContent>
-      <ExcludedFromBuild>true</ExcludedFromBuild>
     </None>
     <None Include="$(DocDir)Guidebook.txt">
       <DeploymentContent>true</DeploymentContent>
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </None>
-    <None Include="$(DatDir)license">
-      <DeploymentContent>true</DeploymentContent>
-      <ExcludedFromBuild>true</ExcludedFromBuild>
     </None>
     <None Include="$(SysDir)uwp\Nethack_TemporaryKey.pfx" />
     <None Include="NethackUwa_StoreKey.pfx" />
@@ -1258,21 +1250,12 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <Text Include="..\license.txt" />
     <Text Include="Notes.txt">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">false</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">false</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DeploymentContent>
+      <DeploymentContent>false</DeploymentContent>
     </Text>
     <Text Include="Todo.txt">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">false</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">false</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DeploymentContent>
+      <DeploymentContent>false</DeploymentContent>
     </Text>
   </ItemGroup>
   <ItemGroup>
@@ -1285,7 +1268,8 @@
     <Import Project="$(VSINSTALLDIR)\Common7\IDE\Extensions\Microsoft\VsGraphics\ShaderGraphContentTask.targets" />
   </ImportGroup>
   <Target Name="AfterClean">
-    <Delete Files="$(SysUwpDir)nhdat" />
+    <Message Text="Cleaning nhdat license.txt" Importance="high" />
+    <Delete Files="$(SysUwpDir)nhdat;$(SysUwpDir)license.txt" />
   </Target>
   <ItemGroup>
     <!-- Should $(DatDir)symbols be in this list? If not, why not? -->
@@ -1299,7 +1283,6 @@
     <DlbList Include="$(DatDir)bogusmon" />
     <DlbList Include="$(DatDir)tribute" />
     <DlbList Include="$(DatDir)help" />
-    <DlbList Include="$(DatDir)porthelp" />
     <DlbList Include="$(DatDir)hh" />
     <DlbList Include="$(DatDir)cmdhelp" />
     <DlbList Include="$(DatDir)history" />
@@ -1312,6 +1295,7 @@
   <PropertyGroup>
     <BuildDependsOn>
         BuildNhdat;
+		CopyLicense;
         $(BuildDependsOn);
     </BuildDependsOn>
   </PropertyGroup>
@@ -1319,7 +1303,12 @@
     <Message Text="Building nhdat" Importance="high" />
     <Copy SourceFiles="$(SysUwpDir)porthelp" DestinationFolder="$(DatDir)" />
     <WriteLinesToFile File="$(DatDir)dlb.lst" Lines="@(DlbList->'%(filename)%(extension)')" Overwrite="true" />
+    <WriteLinesToFile File="$(DatDir)dlb.lst" Lines="porthelp" Overwrite="false" />
     <Exec Command="$(ToolsBinDir)dlb.exe cIf $(DatDir)dlb.lst $(SysUwpDir)nhdat" WorkingDirectory="$(DatDir)" />
     <Delete Files="$(DatDir)porthelp" />
+  </Target>
+  <Target Name="CopyLicense" Inputs="$(DatDir)license" Outputs="$(SysUwpDir)license.txt">
+    <Message Text="Copying license.txt" Importance="high" />
+    <Copy SourceFiles="$(DatDir)license" DestinationFiles="$(SysUwpDir)license.txt" />
   </Target>
 </Project>

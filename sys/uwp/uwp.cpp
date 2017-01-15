@@ -729,7 +729,8 @@ bool main_menu(void)
             "[c]Save defaults.nh to file",
             "[d]Load defaults.nh from file",
             "[e]Reset defaults.nh",
-            "[f]Save Guidebook.txt"
+            "[f]Save Guidebook.txt to file",
+            "[g]Save License.txt to file"
         };
 
         winid menu = create_nhwindow(NHW_MENU);
@@ -756,6 +757,7 @@ bool main_menu(void)
             case 'd': load_file(g_defaultsFilePath); initoptions();  break;
             case 'e': reset_defaults_file(); break;
             case 'f': save_file(g_guidebookFilePath); break;
+            case 'g': save_file(g_licenseFilePath); break;
             }
         } else if (count == -1) {
             done = true;
@@ -827,6 +829,8 @@ void mainloop(const char * localDir, const char * installDir)
     fqn_prefix[TROUBLEPREFIX] = (char *)g_localDir.c_str();
 
     copy_to_local(g_defaultsFileName, true);
+    copy_to_local(g_guidebookFileName, true);
+    copy_to_local(g_licenseFileName, true);
     rename_save_files();
 
     g_nethackOptionsFilePath = g_localDir;
@@ -837,6 +841,9 @@ void mainloop(const char * localDir, const char * installDir)
 
     g_guidebookFilePath = Nethack::g_installDir;
     g_guidebookFilePath += g_guidebookFileName;
+
+    g_licenseFilePath = Nethack::g_installDir;
+    g_licenseFilePath += g_licenseFileName;
 
     Nethack::g_options.Load(g_nethackOptionsFilePath);
 

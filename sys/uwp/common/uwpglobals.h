@@ -29,6 +29,8 @@ namespace Nethack
     extern std::string      g_nethackOptionsFilePath;
     extern std::string      g_guidebookFileName;
     extern std::string      g_guidebookFilePath;
+    extern std::string      g_licenseFileName;
+    extern std::string      g_licenseFilePath;
 
 }
 #endif

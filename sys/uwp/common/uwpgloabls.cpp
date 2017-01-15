@@ -20,5 +20,7 @@ namespace Nethack
     std::string     g_nethackOptionsFilePath;
     std::string     g_guidebookFileName("Guidebook.txt");
     std::string     g_guidebookFilePath;
+    std::string     g_licenseFileName("license.txt");
+    std::string     g_licenseFilePath;
 
 }

@@ -487,9 +487,6 @@
     <None Include="$(DocDir)Guidebook.txt">
       <Filter>doc</Filter>
     </None>
-    <None Include="$(DatDir)license">
-      <Filter>dat</Filter>
-    </None>
     <None Include="$(DatDir)symbols">
       <Filter>dat</Filter>
     </None>
@@ -801,6 +798,9 @@
       <Filter>sys\uwp</Filter>
     </Text>
     <Text Include="Notes.txt">
+      <Filter>sys\uwp</Filter>
+    </Text>
+    <Text Include="..\license.txt">
       <Filter>sys\uwp</Filter>
     </Text>
   </ItemGroup>
