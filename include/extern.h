@@ -1663,6 +1663,7 @@ E void NDECL(initoptions);
 E void NDECL(initoptions_init);
 E void NDECL(initoptions_finish);
 E void FDECL(parseoptions, (char *, BOOLEAN_P, BOOLEAN_P));
+E boolean FDECL(validateoptions, (char *, BOOLEAN_P));
 E int NDECL(doset);
 E int NDECL(dotogglepickup);
 E void NDECL(option_help);

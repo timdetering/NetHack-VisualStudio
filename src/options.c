@@ -498,6 +498,7 @@ static char mapped_menu_op[MAX_MENU_MAPPED_CMDS + 1];
 static short n_menu_mapped = 0;
 
 static boolean initial, from_file;
+static int bad_option_count;
 
 STATIC_DCL void FDECL(nmcpy, (char *, const char *, int));
 STATIC_DCL void FDECL(escapes, (const char *, char *));
@@ -969,6 +970,7 @@ badoption(opts)
 const char *opts;
 {
     badoptmsg(opts, "Bad syntax");
+    bad_option_count++;
 }
 
 STATIC_OVL char *
@@ -1011,6 +1013,7 @@ boolean with_parameter;
 {
     pline_The("%s option may not %sbe negated.", optname,
               with_parameter ? "both have a value and " : "");
+    bad_option_count++;
 }
 
 /*
@@ -1789,6 +1792,19 @@ char c;
     return FALSE;
 }
 
+/* validate initial options without generating output */
+/* note that valid options will be set */
+boolean
+validateoptions(opts, tfrom_file)
+char * opts;
+boolean tfrom_file;
+{
+    bad_option_count = 0;
+    parseoptions(opts, TRUE, tfrom_file);
+
+    return (bad_option_count == 0);
+}
+
 void
 parseoptions(opts, tinitial, tfrom_file)
 register char *opts;
@@ -1802,6 +1818,7 @@ boolean tinitial, tfrom_file;
 
     initial = tinitial;
     from_file = tfrom_file;
+
     if ((op = index(opts, ',')) != 0) {
         *op++ = 0;
         parseoptions(op, initial, from_file);
@@ -1950,7 +1967,11 @@ boolean tinitial, tfrom_file;
                     preferred_pet = '\0';
                     break;
                 default:
+                    /* (bhouse) why are we not calling badoptions here and
+                       in a few other places below when complaining about
+                       optons? */
                     pline("Unrecognized pet type '%s'.", op);
+                    bad_option_count++;
                     break;
                 }
         } else if (negated)
@@ -2050,6 +2071,7 @@ boolean tinitial, tfrom_file;
                 raw_printf("Unable to load symbol set \"%s\" from \"%s\".",
                            op, SYMBOLS);
                 wait_synch();
+                bad_option_count++;
             } else {
                 if (!initial && Is_rogue_level(&u.uz))
                     assign_graphics(ROGUESET);
@@ -2072,6 +2094,7 @@ boolean tinitial, tfrom_file;
                 raw_printf("Unable to load symbol set \"%s\" from \"%s\".",
                            op, SYMBOLS);
                 wait_synch();
+                bad_option_count++;
             } else {
                 switch_symbols(symset[PRIMARY].name != (char *) 0);
                 need_redraw = TRUE;
@@ -2432,6 +2455,7 @@ boolean tinitial, tfrom_file;
             pline(
                 "Badoption - boulder symbol '%c' conflicts with a %s symbol.",
                 opts[0], (clash == 1) ? "monster" : "warning");
+            bad_option_count++;
         } else {
             /*
              * Override the default boulder symbol.
@@ -2464,7 +2488,7 @@ boolean tinitial, tfrom_file;
         if (negated) {
             bad_negation(fullname, FALSE);
         } else if ((op = string_for_opt(opts, negated)) != 0) {
-#ifdef WIN32
+#if defined(WIN32) && !defined(UWP)
             (void) strncpy(iflags.altkeyhandler, op, MAX_ALTKEYHANDLER - 5);
             load_keyboard_handler();
 #endif
@@ -2738,6 +2762,7 @@ boolean tinitial, tfrom_file;
             wizard = TRUE, discover = FALSE;
         } else {
             raw_printf("Invalid value for \"%s\":%s.", fullname, op);
+            bad_option_count++;
         }
         return;
     }
@@ -3329,6 +3354,7 @@ boolean tinitial, tfrom_file;
             if (badflag) {
                 pline("Failure to load symbol set %s.", sym_name);
                 wait_synch();
+                bad_option_count++;
             } else {
                 switch_symbols(TRUE);
                 if (!initial && Is_rogue_level(&u.uz))

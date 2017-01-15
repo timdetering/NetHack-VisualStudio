@@ -23,21 +23,12 @@ namespace Nethack {
                 if (line.compare(0, optionsEqual.size(), optionsEqual.c_str()) != 0)
                     continue;
 
-                std::size_t colonPosition = line.find(':', optionsEqual.size());
+                std::string option = line.substr(optionsEqual.size(), std::string::npos);
 
-                std::string name = line.substr(optionsEqual.size(), colonPosition - optionsEqual.size());
-
-                if (name.length() == 0)
+                if (option.length() == 0)
                     continue;
 
-                std::string value;
-
-                if (colonPosition != std::string::npos)
-                {
-                    value = line.substr(colonPosition + 1, std::string::npos);
-                }
-
-                m_options.push_back(Option(name, value));
+                m_options.push_back(option);
             }
 
             input.close();
@@ -54,12 +45,7 @@ namespace Nethack {
             for (auto & o : m_options)
             {
                 output << "OPTIONS=";
-                output << o.m_name;
-                if (o.m_value.length() > 0)
-                {
-                    output << ":";
-                    output << o.m_value;
-                }
+                output << o;
                 output << "\n";
             }
 
@@ -76,30 +62,10 @@ namespace Nethack {
             if (options.length() > 0)
                 options += ",";
 
-            options += o.m_name;
-            if (o.m_value.length() > 0)
-            {
-                options += ":";
-                options += o.m_value;
-            }
+            options += o;
         }
 
         return options;
-    }
-
-    void Options::Remove(std::string & name)
-    {
-        auto i = m_options.begin();
-        while (i != m_options.end())
-        {
-            auto & o = *i;
-            if (name.compare(o.m_name) == 0)
-            {
-                i = m_options.erase(i);
-            }
-            else
-                i++;
-        }
     }
 
 

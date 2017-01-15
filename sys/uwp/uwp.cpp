@@ -536,40 +536,56 @@ void copy_to_local(std::string & fileName, bool onlyIfMissing)
 
 void add_option()
 {
-    Nethack::g_textGrid.Clear();
-    Nethack::g_textGrid.Putstr(0, 0, Nethack::TextColor::White, Nethack::TextAttribute::None,
-        "Add NETHACKOPTION");
-    Nethack::g_textGrid.Putstr(10, 1, Nethack::TextColor::White, Nethack::TextAttribute::None,
-        "Name:");
+    clear_nhwindow(BASE_WINDOW);
 
-    std::string name;
-    if (!get_string(name, 60)) return;
-    if (name.length() == 0) return;
+    char buf[BUFSZ];
+    getlin("Option:", buf);
 
-    Nethack::g_textGrid.Putstr(10, 2, Nethack::TextColor::White, Nethack::TextAttribute::None,
-        "Value:");
+    if(!buf[0]) return;
 
-    std::string value;
-    if (!get_string(value, 60)) return;
+    if(validateoptions(buf, FALSE)) {
+        Nethack::g_options.m_options.push_back(std::string(buf));
+        Nethack::g_options.Store();
+        initoptions();
+    }
 
-    Nethack::g_options.m_options.push_back(Nethack::Option(name, value));
-    Nethack::g_options.Store();
 }
 
-void remove_option()
+void remove_options()
 {
-    Nethack::g_textGrid.Clear();
-    Nethack::g_textGrid.Putstr(0, 0, Nethack::TextColor::White, Nethack::TextAttribute::None,
-        "Remove NETHACKOPTION");
-    Nethack::g_textGrid.Putstr(10, 1, Nethack::TextColor::White, Nethack::TextAttribute::None,
-        "Name:");
+    clear_nhwindow(BASE_WINDOW);
 
-    std::string name;
-    if (!get_string(name, 60)) return;
-    if (name.length() == 0) return;
+    winid menu = create_nhwindow(NHW_MENU);
+    start_menu(menu);
 
-    Nethack::g_options.Remove(name);
-    Nethack::g_options.Store();
+    anything any = zeroany;
+
+    add_menu(menu, NO_GLYPH, &any, 0, 0, ATR_NONE, "NETHACKOPTIONS", MENU_UNSELECTED);
+    add_menu(menu, NO_GLYPH, &any, 0, 0, ATR_NONE, "", MENU_UNSELECTED);
+
+    for(size_t i = 0; i < g_options.m_options.size(); i++) {
+        auto & option = g_options.m_options[i];
+        any.a_int = i + 1;
+        add_menu(menu, NO_GLYPH, &any, 0, 0, ATR_NONE, option.c_str(), MENU_UNSELECTED);
+    }
+
+    end_menu(menu, "Pick options to remove");
+
+    menu_item *picks = NULL;
+    int count = select_menu(menu, PICK_ANY, &picks);
+    destroy_nhwindow(menu);
+
+    std::vector<bool> removals(g_options.m_options.size(), false);
+    for(int i = 0; i < count; i++)
+        removals[picks[i].item.a_int-1] = true;
+
+    for(int i = g_options.m_options.size() - 1; i >= 0; i--)
+        if(removals[i]) g_options.m_options.erase(g_options.m_options.begin() + i);
+
+    if(count > 0) {
+        Nethack::g_options.Store();
+        initoptions();
+    }
 
 }
 
@@ -577,45 +593,60 @@ void change_options()
 {
     bool done = false;
     while (!done) {
-        std::string optionsString = Nethack::g_options.GetString();
 
-        Nethack::g_textGrid.Clear();
-        Nethack::g_textGrid.Putstr(0, 0, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "Change NETHACKOPTIONS");
+        clear_nhwindow(BASE_WINDOW);
 
-        Nethack::g_textGrid.Putstr(10, 2, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "a - Add");
-        Nethack::g_textGrid.Putstr(10, 3, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "b - Remove");
+        std::string optionsString = "[ ]";
+        optionsString += Nethack::g_options.GetString();
 
-        Nethack::g_textGrid.Putstr(0, 8, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "Current Options:");
-        Nethack::g_textGrid.Putstr(10, 9, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            optionsString.c_str());
+        winid menu = create_nhwindow(NHW_MENU);
+        start_menu(menu);
 
-        Nethack::g_textGrid.Putstr(0, 6, Nethack::TextColor::White, Nethack::TextAttribute::None,
-            "Select action:");
+        anything any = zeroany;
 
-        char c = raw_getchar();
-
-        if (c == EOF || c == ESCAPE || c == '\n') return;
-
-        c = tolower(c);
-
-        switch (c)
-        {
-        case 'a': add_option();  break;
-        case 'b': remove_option();  break;
+        for(auto & option : g_options.m_options) {
+            add_menu(menu, NO_GLYPH, &any, 0, 0, ATR_NONE, option.c_str(), MENU_UNSELECTED);
         }
+
+        const char * items[] = {
+            "[ ]",
+            "[a]Add Options",
+            "[b]Remove Options",
+        };
+
+        for (int i = 0; i < SIZE(items); i++) {
+            any.a_int = items[i][1] == ' ' ? 0 : items[i][1];
+            add_menu(menu, NO_GLYPH, &any, 0, 0, ATR_NONE, &items[i][3], MENU_UNSELECTED);
+        }
+
+        end_menu(menu, "Change NETHACKOPTIONS");
+
+        menu_item *pick = NULL;
+        int count = select_menu(menu, PICK_ONE, &pick);
+        destroy_nhwindow(menu);
+
+        if (count == 1) {
+            switch(pick->item.a_int) {
+            case 'a': add_option(); break;
+            case'b': remove_options(); break;
+            }
+        } else       
+            done = true;
+
+        free((genericptr_t)pick);
     }
 
-    Nethack::g_textGrid.Clear();
+    
 }
 
 char * uwp_getenv(const char * env)
 {
-    static std::string options = Nethack::g_options.GetString();
-    return (char *) options.c_str();
+    if(strcmp(env, "NETHACKOPTIONS") == 0) {
+        static std::string options;
+        options = Nethack::g_options.GetString();
+        return (char *)options.c_str();
+    }
+    return NULL;
 }
 
 void save_file(std::string & filePath)
@@ -676,11 +707,6 @@ bool main_menu(void)
         // TODO(bhouse): this can be removed when we switch to using nh menus for all actions
         Nethack::g_textGrid.Clear();
 
-        anything any = zeroany;
-
-        winid menu = create_nhwindow(NHW_MENU);
-        start_menu(menu);
-
         const char * items[] = {
             "[ ]" COPYRIGHT_BANNER_A,
             "[ ]" COPYRIGHT_BANNER_B,
@@ -703,6 +729,11 @@ bool main_menu(void)
             "[f]Save Guidebook.txt"
         };
 
+        winid menu = create_nhwindow(NHW_MENU);
+        start_menu(menu);
+
+        anything any = zeroany;
+
         for (int i = 0; i < SIZE(items); i++) {
             any.a_int = items[i][1] == ' ' ? 0 : items[i][1];
             add_menu(menu, NO_GLYPH, &any, 0, 0, ATR_NONE, &items[i][3], MENU_UNSELECTED);
@@ -712,7 +743,6 @@ bool main_menu(void)
 
         menu_item *pick = NULL;
         int count = select_menu(menu, PICK_ONE, &pick);
-
         destroy_nhwindow(menu);
 
         if (count == 1) {
@@ -720,7 +750,7 @@ bool main_menu(void)
             case 'a': play = true; break;
             case 'b': change_options(); break;
             case 'c': save_file(g_defaultsFilePath); break;
-            case 'd': load_file(g_defaultsFilePath); break;
+            case 'd': load_file(g_defaultsFilePath); initoptions();  break;
             case 'e': reset_defaults_file(); break;
             case 'f': save_file(g_guidebookFilePath); break;
             }
@@ -831,6 +861,7 @@ void mainloop(const char * localDir, const char * installDir)
         exit_nhwindows((char *)0);
 
         if (bPlay) {
+
             sys_early_init();
 
             // TODO(bhouse): should we have cleared during exit_nhwindows
@@ -843,7 +874,7 @@ void mainloop(const char * localDir, const char * installDir)
                 nethack_exit(EXIT_FAILURE);
             }
 
-            bool resuming = uwpmain(localDir, installDir);
+            boolean resuming = uwpmain(localDir, installDir);
 
             moveloop(resuming);
         }

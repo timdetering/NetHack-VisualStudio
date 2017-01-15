@@ -5,16 +5,6 @@
 
 namespace Nethack
 {
-    class Option
-    {
-    public:
-        Option(const std::string & name, const std::string & value) : m_name(name), m_value(value) {}
-
-        std::string m_name;
-        std::string m_value;
-        
-    };
-
     class Options
     {
     public:
@@ -22,9 +12,8 @@ namespace Nethack
         void Load(std::string & filePath);
         void Store();
         std::string GetString();
-        void Remove(std::string & name);
     
-        std::vector<Option> m_options;
+        std::vector<std::string> m_options;
         std::string m_filePath;
     };
 }
