@@ -1,10 +1,10 @@
 12/31/2016
 
 High Priority
-- Allow setting of font information.
-- Review all options
 
 Medium Priority
+- Allow setting of font information.
+- Review all options
 - Change font size as window is resized
 - Add mip-map levels to font texture to see if we can get better texturing
 - Protoype just calling into DWrite to render grid instead of trying to use D3D11 (although we
@@ -15,13 +15,13 @@ Medium Priority
 - Review all options and note which are supported and not supported.
 - Fix clearing screen issues when recovering game file.
 - Need to create seperate projects for makedefs for compiling the different options.
-- Add ability to load/store/restore symbols
 - Polish windows store description.
 - Polish GIT hub wiki pages.
 - Clean up UWP file naming and placement.
 - Place TextGrid positioned at top of window.
 
 Low Priority
+- Add ability to load/store/restore symbols
 - see if we can remove WIN32CON definition (currently defined in vcxproj )
 - persist options which are set (low priority since NETHACKOPTIONS environment variable can be used)
 - add arm and arm64 support

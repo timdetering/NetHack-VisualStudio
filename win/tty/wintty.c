@@ -363,10 +363,12 @@ char **argv UNUSED;
 
     tty_clear_nhwindow(BASE_WINDOW);
 
+#ifndef UWP
     tty_putstr(BASE_WINDOW, 0, "");
     for (i = 1; i <= 4; ++i)
         tty_putstr(BASE_WINDOW, 0, copyright_banner_line(i));
     tty_putstr(BASE_WINDOW, 0, "");
+#endif /* UWP */
     tty_display_nhwindow(BASE_WINDOW, FALSE);
 }
 
