@@ -9,7 +9,7 @@ namespace Nethack
     {
     public:
 
-        void Load(std::string & filePath);
+        bool Load(std::string & filePath);
         void Store();
         std::string GetString();
     

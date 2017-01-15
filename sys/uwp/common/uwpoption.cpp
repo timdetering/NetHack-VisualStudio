@@ -5,8 +5,10 @@
 
 namespace Nethack {
 
-    void Options::Load(std::string & filePath)
+    bool Options::Load(std::string & filePath)
     {
+        bool loaded = false;
+
         m_filePath = filePath;
 
         std::string optionsEqual = "OPTIONS=";
@@ -32,8 +34,10 @@ namespace Nethack {
             }
 
             input.close();
+            loaded = true;
         }
 
+        return loaded;
     }
 
     void Options::Store()

@@ -112,10 +112,20 @@ win32_abort()
 }
 #endif
 
+/* caller should have cleared screen appropriately before calling exit 
+   and the screen should have exit reason. */
 void nethack_exit(int result)
 {
-    if (!program_state.done_hup)
-        getreturn("to exit");
+    if(!program_state.done_hup) {
+        if(iflags.window_inited) {
+            putstr(BASE_WINDOW, 0, "Hit <ENTER> to exit.");
+        } else {
+            raw_printf("Hit <ENTER> to exit.");
+        }
+
+        while(pgetchar() != '\n')
+            ;
+    }
 
     longjmp(Nethack::g_mainLoopJmpBuf, -1);
 }
@@ -435,11 +445,15 @@ void error VA_DECL(const char *, s)
     VA_START(s);
     VA_INIT(s, const char *);
 
-    raw_clear_screen();
-
     (void)vsprintf(buf, s, VA_ARGS);
-    Strcat(buf, "\n");
-    raw_printf(buf);
+
+    if(iflags.window_inited) {
+        clear_nhwindow(BASE_WINDOW);
+        putstr(BASE_WINDOW, 0, buf);
+    } else {
+        raw_clear_screen();
+        raw_printf(buf);
+    }
 
     VA_END();
 
@@ -511,27 +525,31 @@ void copy_to_local(std::string & fileName, bool onlyIfMissing)
     FILE * dstFp = fopen(localPath.c_str(), "wb+");
     assert(dstFp != NULL);
 
-    FILE * srcFp = fopen(installPath.c_str(), "rb");
-    assert(srcFp != NULL);
-
-    int failure = fseek(srcFp, 0, SEEK_END);
-    assert(!failure);
-
-    size_t fileSize = ftell(srcFp);
-    rewind(srcFp);
-
-    char * data = (char *)malloc(fileSize);
-    assert(data != NULL);
-
-    int readBytes = fread(data, 1, fileSize, srcFp);
-    assert(readBytes == fileSize);
-
-    int writeBytes = fwrite(data, 1, fileSize, dstFp);
-    assert(writeBytes == fileSize);
-
-    free(data);
-    fclose(srcFp);
-    fclose(dstFp);
+    if(dstFp != NULL) {
+        FILE * srcFp = fopen(installPath.c_str(), "rb");
+        assert(srcFp != NULL);
+        if(srcFp != NULL) {
+            int failure = fseek(srcFp, 0, SEEK_END);
+            assert(!failure);
+            if(!failure) {
+                size_t fileSize = ftell(srcFp);
+                rewind(srcFp);
+                char * data = (char *)malloc(fileSize);
+                assert(data != NULL);
+                if(data != NULL) {
+                    int readBytes = fread(data, 1, fileSize, srcFp);
+                    assert(readBytes == fileSize);
+                    if(readBytes == fileSize) {
+                        int writeBytes = fwrite(data, 1, fileSize, dstFp);
+                        assert(writeBytes == fileSize);
+                    }
+                    free(data);
+                }
+            }
+            fclose(srcFp);
+        }
+        fclose(dstFp);
+    }
 }
 
 
@@ -652,9 +670,12 @@ char * uwp_getenv(const char * env)
 
 void save_file(std::string & filePath)
 {
+    std::string fileExtension = filePath.substr(filePath.rfind('.'), std::string::npos);
+    std::string fileName = filePath.substr(filePath.rfind('\\') + 1, filePath.rfind('.') - filePath.rfind('\\') - 1);
+
     std::string readText;
     std::fstream input(filePath.c_str(), std::fstream::in | std::fstream::binary);
-    if (input.is_open())  {
+    if(input.is_open()) {
         input.seekg(0, std::ios::end);
         size_t size = (size_t)input.tellg();
         input.seekg(0, std::ios::beg);
@@ -662,15 +683,15 @@ void save_file(std::string & filePath)
         input.read(bytes.data(), size);
         input.close();
         readText = std::string(bytes.data(), size);
+
+        Platform::String ^ fileText = Nethack::to_platform_string(readText);
+        Platform::String ^ fileNameStr = Nethack::to_platform_string(fileName);
+        Platform::String ^ extensionStr = Nethack::to_platform_string(fileExtension);
+        Nethack::FileHandler::s_instance->SaveFilePicker(fileText, fileNameStr, extensionStr);
+    } else {
+        error("Unable to open %s%s", fileName.c_str(), fileExtension.c_str());
     }
 
-    std::string fileExtension = filePath.substr(filePath.rfind('.'), std::string::npos);
-    std::string fileName = filePath.substr(filePath.rfind('\\') + 1, filePath.rfind('.') - filePath.rfind('\\') - 1);
-
-    Platform::String ^ fileText = Nethack::to_platform_string(readText);
-    Platform::String ^ fileNameStr = Nethack::to_platform_string(fileName);
-    Platform::String ^ extensionStr = Nethack::to_platform_string(fileExtension);
-    Nethack::FileHandler::s_instance->SaveFilePicker(fileText, fileNameStr, extensionStr);
 }
 
 void load_file(std::string & filePath)
@@ -809,46 +830,51 @@ extern void decl_clean_up(void);
 
 void mainloop(const char * localDir, const char * installDir)
 {
-    hname = "NetHack"; /* used for syntax messages */
+    /* first things first ... we jump buffer which is where we will jump to
+       if we exit.  We assume anythign can fail so we do this first. */
+    if(setjmp(Nethack::g_mainLoopJmpBuf) == 0) {
 
-    g_localDir = std::string(localDir);
-    g_localDir += "\\";
-
-    g_installDir = std::string(installDir);
-    g_installDir += "\\";
-
-    fqn_prefix[HACKPREFIX] = (char *) g_installDir.c_str();
-    fqn_prefix[LEVELPREFIX] = (char *) g_localDir.c_str();
-    fqn_prefix[SAVEPREFIX] = (char *)g_localDir.c_str();
-    fqn_prefix[BONESPREFIX] = (char *)g_localDir.c_str();
-    fqn_prefix[DATAPREFIX] = (char *) g_installDir.c_str();
-    fqn_prefix[SCOREPREFIX] = (char *)g_localDir.c_str();
-    fqn_prefix[LOCKPREFIX] = (char *)g_localDir.c_str();
-    fqn_prefix[SYSCONFPREFIX] = (char *) g_installDir.c_str();
-    fqn_prefix[CONFIGPREFIX] = (char *)g_localDir.c_str();
-    fqn_prefix[TROUBLEPREFIX] = (char *)g_localDir.c_str();
-
-    copy_to_local(g_defaultsFileName, true);
-    copy_to_local(g_guidebookFileName, true);
-    copy_to_local(g_licenseFileName, true);
-    rename_save_files();
-
-    g_nethackOptionsFilePath = g_localDir;
-    g_nethackOptionsFilePath += g_nethackOptionsFileName;
-
-    g_defaultsFilePath = Nethack::g_localDir;
-    g_defaultsFilePath += g_defaultsFileName;
-
-    g_guidebookFilePath = Nethack::g_installDir;
-    g_guidebookFilePath += g_guidebookFileName;
-
-    g_licenseFilePath = Nethack::g_installDir;
-    g_licenseFilePath += g_licenseFileName;
-
-    Nethack::g_options.Load(g_nethackOptionsFilePath);
-
-    if (setjmp(Nethack::g_mainLoopJmpBuf) == 0) {
+        /* next thing we do is set the window system so that raw output will
+           function correctly thorough the window proc */
         choose_windows(DEFAULT_WINDOW_SYS);
+
+        hname = "NetHack"; /* used for syntax messages */
+
+        g_localDir = std::string(localDir);
+        g_localDir += "\\";
+
+        g_installDir = std::string(installDir);
+        g_installDir += "\\";
+
+        fqn_prefix[HACKPREFIX] = (char *) g_installDir.c_str();
+        fqn_prefix[LEVELPREFIX] = (char *) g_localDir.c_str();
+        fqn_prefix[SAVEPREFIX] = (char *)g_localDir.c_str();
+        fqn_prefix[BONESPREFIX] = (char *)g_localDir.c_str();
+        fqn_prefix[DATAPREFIX] = (char *) g_installDir.c_str();
+        fqn_prefix[SCOREPREFIX] = (char *)g_localDir.c_str();
+        fqn_prefix[LOCKPREFIX] = (char *)g_localDir.c_str();
+        fqn_prefix[SYSCONFPREFIX] = (char *) g_installDir.c_str();
+        fqn_prefix[CONFIGPREFIX] = (char *)g_localDir.c_str();
+        fqn_prefix[TROUBLEPREFIX] = (char *)g_localDir.c_str();
+
+        copy_to_local(g_defaultsFileName, true);
+        copy_to_local(g_guidebookFileName, true);
+        copy_to_local(g_licenseFileName, true);
+        rename_save_files();
+
+        g_nethackOptionsFilePath = g_localDir;
+        g_nethackOptionsFilePath += g_nethackOptionsFileName;
+
+        g_defaultsFilePath = Nethack::g_localDir;
+        g_defaultsFilePath += g_defaultsFileName;
+
+        g_guidebookFilePath = Nethack::g_installDir;
+        g_guidebookFilePath += g_guidebookFileName;
+
+        g_licenseFilePath = Nethack::g_installDir;
+        g_licenseFilePath += g_licenseFileName;
+
+        Nethack::g_options.Load(g_nethackOptionsFilePath);
 
         initoptions();
 
@@ -856,15 +882,13 @@ void mainloop(const char * localDir, const char * installDir)
         char * argv[1] = { "nethack" };
 
         init_nhwindows(&argc, argv);
-        // TODO: we need to clear text grid for now since init_nhwindows() will draw banner
-        //       we will have the same banner on splash screen making this uncessary
-        Nethack::g_textGrid.Clear();
+
         display_gamewindows();
 
         assert(iflags.window_inited);
-
-        // TODO: should we use panic here?
-        if (!iflags.window_inited) exit(0);
+        if(!iflags.window_inited) {
+            error("Default windowing system failed to initialize");
+        }
 
         bool bPlay = main_menu();
 
@@ -876,12 +900,12 @@ void mainloop(const char * localDir, const char * installDir)
 
             char failbuf[BUFSZ];
             if (!validate_prefix_locations(failbuf)) {
-                error("Some invalid directory locations were specified:\n\t%s\n",
+                error("Some invalid directory locations were specified:\n\t%s",
                     failbuf);
             }
 
             if(!dlb_init()) {
-                error("dlb_init failure.");
+                error("dlb_init failure");
             }
 
             boolean resuming = uwpmain();

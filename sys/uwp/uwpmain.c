@@ -151,7 +151,10 @@ uwpmain(void)
                       */
     fd = create_levelfile(0, (char *)0);
     if (fd < 0) {
-        raw_print("Cannot create lock file");
+        /* TODO(bhouse) do we need to pring anything here? 
+           commenting out for now.  Either we have an error and
+           can't continue or we just forge ahead. */
+        /* raw_print("Cannot create lock file"); */
     }
     else {
         hackpid = GetCurrentProcessId();
