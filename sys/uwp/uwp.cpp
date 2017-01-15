@@ -51,6 +51,7 @@ extern "C"  {
 
 #include "date.h"
 #include "patchlevel.h"
+#include "dlb.h"
 
 
 #ifndef HANGUPHANDLING
@@ -801,7 +802,7 @@ void rename_save_files()
     }
 }
 
-extern boolean FDECL(uwpmain, (const char *, const char *));
+extern boolean uwpmain(void);
 extern void decl_clean_up(void);
 
 void mainloop(const char * localDir, const char * installDir)
@@ -866,17 +867,17 @@ void mainloop(const char * localDir, const char * installDir)
 
             sys_early_init();
 
-            // TODO(bhouse): should we have cleared during exit_nhwindows
-            raw_clear_screen();
-
             char failbuf[BUFSZ];
             if (!validate_prefix_locations(failbuf)) {
-                raw_printf("Some invalid directory locations were specified:\n\t%s\n",
+                error("Some invalid directory locations were specified:\n\t%s\n",
                     failbuf);
-                nethack_exit(EXIT_FAILURE);
             }
 
-            boolean resuming = uwpmain(localDir, installDir);
+            if(!dlb_init()) {
+                error("dlb_init failure.");
+            }
+
+            boolean resuming = uwpmain();
 
             moveloop(resuming);
         }

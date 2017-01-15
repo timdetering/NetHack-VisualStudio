@@ -74,45 +74,18 @@ verify_record_file()
 
 
 boolean
-uwpmain(const char * inLocalDir, const char * inInstallDir)
+uwpmain(void)
 {
     int fd;
     char *envp = NULL;
     char *sptr = NULL;
 
     char fnamebuf[BUFSZ], encodedfnamebuf[BUFSZ];
-    char failbuf[BUFSZ];
     boolean resuming = FALSE; /* assume new game */
-
-#if 0
-    if (!validate_prefix_locations(failbuf)) {
-        raw_printf("Some invalid directory locations were specified:\n\t%s\n",
-            failbuf);
-        nethack_exit(EXIT_FAILURE);
-    }
-#endif
-
-    /*
-    * It seems you really want to play.
-    */
-
-    if (!dlb_init()) {
-        pline(
-            "%s\n%s\n%s\n%s\n\nNetHack was unable to open the required file "
-            "\"%s\".%s",
-            copyright_banner_line(1), copyright_banner_line(2),
-            copyright_banner_line(3), copyright_banner_line(4), DLBFILE,
-            "\nAre you perhaps trying to run NetHack within a zip utility?");
-        error("dlb_init failure.");
-    }
 
     u.uhp = 1; /* prevent RIP on early quits */
     u.ux = 0;  /* prevent flush_screen() */
-
-               /* chdir shouldn't be called before this point to keep the
-               * code parallel to other ports.
-               */
-    
+   
     verify_record_file();
 
     /* In 3.6.0, several ports process options before they init
@@ -145,18 +118,12 @@ uwpmain(const char * inLocalDir, const char * inInstallDir)
     plnamesuffix();
 
     set_playmode(); /* sets plname to "wizard" for wizard mode */
-#if 0
-                    /* unlike Unix where the game might be invoked with a script
-                    which forces a particular character name for each player
-                    using a shared account, we always allow player to rename
-                    the character during role/race/&c selection */
+
+    /* unlike Unix where the game might be invoked with a script
+    which forces a particular character name for each player
+    using a shared account, we always allow player to rename
+    the character during role/race/&c selection */
     iflags.renameallowed = TRUE;
-#else
-                    /* until the getlock code is resolved, override askname()'s
-                    setting of renameallowed; when False, player_selection()
-                    won't resent renaming as an option */
-    iflags.renameallowed = FALSE;
-#endif
 
 #if defined(PC_LOCKING)
     /* 3.3.0 added this to support detection of multiple games
@@ -232,10 +199,8 @@ attempt_restore:
                 /* player has renamed the hero while selecting role;
                 discard current lock file and create another for
                 the new character name */
-#if 0 /* this needs to be reconciled with the getlock mess above... */
                 delete_levelfile(0); /* remove empty lock file */
                 getlock();
-#endif
                 goto attempt_restore;
             }
         }
