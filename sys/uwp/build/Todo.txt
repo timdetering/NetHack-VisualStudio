@@ -1,20 +1,17 @@
 12/31/2016
 
 High Priority
-- Add font to retained settings
+- Add mip-map levels to font texture to see if we can get better texturing
 
 Medium Priority
-- Allow setting of font information.
 - Review all options
 - Change font size as window is resized
-- Add mip-map levels to font texture to see if we can get better texturing
 - Protoype just calling into DWrite to render grid instead of trying to use D3D11 (although we
   we still need a means to render tiles eventually)
 - Review all code looking for more static locals.  This can be a problem since we can't re-initialize.
 - number_pad option value is not preserved across saves -- is this documented?  Is this how it is
   supposed to be?  What options are saved with game?
 - Review all options and note which are supported and not supported.
-- Fix clearing screen issues when recovering game file.
 - Need to create seperate projects for makedefs for compiling the different options.
 - Polish windows store description.
 - Polish GIT hub wiki pages.
