@@ -95,11 +95,15 @@ namespace Nethack
         CD3D11_TEXTURE2D_DESC textureDesc(
             DXGI_FORMAT_B8G8R8A8_UNORM,
             textureWidth,        // Width
-            textureHeight,        // Height
-            1,          // MipLevels
-            1,          // ArraySize
-            D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET
-        );
+            textureHeight,       // Height
+            1,                   // Array Size
+            1,                   // Mip Level
+            D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET);
+
+#if 0
+        textureDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
+        textureDesc.Usage = D3D11_USAGE_DYNAMIC;
+#endif
 
         DX::ThrowIfFailed(
             d3dDevice->CreateTexture2D(
@@ -111,7 +115,12 @@ namespace Nethack
 
         CD3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc(
             m_asciiTexture.Get(),
-            D3D11_SRV_DIMENSION_TEXTURE2D
+            D3D11_SRV_DIMENSION_TEXTURE2D,  // D3D11_SRV_DIMENSION
+            DXGI_FORMAT_UNKNOWN,            // DXGI_FORMAT
+            0,                              // most detailed Mip
+            -1,                             // mip levels
+            0,                              // first array slice
+            -1                              // array size
         );
 
         DX::ThrowIfFailed(
@@ -134,21 +143,58 @@ namespace Nethack
                 dpi
             );
 
-        ComPtr<ID2D1Bitmap1> cubeTextureTarget;
-        ComPtr<IDXGISurface> cubeTextureSurface;
+        D2D1_BITMAP_PROPERTIES1 bitmapTargetProperties =
+            D2D1::BitmapProperties1(
+            D2D1_BITMAP_OPTIONS_TARGET,
+            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+            dpi,
+            dpi
+            );
+
+        D2D1_BITMAP_PROPERTIES1 bitmapStagingProperties =
+            D2D1::BitmapProperties1(
+            D2D1_BITMAP_OPTIONS_CPU_READ | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+            dpi,
+            dpi
+            );
+
+        ComPtr<ID2D1Bitmap1> textureTarget;
+        ComPtr<IDXGISurface> textureSurface;
         DX::ThrowIfFailed(
-            m_asciiTexture.As(&cubeTextureSurface)
+            m_asciiTexture.As(&textureSurface)
+        );
+
+        D2D1_SIZE_U bitmapSize;
+        bitmapSize.width = textureWidth;
+        bitmapSize.height = textureHeight;
+
+        ComPtr<ID2D1Bitmap1> bitmapTarget;
+        ComPtr<ID2D1Bitmap1> bitmapStaging;
+
+        DX::ThrowIfFailed(
+            d2dContext->CreateBitmap(
+                bitmapSize, NULL, 0, &bitmapTargetProperties, &bitmapTarget
+            )
+        );
+
+        DX::ThrowIfFailed(
+            d2dContext->CreateBitmap(
+                bitmapSize, NULL, 0, &bitmapStagingProperties, &bitmapStaging
+            )
         );
 
         DX::ThrowIfFailed(
             d2dContext->CreateBitmapFromDxgiSurface(
-                cubeTextureSurface.Get(),
+                textureSurface.Get(),
                 &bitmapProperties,
-                &cubeTextureTarget
+                &textureTarget
             )
         );
 
-        d2dContext->SetTarget(cubeTextureTarget.Get());
+        d2dContext->SetTarget(bitmapTarget.Get());
+
+//        d2dContext->SetTarget(textureTarget.Get());
 
         ComPtr<ID2D1SolidColorBrush> whiteBrush;
         DX::ThrowIfFailed(
@@ -225,6 +271,17 @@ namespace Nethack
             }
         }
 
+        d2dContext->SetTarget(textureTarget.Get());
+
+        d2dContext->DrawBitmap(bitmapTarget.Get());
+
+#if 0
+        /* D2D1_MAP_OPTION_READ */
+        D2D1_MAPPED_RECT rect;
+
+        hr = bitmapTarget->Map(D2D1_MAP_OPTIONS_READ, &rect);
+#endif
+
         // We ignore D2DERR_RECREATE_TARGET here. This error indicates that the device
         // is lost. It will be handled during the next call to Present.
         hr = d2dContext->EndDraw();
@@ -232,6 +289,78 @@ namespace Nethack
         {
             DX::ThrowIfFailed(hr);
         }
+
+        d2dContext->SetTarget(NULL);
+        /* D2D */
+        D2D1_POINT_2U dstPoint = { 0 , 0 };
+        D2D1_RECT_U srcRect = { 0, 0, textureWidth, textureHeight };
+        DX::ThrowIfFailed(bitmapStaging->CopyFromBitmap(&dstPoint, bitmapTarget.Get(), &srcRect));
+
+        D2D1_MAPPED_RECT rect;
+        DX::ThrowIfFailed(bitmapStaging->Map(D2D1_MAP_OPTIONS_READ, &rect));
+
+        /* create texture */
+        UINT formatSupport;
+        DX::ThrowIfFailed(d3dDevice->CheckFormatSupport(DXGI_FORMAT_B8G8R8A8_UNORM, &formatSupport));
+
+        m_autoGen = (formatSupport & D3D11_FORMAT_SUPPORT_MIP_AUTOGEN) != 0;
+
+        CD3D11_TEXTURE2D_DESC newTextureDesc(
+            DXGI_FORMAT_B8G8R8A8_UNORM,
+            textureWidth,        // Width
+            textureHeight,       // Height
+            1,                   // Array Size
+            (m_autoGen ? 0 : 1), // Mip Level
+            D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET);
+
+        if (m_autoGen) {
+            newTextureDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+            newTextureDesc.MipLevels = 0;
+        }
+
+        D3D11_SUBRESOURCE_DATA data;
+
+        data.pSysMem = rect.bits;
+        data.SysMemPitch = rect.pitch;
+        data.SysMemSlicePitch = 0;
+
+        DX::ThrowIfFailed(
+            d3dDevice->CreateTexture2D(
+            &newTextureDesc,
+            NULL,
+            &m_newTexture
+        )
+        );
+
+        auto * d3dDeviceContext = m_deviceResources->GetD3DDeviceContext();
+
+        d3dDeviceContext->UpdateSubresource(m_newTexture.Get(), 0, nullptr, rect.bits, static_cast<UINT>(rect.pitch), static_cast<UINT>(rect.pitch * textureHeight));
+
+        CD3D11_SHADER_RESOURCE_VIEW_DESC newResourceViewDesc(
+            m_newTexture.Get(),
+            D3D11_SRV_DIMENSION_TEXTURE2D,  // D3D11_SRV_DIMENSION
+            DXGI_FORMAT_UNKNOWN,            // DXGI_FORMAT
+            0,                              // most detailed Mip
+            -1,                             // mip levels
+            0,                              // first array slice
+            -1                              // array size
+        );
+
+        DX::ThrowIfFailed(
+            d3dDevice->CreateShaderResourceView(
+            m_newTexture.Get(),
+            &newResourceViewDesc,
+            &m_newTextureShaderResourceView
+        )
+        );
+
+        if (m_autoGen)
+        {
+            d3dDeviceContext->GenerateMips(m_newTextureShaderResourceView.Get());
+        }
+
+
+        DX::ThrowIfFailed(bitmapStaging->Unmap());
 
         D3D_FEATURE_LEVEL featureLevel = m_deviceResources->GetDeviceFeatureLevel();
 

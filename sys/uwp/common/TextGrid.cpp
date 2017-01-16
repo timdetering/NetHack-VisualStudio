@@ -257,9 +257,14 @@ namespace Nethack
             );
 
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        
+
+#if 0
         auto asciiTextureShaderResourceView = m_deviceResources->m_asciiTextureNew.m_asciiTextureShaderResourceView.Get();
         auto boldAsciiTextureShaderResourceView = m_deviceResources->m_boldAsciiTextureNew.m_asciiTextureShaderResourceView.Get();
+#else
+        auto asciiTextureShaderResourceView = m_deviceResources->m_asciiTextureNew.m_newTextureShaderResourceView.Get();
+        auto boldAsciiTextureShaderResourceView = m_deviceResources->m_boldAsciiTextureNew.m_newTextureShaderResourceView.Get();
+#endif
 
         ID3D11ShaderResourceView * shaderResourceViews[2]{ asciiTextureShaderResourceView , boldAsciiTextureShaderResourceView };
 
