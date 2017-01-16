@@ -37,6 +37,8 @@
 
 #include "common\DirectXHelper.h"
 #include "common\DeviceResources.h"
+#include "uwputil.h"
+#include "common\uwpglobals.h"
 
 using namespace D2D1;
 using namespace DirectX;
@@ -51,20 +53,41 @@ namespace Nethack
 {
         
    void AsciiTexture::Create(
-       const std::wstring & fontName, DWRITE_FONT_WEIGHT weight)
+       const std::string & fontFamilyName, DWRITE_FONT_WEIGHT weight)
     {
         static const int glyphRowCount = 16;
         static const int glyphColumnCount = 16;
 
         static const int gutter = 1;
 
+        m_fontFamilyName = fontFamilyName;
+        FontFamily & fontFamily = g_fontCollection.m_fontFamilies[fontFamilyName];
+        Font & font = fontFamily.m_fonts.begin()->second;
+
+        // note ratio is unitless
+        float widthToHeight = font.m_boxSizeEm.m_x / font.m_boxSizeEm.m_y;
+
+        // 1 EM is fontSize which is in dips.  To convert dips to pixels, pixels = dips * 96 / dpi
+        const float dpi = 96.0f;
+        float fontSize = 72.0f;
+
+        if (font.m_monospaced) {
+            m_glyphPixels.m_x = (int) ceil(((float)font.m_glyphMetrics[0].advanceWidth / (float)font.m_metrics.designUnitsPerEm) * fontSize * 96.0f / dpi);
+        } else {
+            m_glyphPixels.m_x = (int) ceil(font.m_boxSizeEm.m_x * fontSize * 96.0f / dpi);
+        }
+
+        m_glyphPixels.m_y = (int)ceil(font.m_lineSpacingEm * fontSize * 96.0f / dpi);
+
+        m_underlinePosition = font.m_underlinePositionEm * fontSize * 96.0f / dpi;
+        m_underlineThickness = font.m_underlineThicknessEm * fontSize * 96.0f / dpi;
+
         // glyphs have a one pixel wide gutter
 
-        const Int2D & glyphPixels = m_deviceResources->GetGlyphPixelDimensions();
         ID3D11Device3 * d3dDevice = m_deviceResources->GetD3DDevice();
                     
-        int glyphWidth = glyphPixels.m_x + (2 * gutter);
-        int glyphHeight = glyphPixels.m_y + (2 * gutter);
+        int glyphWidth = m_glyphPixels.m_x + (2 * gutter);
+        int glyphHeight = m_glyphPixels.m_y + (2 * gutter);
 
         int textureWidth = glyphWidth * glyphColumnCount;
         int textureHeight = glyphHeight * glyphRowCount;
@@ -99,18 +122,16 @@ namespace Nethack
             )
         );
 
-        const float dxgiDpi = 96.0f;
-
         ID2D1DeviceContext2 * d2dContext = m_deviceResources->GetD2DDeviceContext();
 
-        d2dContext->SetDpi(dxgiDpi, dxgiDpi);
+        d2dContext->SetDpi(dpi, dpi);
 
         D2D1_BITMAP_PROPERTIES1 bitmapProperties =
             D2D1::BitmapProperties1(
                 D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
                 D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-                dxgiDpi,
-                dxgiDpi
+                dpi,
+                dpi
             );
 
         ComPtr<ID2D1Bitmap1> cubeTextureTarget;
@@ -147,15 +168,16 @@ namespace Nethack
 
         ComPtr<IDWriteTextFormat> textFormat;
         IDWriteFactory3 * dwriteFactory = m_deviceResources->GetDWriteFactory();
+        std::wstring wFontFamilyName = Nethack::to_wstring(fontFamilyName);
 
         DX::ThrowIfFailed(
             dwriteFactory->CreateTextFormat(
-                fontName.c_str(),
+                wFontFamilyName.c_str(),
                 nullptr,
                 weight,
                 DWRITE_FONT_STYLE_NORMAL,
                 DWRITE_FONT_STRETCH_NORMAL,
-                72,
+                fontSize,
                 L"en-US", // locale
                 &textFormat
             )
@@ -180,14 +202,26 @@ namespace Nethack
 
                 int result = MultiByteToWideChar(437, 0, &c, 1, &wc, 1);
 
+                D2D1_RECT_F rect;
+                
+                rect = D2D1::RectF((float)((x * glyphWidth) + gutter), (float)((y * glyphHeight) + gutter),
+                    (float)(((x + 1) * glyphWidth) - gutter), (float)(((y + 1) * glyphHeight) - gutter));
+
                 d2dContext->DrawText(
                     &wc,
                     1,
                     textFormat.Get(),
-                    D2D1::RectF((float)((x * glyphWidth) + gutter), (float)((y * glyphHeight) + gutter),
-                    (float)(((x + 1) * glyphWidth) - gutter), (float)(((y + 1) * glyphHeight) - gutter)),
+                    rect,
                     whiteBrush.Get()
                 );
+
+#if 0
+                rect = D2D1::RectF((float)((x * glyphWidth)), (float)((y * glyphHeight)),
+                    (float)(((x + 1) * glyphWidth)), (float)(((y + 1) * glyphHeight)));
+
+                d2dContext->DrawRectangle(rect, whiteBrush.Get());
+#endif
+
             }
         }
 
@@ -227,5 +261,24 @@ namespace Nethack
             )
         );
     }
+
+    void AsciiTexture::GetGlyphRect(unsigned char c, Nethack::FloatRect & outRect) const
+    {
+        int x = c & 0xf;
+        int y = c >> 4;
+
+        const Nethack::Int2D & glyphPixels = m_glyphPixels;
+
+        float gutterX = (1.0f / 16.0f) / glyphPixels.m_x;
+        float gutterY = (1.0f / 16.0f) / glyphPixels.m_y;
+
+        outRect.m_topLeft.m_x = ((1.0f / 16.0f) * x) + gutterX;
+        outRect.m_bottomRight.m_x = outRect.m_topLeft.m_x + (1.0f / 16.0f) - (2.0f * gutterX);
+
+        outRect.m_topLeft.m_y = ((1.0f / 16.0f) * y) + gutterY;
+        outRect.m_bottomRight.m_y = outRect.m_topLeft.m_y + (1.0f / 16.0f) - (2.0f * gutterY);
+    }
+
+
 
 }

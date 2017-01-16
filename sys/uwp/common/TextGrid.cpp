@@ -53,7 +53,8 @@ namespace Nethack
         m_gridDimensions(inGridDimensions),
         m_loadingComplete(false),
         m_gridScreenCenter(0.0f, 0.0f),
-        m_scale(1.0f)
+        m_scale(1.0f),
+        m_fontFamilyName(std::string("Lucida Console"))
     {
         assert(m_gridDimensions.m_x > 0);
         assert(m_gridDimensions.m_y > 0);
@@ -106,12 +107,17 @@ namespace Nethack
         CreateDeviceDependentResources();
     }
 
-    void TextGrid::ScaleAndCenter(const Nethack::IntRect & inRect)
+    void TextGrid::SetLayoutRect(const Nethack::IntRect & layoutRect)
     {
-        const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->GetGlyphPixelDimensions();
+        m_layoutRect = layoutRect;
+    }
 
-        int screenPixelWidth = inRect.m_bottomRight.m_x - inRect.m_topLeft.m_x;
-        int screenPixelHeight = inRect.m_bottomRight.m_y - inRect.m_topLeft.m_y;
+    void TextGrid::ScaleAndCenter(void)
+    {
+        const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->m_asciiTextureNew.m_glyphPixels;
+
+        int screenPixelWidth = m_layoutRect.m_bottomRight.m_x - m_layoutRect.m_topLeft.m_x;
+        int screenPixelHeight = m_layoutRect.m_bottomRight.m_y - m_layoutRect.m_topLeft.m_y;
 
         int gridPixelWidth = m_gridDimensions.m_x * glyphPixelDimensions.m_x;
         int gridPixelHeight = m_gridDimensions.m_y * glyphPixelDimensions.m_y;
@@ -128,8 +134,7 @@ namespace Nethack
         int extraScreenPixelsWidth = screenPixelWidth - gridScreenPixelWidth;
         int extraScreenPixelHeight = screenPixelHeight - gridScreenPixelHeight;
 
-        Nethack::Int2D gridOffset(inRect.m_topLeft.m_x + (extraScreenPixelsWidth / 2), 
-                                  inRect.m_topLeft.m_y + (extraScreenPixelHeight / 2));
+        Nethack::Int2D gridOffset(m_layoutRect.m_topLeft.m_x + (extraScreenPixelsWidth / 2), m_layoutRect.m_topLeft.m_y + (extraScreenPixelHeight / 2));
         SetGridScreenPixelOffset(gridOffset);
     }
 
@@ -359,8 +364,6 @@ namespace Nethack
     {
         assert(m_deviceResources != nullptr);
 
-        m_gridPixelDimensions = m_gridDimensions * m_deviceResources->GetGlyphPixelDimensions();
-
         Windows::Foundation::Size outputSize = m_deviceResources->GetOutputSize();
         m_screenSize = Int2D((int) outputSize.Width, (int) outputSize.Height);
         m_pixelScreenDimensions = Float2D(2.0f / outputSize.Width, 2.0f / outputSize.Height);
@@ -387,8 +390,16 @@ namespace Nethack
 
         m_screenRect = FloatRect(gridScreenTopLeft, gridScreenBottomRight);
 
-        m_cellScreenDimensions = m_pixelScreenDimensions * m_deviceResources->GetGlyphPixelDimensions();
+        const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->m_asciiTextureNew.m_glyphPixels;
+
+        m_cellScreenDimensions = m_pixelScreenDimensions * glyphPixelDimensions;
         m_cellScreenDimensions *= m_scale;
+
+        float cursorPixelOffset = DX::DeviceResources::s_deviceResources->m_asciiTextureNew.m_underlinePosition;
+        float cursorPixelThickness = DX::DeviceResources::s_deviceResources->m_asciiTextureNew.m_underlineThickness;
+
+        m_cursorScreenOffset = m_scale * m_pixelScreenDimensions.m_y * cursorPixelOffset;
+        m_cursorScreenThickness = m_scale * m_pixelScreenDimensions.m_y * cursorPixelThickness;
 
         m_dirty = true;
     }
@@ -486,6 +497,14 @@ namespace Nethack
             m_boldVertexCount = 0;
             m_invertedVertexCount = 0;
 
+            auto & asciiTexture = m_deviceResources->m_asciiTextureNew;
+
+            if(asciiTexture.m_fontFamilyName != m_fontFamilyName) {
+                m_deviceResources->m_asciiTextureNew.Create(m_fontFamilyName, DWRITE_FONT_WEIGHT_THIN);
+                m_deviceResources->m_boldAsciiTextureNew.Create(m_fontFamilyName, DWRITE_FONT_WEIGHT_BOLD);
+                ScaleAndCenter();
+            }
+
             for (int i = 0; i < m_cellCount; i++)
             {
                 auto const & textCell = m_cells[i];
@@ -529,7 +548,7 @@ namespace Nethack
 
                     FloatRect glyphRect;
                     unsigned char c = textCell.m_char;
-                    m_deviceResources->GetGlyphRect(c, glyphRect);
+                    asciiTexture.GetGlyphRect(c, glyphRect);
                     DirectX::XMFLOAT3 foregroundColor = s_colorTable[(int) textCell.m_color];
                     DirectX::XMFLOAT3 backgroundColor = { 0.0f, 0.0f, 0.0f };
 
@@ -610,11 +629,11 @@ namespace Nethack
             }
 
             float topCursorY = m_screenRect.m_topLeft.m_y - (m_cursor.m_y * m_cellScreenDimensions.m_y);
-            float bottomCursorY = topCursorY - m_cellScreenDimensions.m_y;
             float leftCursorX = m_screenRect.m_topLeft.m_x + (m_cursor.m_x * m_cellScreenDimensions.m_x);
             float rightCursorX = leftCursorX + m_cellScreenDimensions.m_x;
 
-            topCursorY -= (m_cellScreenDimensions.m_y * 3) / 4;
+            topCursorY -= m_cursorScreenOffset;
+            float bottomCursorY = topCursorY - m_cursorScreenThickness;
 
             v = m_cursorVertices;
                 
@@ -813,6 +832,11 @@ namespace Nethack
         Putstr(color, attribute, text);
 
         if(takeLock) m_cellsLock.ReleaseExclusive();
+    }
+
+    void TextGrid::SetFontFamilyName(std::string & fontFamilyName)
+    {
+        m_fontFamilyName = fontFamilyName;
     }
 
 }

@@ -43,26 +43,19 @@ NethackMain::NethackMain(const std::shared_ptr<DX::DeviceResources>& deviceResou
     // Register to be notified if the Device is lost or recreated
     m_deviceResources->RegisterDeviceNotify(this);
 
-    // TODO: Change the timer settings if you want something other than the default variable timestep mode.
-    // e.g. for 60 FPS fixed timestep update logic, call:
-    /*
-    m_timer.SetFixedTimeStep(true);
-    m_timer.SetTargetElapsedSeconds(1.0 / 60);
-    */
-
     // Initialize text grid state
-    const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->GetGlyphPixelDimensions();
+    const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->m_asciiTextureNew.m_glyphPixels;
     Windows::Foundation::Size & outputSize = DX::DeviceResources::s_deviceResources->GetOutputSize();
 
     // TODO: Can we enforce some minimum screen size?
     assert(outputSize.Width > k_gridBorder);
     assert(outputSize.Height > k_gridBorder);
 
-    Nethack::IntRect outputRect(Nethack::Int2D(k_gridBorder, k_gridBorder), Nethack::Int2D((int)outputSize.Width - k_gridBorder, (int)outputSize.Height - k_gridBorder));
+    m_gridLayoutRect = Nethack::IntRect(Nethack::Int2D(k_gridBorder, k_gridBorder), Nethack::Int2D((int)outputSize.Width - k_gridBorder, (int)outputSize.Height - k_gridBorder));
 
     g_textGrid.SetDeviceResources();
-    g_textGrid.ScaleAndCenter(outputRect);
-
+    g_textGrid.SetLayoutRect(m_gridLayoutRect);
+    g_textGrid.ScaleAndCenter();
 }
 
 NethackMain::~NethackMain()
@@ -80,7 +73,7 @@ void NethackMain::Suspend()
 // Updates application state when the window size changes (e.g. device orientation change)
 void NethackMain::CreateWindowSizeDependentResources() 
 {
-    const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->GetGlyphPixelDimensions();
+    const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->m_asciiTextureNew.m_glyphPixels;
     Windows::Foundation::Size & outputSize = DX::DeviceResources::s_deviceResources->GetOutputSize();
     
     // TODO: Can we enforce some minimum screen size?
@@ -90,7 +83,8 @@ void NethackMain::CreateWindowSizeDependentResources()
     Nethack::IntRect outputRect(Nethack::Int2D(k_gridBorder, k_gridBorder), Nethack::Int2D((int)outputSize.Width - k_gridBorder, (int)outputSize.Height - k_gridBorder));
 
     g_textGrid.SetDeviceResources();
-    g_textGrid.ScaleAndCenter(outputRect);
+    g_textGrid.SetLayoutRect(outputRect);
+    g_textGrid.ScaleAndCenter();
     g_textGrid.CreateWindowSizeDependentResources();
 
 }

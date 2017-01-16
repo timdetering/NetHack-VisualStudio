@@ -14,23 +14,62 @@ namespace Nethack
         m_font = font;
         m_name = name;
 
+        DX::ThrowIfFailed(m_font->CreateFontFace(&m_fontFace));
+
         m_monospaced = (font->IsMonospacedFont() != 0);
 
         m_font->GetMetrics(&m_metrics);
 
-        int designUnitsWidth = m_metrics.glyphBoxRight - m_metrics.glyphBoxLeft;
-        int designUnitsHeight = m_metrics.glyphBoxTop - m_metrics.glyphBoxBottom;
+        m_lineSpacingEm = (float) (m_metrics.ascent + m_metrics.descent + m_metrics.lineGap) / (float) m_metrics.designUnitsPerEm;
+        m_underlinePositionEm = (float) (m_metrics.ascent - m_metrics.underlinePosition) / (float) m_metrics.designUnitsPerEm;
+        m_underlineThicknessEm = (float)m_metrics.underlineThickness / (float)m_metrics.designUnitsPerEm;
 
-        m_emSize.m_x = (float)m_metrics.designUnitsPerEm / (float)designUnitsWidth;
-        m_emSize.m_y = (float)m_metrics.designUnitsPerEm / (float)designUnitsHeight;
+        CalculateMetrics();
 
-        m_widthToHeight = m_emSize.m_y / m_emSize.m_x;
+        m_maxBoxTopEm = (float)m_maxBoxTop / (float)m_metrics.designUnitsPerEm;
+        m_minBoxBottomEm = (float)m_minBoxBottom / (float)m_metrics.designUnitsPerEm;
+        m_maxBoxWidthEm = (float)m_maxBoxWidth / (float)m_metrics.designUnitsPerEm;
+
+        m_boxSizeEm.m_x = m_maxBoxWidthEm;
+        m_boxSizeEm.m_y = m_maxBoxTopEm - m_minBoxBottomEm;
+
+    }
+
+    void Font::CalculateMetrics(void)
+    {
+        UINT32 usc4CodeSet[kGlyphCount] = { 219, '@', 'j' };
+
+        DX::ThrowIfFailed(m_fontFace->GetGlyphIndices(usc4CodeSet, kGlyphCount, m_glyphIndices));
+        DX::ThrowIfFailed(m_fontFace->GetDesignGlyphMetrics(m_glyphIndices, kGlyphCount, m_glyphMetrics, false));
+
+        m_maxBoxWidth = 0;
+        m_maxBoxTop = 0;
+        m_minBoxBottom = 0;
+
+        for(auto & metrics : m_glyphMetrics) {
+
+            int boxWidth = metrics.advanceWidth - metrics.leftSideBearing - metrics.rightSideBearing;
+            int boxHeight = metrics.advanceHeight - metrics.bottomSideBearing - metrics.topSideBearing;
+
+            int boxTop = metrics.verticalOriginY - metrics.topSideBearing;
+            int boxBottom = boxTop - boxHeight;
+
+            m_maxBoxWidth = max(m_maxBoxWidth, boxWidth);
+            m_maxBoxTop = max(m_maxBoxTop, boxTop);
+            m_minBoxBottom = min(m_minBoxBottom, boxBottom);
+        }
     }
 
     FontFamily::FontFamily(const Microsoft::WRL::ComPtr<IDWriteFontFamily1> & fontFamily, const std::string & name)
     {
         m_fontFamily = fontFamily;
         m_name = name;
+
+        static bool found = false;
+        if (name.compare("Arial") == 0)
+        {
+            found = true;
+        }
 
         int fontCount = fontFamily->GetFontCount();
 
@@ -100,4 +139,6 @@ namespace Nethack
             }
         }
     }
+
+
 }

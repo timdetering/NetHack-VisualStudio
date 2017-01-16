@@ -136,10 +136,12 @@ namespace Nethack
 
         const Int2D & GetDimensions() { return m_gridDimensions; }
 
-        void ScaleAndCenter(const Nethack::IntRect & inRect);
+        void SetLayoutRect(const Nethack::IntRect & inRect);
+        void ScaleAndCenter(void);
 
         void SetCursor(Int2D & cursor);
 
+        void SetFontFamilyName(std::string & fontFamilyName);
 
     private:
 
@@ -180,6 +182,8 @@ namespace Nethack
         Int2D m_gridPixelDimensions;
         Float2D m_pixelScreenDimensions;
         Float2D m_gridScreenDimensions;
+        float m_cursorScreenOffset; // from top of glyph cell
+        float m_cursorScreenThickness;
 
         Microsoft::WRL::ComPtr<ID3D11Buffer>		m_vertexBuffer;
         Microsoft::WRL::ComPtr<ID3D11Buffer>		m_cursorVertexBuffer;
@@ -190,6 +194,10 @@ namespace Nethack
         Microsoft::WRL::ComPtr<ID3D11BlendState>	m_invertDstBlendState;
 
         bool m_loadingComplete;
+
+        std::string m_fontFamilyName;
+
+        IntRect m_layoutRect;
 
     };
 }

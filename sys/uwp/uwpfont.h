@@ -33,15 +33,35 @@ namespace Nethack
         Font() {}
         Font(const Microsoft::WRL::ComPtr<IDWriteFont3> & font, const std::string & name);
 
-        bool                                    m_monospaced;
-        std::string                             m_name;
-        DWRITE_FONT_METRICS1                    m_metrics;
-        Float2D                                 m_emSize;
-        float                                   m_widthToHeight;
+        bool                     m_monospaced;
+        std::string              m_name;
+        DWRITE_FONT_METRICS1     m_metrics;
+
+        float                    m_lineSpacingEm;
+        float                    m_underlineThicknessEm;
+        float                    m_underlinePositionEm; // relative to top ov alignment box
+
+        Float2D                  m_boxSizeEm;
+
+        float                    m_maxBoxTopEm;
+        float                    m_minBoxBottomEm;
+        float                    m_maxBoxWidthEm;
+
+        int                      m_maxBoxTop;       // design units relative to baseline
+        int                      m_minBoxBottom;    // design units relative to bsaeline
+        int                      m_maxBoxWidth;     // design units
+
+        static const int         kGlyphCount = 3;
+
+        UINT16                   m_glyphIndices[kGlyphCount];
+        DWRITE_GLYPH_METRICS     m_glyphMetrics[kGlyphCount];
 
     private:
 
         Microsoft::WRL::ComPtr<IDWriteFont3>    m_font;
+        Microsoft::WRL::ComPtr<IDWriteFontFace> m_fontFace;
+
+        void CalculateMetrics();
 
     };
 

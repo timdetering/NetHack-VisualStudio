@@ -654,8 +654,36 @@ void change_options()
 
         free((genericptr_t)pick);
     }
+}
 
-    
+void change_font(void)
+{
+    clear_nhwindow(BASE_WINDOW);
+
+    winid menu = create_nhwindow(NHW_MENU);
+    start_menu(menu);
+
+    anything any = zeroany;
+
+    for(auto & fontFamily : g_fontCollection.m_fontFamilies) {
+        if (fontFamily.second.m_fonts.begin()->second.m_monospaced) {
+            any.a_void = (void *)&fontFamily.first;
+            add_menu(menu, NO_GLYPH, &any, 0, 0, ATR_NONE, fontFamily.first.c_str(), MENU_UNSELECTED);
+        }
+    }
+
+    end_menu(menu, "Change NETHACKOPTIONS");
+
+    menu_item *pick = NULL;
+    int count = select_menu(menu, PICK_ONE, &pick);
+    destroy_nhwindow(menu);
+
+    if(count == 1) {
+        std::string * fontFamilyName = (std::string *) pick->item.a_void;
+        g_textGrid.SetFontFamilyName(*fontFamilyName);
+    }
+
+    free((genericptr_t)pick);
 }
 
 char * uwp_getenv(const char * env)
@@ -741,17 +769,17 @@ bool main_menu(void)
             "[ ]Support: https://github.com/barthouse/NetHackPublic/wiki/Support",
             "[ ]Email: nethack@barthouse.com",
             "[ ]",
-            "[ ]",
             "[ ]Pick an action",
             "[ ]",
             "[ ]",
             "[a]Play",
-            "[b]Change NETHACKOPTIONS",
-            "[c]Save defaults.nh to file",
-            "[d]Load defaults.nh from file",
-            "[e]Reset defaults.nh",
-            "[f]Save Guidebook.txt to file",
-            "[g]Save License.txt to file"
+            "[b]Save Guidebook.txt to file",
+            "[c]Save License.txt to file",
+            "[d]Change font",
+            "[e]Change NETHACKOPTIONS",
+            "[f]Save defaults.nh to file",
+            "[g]Load defaults.nh from file",
+            "[h]Reset defaults.nh"
         };
 
         winid menu = create_nhwindow(NHW_MENU);
@@ -773,12 +801,13 @@ bool main_menu(void)
         if (count == 1) {
             switch (pick->item.a_int) {
             case 'a': play = true; break;
-            case 'b': change_options(); break;
-            case 'c': save_file(g_defaultsFilePath); break;
-            case 'd': load_file(g_defaultsFilePath); initoptions();  break;
-            case 'e': reset_defaults_file(); break;
-            case 'f': save_file(g_guidebookFilePath); break;
-            case 'g': save_file(g_licenseFilePath); break;
+            case 'b': save_file(g_guidebookFilePath); break;
+            case 'c': save_file(g_licenseFilePath); break;
+            case 'd': change_font(); break;
+            case 'e': change_options(); break;
+            case 'f': save_file(g_defaultsFilePath); break;
+            case 'g': load_file(g_defaultsFilePath); initoptions();  break;
+            case 'h': reset_defaults_file(); break;
             }
         } else if (count == -1) {
             done = true;

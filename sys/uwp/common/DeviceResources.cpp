@@ -21,6 +21,7 @@
 #include "DirectXHelper.h"
 #include "..\uwpfont.h"
 #include "uwpglobals.h"
+#include "..\uwputil.h"
 
 using namespace D2D1;
 using namespace DirectX;
@@ -101,25 +102,22 @@ DX::DeviceResources::DeviceResources() :
     m_asciiTextureNew(this),
     m_boldAsciiTextureNew(this)
 {
+    std::string fontFamilyName("Lucida Console");
 
-    assert(Nethack::g_fontCollection.m_fontFamilies.count("Lucida Console") == 1);
-    Nethack::FontFamily & fontFamily = Nethack::g_fontCollection.m_fontFamilies["Lucida Console"];
+    assert(Nethack::g_fontCollection.m_fontFamilies.count(fontFamilyName) == 1);
+    Nethack::FontFamily & fontFamily = Nethack::g_fontCollection.m_fontFamilies[fontFamilyName];
+
     assert(fontFamily.m_fonts.count("Regular") == 1);
     Nethack::Font & font = fontFamily.m_fonts["Regular"];
 
-    assert(fontFamily.m_fonts.count("Bold") == 1);
-    Nethack::Font & boldFont = fontFamily.m_fonts["Bold"];
-
     // 72 pixel height glyphs
-    m_glyphPixels = Nethack::Int2D((int) ceil(72 * font.m_widthToHeight), 72);
+//    m_glyphPixels = Nethack::Int2D((int) ceil(72 * font.m_widthToHeight), 72);
 
     CreateDeviceIndependentResources();
     CreateDeviceResources();
 
-
-    CreateAsciiTexture();
-    m_asciiTextureNew.Create(L"Lucida Console", DWRITE_FONT_WEIGHT_THIN);
-    m_boldAsciiTextureNew.Create(L"Lucida Console", DWRITE_FONT_WEIGHT_BOLD);
+    m_asciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_THIN);
+    m_boldAsciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_BOLD);
 }
 
 // Configures resources that don't depend on the Direct3D device.
@@ -162,195 +160,6 @@ void DX::DeviceResources::CreateDeviceIndependentResources()
             IID_PPV_ARGS(&m_wicFactory)
             )
         );
-}
-
-void DX::DeviceResources::GetGlyphRect(unsigned char c, Nethack::FloatRect & outRect) const
-{
-    int x = c & 0xf;
-    int y = c >> 4;
-
-    const Nethack::Int2D & glyphPixels = GetGlyphPixelDimensions();
-
-    float gutterX = (1.0f / 16.0f) / glyphPixels.m_x;
-    float gutterY = (1.0f / 16.0f) / glyphPixels.m_y;
-
-    outRect.m_topLeft.m_x = ((1.0f / 16.0f) * x) + gutterX;
-    outRect.m_bottomRight.m_x = outRect.m_topLeft.m_x + (1.0f / 16.0f) - (2.0f * gutterX);
-
-    outRect.m_topLeft.m_y = ((1.0f / 16.0f) * y) + gutterY;
-    outRect.m_bottomRight.m_y = outRect.m_topLeft.m_y + (1.0f / 16.0f) - (2.0f * gutterY);
-}
-
-void DX::DeviceResources::CreateAsciiTexture(void)
-{
-    static const int glyphRowCount = 16;
-    static const int glyphColumnCount = 16;
-
-    static const int gutter = 1;
-
-    // glyphs have a one pixel wide gutter
-
-    const Nethack::Int2D & glyphPixels = GetGlyphPixelDimensions();
-
-    int glyphWidth = glyphPixels.m_x + (2 * gutter);
-    int glyphHeight = glyphPixels.m_y + (2 * gutter);
-
-    int textureWidth = glyphWidth * glyphColumnCount;
-    int textureHeight = glyphHeight * glyphRowCount;
-
-    CD3D11_TEXTURE2D_DESC textureDesc(
-        DXGI_FORMAT_B8G8R8A8_UNORM,
-        textureWidth,        // Width
-        textureHeight,        // Height
-        1,          // MipLevels
-        1,          // ArraySize
-        D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET
-    );
-
-    DX::ThrowIfFailed(
-        m_d3dDevice->CreateTexture2D(
-            &textureDesc,
-            nullptr,
-            &m_asciiTexture
-        )
-    );
-
-    CD3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc(
-        m_asciiTexture.Get(),
-        D3D11_SRV_DIMENSION_TEXTURE2D
-    );
-
-    DX::ThrowIfFailed(
-        m_d3dDevice->CreateShaderResourceView(
-            m_asciiTexture.Get(),
-            &shaderResourceViewDesc,
-            &m_asciiTextureShaderResourceView
-        )
-    );
-
-    const float dxgiDpi = 96.0f;
-
-    m_d2dContext->SetDpi(dxgiDpi, dxgiDpi);
-
-    D2D1_BITMAP_PROPERTIES1 bitmapProperties =
-        D2D1::BitmapProperties1(
-            D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-            dxgiDpi,
-            dxgiDpi
-        );
-
-    ComPtr<ID2D1Bitmap1> cubeTextureTarget;
-    ComPtr<IDXGISurface> cubeTextureSurface;
-    DX::ThrowIfFailed(
-        m_asciiTexture.As(&cubeTextureSurface)
-    );
-
-    DX::ThrowIfFailed(
-        m_d2dContext->CreateBitmapFromDxgiSurface(
-            cubeTextureSurface.Get(),
-            &bitmapProperties,
-            &cubeTextureTarget
-        )
-    );
-
-    m_d2dContext->SetTarget(cubeTextureTarget.Get());
-
-    ComPtr<ID2D1SolidColorBrush> whiteBrush;
-    DX::ThrowIfFailed(
-        m_d2dContext->CreateSolidColorBrush(
-            D2D1::ColorF(D2D1::ColorF::White),
-            &whiteBrush
-        )
-    );
-
-    D2D1_SIZE_F renderTargetSize = m_d2dContext->GetSize();
-
-    m_d2dContext->BeginDraw();
-
-    m_d2dContext->SetTransform(D2D1::Matrix3x2F::Identity());
-
-    m_d2dContext->Clear(D2D1::ColorF(D2D1::ColorF::Black));
-
-    ComPtr<IDWriteTextFormat> textFormat;
-
-    DX::ThrowIfFailed(
-        m_dwriteFactory->CreateTextFormat(
-            L"Lucida Console",
-            nullptr,
-            DWRITE_FONT_WEIGHT_NORMAL,
-            DWRITE_FONT_STYLE_NORMAL,
-            DWRITE_FONT_STRETCH_NORMAL,
-            72,
-            L"en-US", // locale
-            &textFormat
-        )
-    );
-
-    HRESULT hr;
-
-    // Center the text horizontally.
-    DX::ThrowIfFailed(textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING));
-
-    // Center the text vertically.
-    DX::ThrowIfFailed(
-        textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR)
-    );
-
-    for (int y = 0; y < 16; y++)
-    {
-        for (int x = 0; x < 16; x++)
-        {
-            char c = (y * 16) + x;
-            wchar_t wc;
-
-            int result = MultiByteToWideChar(437, 0, &c, 1, &wc, 1);
-
-            m_d2dContext->DrawText(
-                &wc,
-                1,
-                textFormat.Get(),
-                D2D1::RectF((float)((x * glyphWidth) + gutter), (float)((y * glyphHeight) + gutter),
-                            (float)(((x + 1) * glyphWidth) - gutter), (float)(((y + 1) * glyphHeight) - gutter)),
-                whiteBrush.Get()
-            );
-        }
-    }
-
-    // We ignore D2DERR_RECREATE_TARGET here. This error indicates that the device
-    // is lost. It will be handled during the next call to Present.
-    hr = m_d2dContext->EndDraw();
-    if (hr != D2DERR_RECREATE_TARGET)
-    {
-        DX::ThrowIfFailed(hr);
-    }
-
-    // create the sampler
-    D3D11_SAMPLER_DESC samplerDescription;
-    ZeroMemory(&samplerDescription, sizeof(D3D11_SAMPLER_DESC));
-    samplerDescription.Filter = D3D11_FILTER_ANISOTROPIC;
-    //    samplerDescription.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-    samplerDescription.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDescription.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDescription.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDescription.MipLODBias = 0.0f;
-    samplerDescription.MaxAnisotropy = m_d3dFeatureLevel > D3D_FEATURE_LEVEL_9_1 ? 4 : 2;
-    samplerDescription.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    samplerDescription.BorderColor[0] = 0.0f;
-    samplerDescription.BorderColor[1] = 0.0f;
-    samplerDescription.BorderColor[2] = 0.0f;
-    samplerDescription.BorderColor[3] = 0.0f;
-    // allow use of all mip levels
-    samplerDescription.MinLOD = 0;
-    samplerDescription.MaxLOD = D3D11_FLOAT32_MAX;
-
-    DX::ThrowIfFailed(
-        m_d3dDevice->CreateSamplerState(
-            &samplerDescription,
-            &m_asciiTextureSampler
-        )
-    );
-
 }
 
 // Configures the Direct3D device, and stores handles to it and the device context.
@@ -848,8 +657,9 @@ void DX::DeviceResources::HandleDeviceLost()
 
     CreateDeviceResources();
 
-    m_asciiTextureNew.Create(L"Lucida Console", DWRITE_FONT_WEIGHT_THIN);
-    m_boldAsciiTextureNew.Create(L"Lucida Console Bold", DWRITE_FONT_WEIGHT_BOLD);
+    std::string fontFamilyName = m_asciiTextureNew.m_fontFamilyName;
+    m_asciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_THIN);
+    m_boldAsciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_BOLD);
 
     m_d2dContext->SetDpi(m_dpi, m_dpi);
     CreateWindowSizeDependentResources();

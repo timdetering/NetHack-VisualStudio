@@ -57,6 +57,8 @@ namespace Nethack
 
         const int k_gridBorder = 16;
 
+        IntRect m_gridLayoutRect;
+
         // Cached pointer to device resources.
         std::shared_ptr<DX::DeviceResources> m_deviceResources;
 

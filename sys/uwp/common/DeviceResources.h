@@ -70,8 +70,6 @@ namespace DX
         D3D_FEATURE_LEVEL			GetDeviceFeatureLevel() const			{ return m_d3dFeatureLevel; }
         ID3D11RenderTargetView1*	GetBackBufferRenderTargetView() const	{ return m_d3dRenderTargetView.Get(); }
         ID3D11DepthStencilView*		GetDepthStencilView() const				{ return m_d3dDepthStencilView.Get(); }
-        ID3D11ShaderResourceView* GetAsciiTextureShaderResourceView() const { return m_asciiTextureShaderResourceView.Get(); }
-        ID3D11SamplerState*     GetAsciiTextureSampler() const { return m_asciiTextureSampler.Get(); }
         D3D11_VIEWPORT				GetScreenViewport() const				{ return m_screenViewport; }
         DirectX::XMFLOAT4X4			GetOrientationTransform3D() const		{ return m_orientationTransform3D; }
 
@@ -84,13 +82,8 @@ namespace DX
         IWICImagingFactory2*		GetWicImagingFactory() const			{ return m_wicFactory.Get(); }
         D2D1::Matrix3x2F			GetOrientationTransform2D() const		{ return m_orientationTransform2D; }
 
-        const Nethack::Int2D &  GetGlyphPixelDimensions() const { return m_glyphPixels; }
-        void                    GetGlyphRect(unsigned char c, Nethack::FloatRect & outRect) const;
-
         static std::shared_ptr<DX::DeviceResources> s_deviceResources;
 
-        void CreateAsciiTexture(void);
-            
         Nethack::AsciiTexture m_asciiTextureNew;
         Nethack::AsciiTexture m_boldAsciiTextureNew;
 
@@ -143,13 +136,6 @@ namespace DX
 
         // The IDeviceNotify can be held directly as it owns the DeviceResources.
         IDeviceNotify* m_deviceNotify;
-
-        // Ascii Texture
-        Nethack::Int2D                                      m_glyphPixels;
         
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>             m_asciiTexture;
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    m_asciiTextureShaderResourceView;
-        Microsoft::WRL::ComPtr<ID3D11SamplerState>          m_asciiTextureSampler;
-
     };
 }
