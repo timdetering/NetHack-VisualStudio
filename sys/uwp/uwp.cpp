@@ -460,6 +460,32 @@ void error VA_DECL(const char *, s)
     nethack_exit(EXIT_FAILURE);
 }
 
+// TODO(bhouse) Do we already have a warn somewhere else called something else?
+void warn VA_DECL(const char *, s)
+{
+    char buf[BUFSZ];
+    VA_START(s);
+    VA_INIT(s, const char *);
+
+    (void)vsprintf(buf, s, VA_ARGS);
+
+    if (iflags.window_inited) {
+        clear_nhwindow(BASE_WINDOW);
+        putstr(BASE_WINDOW, 0, buf);
+        putstr(BASE_WINDOW, 0, "Hit <ENTER> to exit.");
+    }
+    else {
+        raw_clear_screen();
+        raw_printf(buf);
+        raw_printf("Hit <ENTER> to exit.");
+    }
+
+    VA_END();
+
+    while (pgetchar() != '\n')
+        ;
+}
+
 void raw_clear_screen(void)
 {
     Nethack::g_textGrid.Clear();
@@ -552,6 +578,40 @@ void copy_to_local(std::string & fileName, bool onlyIfMissing)
     }
 }
 
+bool validate_font_map(std::string & fontFamilyName)
+{
+    bool goodGood = false;
+
+    if (g_fontCollection.m_fontFamilies.count(fontFamilyName) != 0)
+    {
+        auto & font = g_fontCollection.m_fontFamilies[fontFamilyName];
+        if (!font.m_fonts.begin()->second.m_monospaced) {
+            warn("font_map font '%s' must be monospaced.", fontFamilyName.c_str());
+        } else {
+            goodGood = true;
+        }
+    }
+    else {
+        warn("unable to find font_map font '%s'", fontFamilyName.c_str());
+    }
+    return goodGood;
+}
+
+void process_font_map()
+{
+    std::string fontFamilyName;
+
+    if (iflags.wc_font_map) {
+        fontFamilyName = std::string(iflags.wc_font_map);
+        if (!validate_font_map(fontFamilyName))
+            fontFamilyName = g_defaultFontMap;
+    } else {
+        fontFamilyName = g_defaultFontMap;
+    }
+
+    g_textGrid.SetFontFamilyName(fontFamilyName);
+}
+
 
 void add_option()
 {
@@ -562,12 +622,21 @@ void add_option()
 
     if(!buf[0]) return;
 
-    if(validateoptions(buf, FALSE)) {
-        Nethack::g_options.m_options.push_back(std::string(buf));
-        Nethack::g_options.Store();
-        initoptions();
+    // TODO(bhouse) It would be better if validateoptons caused event
+    //              for setting font
+    std::string option(buf);
+    if (option.compare(0, 9, "font_map:") == 0) {
+        std::string fontFamilyName = option.substr(9, std::string::npos);
+        if (!validate_font_map(fontFamilyName))
+            return;
     }
 
+    if(validateoptions(buf, FALSE)) {
+        Nethack::g_options.m_options.push_back(option);
+        Nethack::g_options.Store();
+        initoptions();
+        process_font_map();
+    }
 }
 
 void remove_options()
@@ -604,6 +673,7 @@ void remove_options()
     if(count > 0) {
         Nethack::g_options.Store();
         initoptions();
+        process_font_map();
     }
 
 }
@@ -672,15 +742,26 @@ void change_font(void)
         }
     }
 
-    end_menu(menu, "Change NETHACKOPTIONS");
+    end_menu(menu, "Pick font");
 
     menu_item *pick = NULL;
     int count = select_menu(menu, PICK_ONE, &pick);
     destroy_nhwindow(menu);
 
     if(count == 1) {
-        std::string * fontFamilyName = (std::string *) pick->item.a_void;
-        g_textGrid.SetFontFamilyName(*fontFamilyName);
+        std::string fontFamilyName = *((std::string *) pick->item.a_void);
+
+        // remove any options for font_map
+        g_options.RemoveOption(std::string("font_map"));
+
+        // add font_map option for picked font
+        std::string option = "font_map:";
+        option += fontFamilyName;
+        g_options.m_options.push_back(option);
+        g_options.Store();
+
+        // set font into grid
+        g_textGrid.SetFontFamilyName(fontFamilyName);
     }
 
     free((genericptr_t)pick);
@@ -906,6 +987,7 @@ void mainloop(const char * localDir, const char * installDir)
         Nethack::g_options.Load(g_nethackOptionsFilePath);
 
         initoptions();
+        process_font_map();
 
         int argc = 1;
         char * argv[1] = { "nethack" };

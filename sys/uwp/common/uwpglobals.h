@@ -31,6 +31,7 @@ namespace Nethack
     extern std::string      g_guidebookFilePath;
     extern std::string      g_licenseFileName;
     extern std::string      g_licenseFilePath;
+    extern std::string      g_defaultFontMap;
 
 }
 #endif

@@ -1752,6 +1752,7 @@ E void NDECL(gettty);
 E void FDECL(settty, (const char *));
 E void NDECL(setftty);
 E void VDECL(error, (const char *, ...));
+E void VDECL(warn, (const char *, ...));
 #if defined(TIMED_DELAY) && defined(_MSC_VER)
 E void FDECL(msleep, (unsigned));
 #endif

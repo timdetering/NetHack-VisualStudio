@@ -657,6 +657,11 @@ initoptions_init()
 #endif
     int i;
 
+#ifdef UWP
+    if (iflags.wc_font_map) free(iflags.wc_font_map);
+    iflags.wc_font_map = NULL;
+#endif
+
     /* set up the command parsing */
     reset_commands(TRUE); /* init */
 

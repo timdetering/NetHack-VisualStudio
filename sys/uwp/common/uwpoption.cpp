@@ -72,5 +72,14 @@ namespace Nethack {
         return options;
     }
 
+    void Options::RemoveOption(std::string & remove)
+    {
+        auto & iter = m_options.begin();
+        while (iter != m_options.end()) {
+            auto & option = *iter;
+            if (option.compare(0, remove.length(), remove) == 0)
+                iter = m_options.erase(iter);
+        }
+    }
 
 }

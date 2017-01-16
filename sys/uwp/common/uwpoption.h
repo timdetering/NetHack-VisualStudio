@@ -11,6 +11,7 @@ namespace Nethack
 
         bool Load(std::string & filePath);
         void Store();
+        void RemoveOption(std::string & option);
         std::string GetString();
     
         std::vector<std::string> m_options;

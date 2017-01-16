@@ -1390,17 +1390,17 @@ freedynamicdata()
 
     /* some pointers in iflags */
     if (iflags.wc_font_map)
-        free(iflags.wc_font_map);
+        free(iflags.wc_font_map), iflags.wc_font_map = NULL;
     if (iflags.wc_font_message)
-        free(iflags.wc_font_message);
+        free(iflags.wc_font_message), iflags.wc_font_message = NULL;
     if (iflags.wc_font_text)
-        free(iflags.wc_font_text);
+        free(iflags.wc_font_text), iflags.wc_font_text = NULL;
     if (iflags.wc_font_menu)
-        free(iflags.wc_font_menu);
+        free(iflags.wc_font_menu), iflags.wc_font_menu = NULL;
     if (iflags.wc_font_status)
-        free(iflags.wc_font_status);
+        free(iflags.wc_font_status), iflags.wc_font_status = NULL;
     if (iflags.wc_tile_file)
-        free(iflags.wc_tile_file);
+        free(iflags.wc_tile_file), iflags.wc_tile_file = NULL;
     free_autopickup_exceptions();
 
     /* miscellaneous */

@@ -65,6 +65,12 @@ namespace Nethack
 
     };
 
+    struct IgnoreCase {
+        bool operator() (const std::string& lhs, const std::string& rhs) const {
+            return stricmp(lhs.c_str(), rhs.c_str()) < 0;
+        }
+    };
+
     class FontFamily
     {
     public:
@@ -87,7 +93,7 @@ namespace Nethack
 
         FontCollection();
 
-        std::map<std::string, FontFamily> m_fontFamilies;
+        std::map<std::string, FontFamily, IgnoreCase> m_fontFamilies;
 
     private:
 

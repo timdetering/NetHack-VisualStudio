@@ -22,5 +22,6 @@ namespace Nethack
     std::string     g_guidebookFilePath;
     std::string     g_licenseFileName("license.txt");
     std::string     g_licenseFilePath;
+    std::string     g_defaultFontMap("Lucida Console");
 
 }
