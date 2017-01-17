@@ -83,7 +83,7 @@ CellAttribute CellBuffer::GetCellAttribute(int x, int y)
 
 void CellBuffer::Putstr(int x, int y, CellAttribute cellAttribute, const char * text)
 {
-    int len = strlen(text);
+    int len = (int) strlen(text);
     assert(len + x <= m_width);
 
     ::memcpy(GetText(x, y), text, len);
