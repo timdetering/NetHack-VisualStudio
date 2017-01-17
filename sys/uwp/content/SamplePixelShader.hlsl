@@ -13,14 +13,8 @@ struct PixelShaderInput
 // A pass-through function for the (interpolated) color data.
 float4 main(PixelShaderInput input) : SV_TARGET
 {
-    float4 foregroundSample = AsciiTexture.Sample(AsciiSampler, input.tex);
+    float4 alpha = AsciiTexture.Sample(AsciiSampler, input.tex);
+    float4 inverseAlpha = float4(1.0f, 1.0f, 1.0f, 0.0f) - alpha;
 
-    if (foregroundSample.x == 0.0)
-    {
-        return float4(input.backgroundColor, 0.0f);
-    }
-    else
-    {
-        return foregroundSample * float4(input.foregroundColor, 0.0f);
-    }
+    return (alpha * float4(input.foregroundColor, 0.0f)) + (inverseAlpha * float4(input.backgroundColor, 0.0f));
 }
