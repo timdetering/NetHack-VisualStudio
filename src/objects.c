@@ -1161,6 +1161,21 @@ objects_init()
     return;
 }
 
+#if defined(UWP)
+struct objclass object_defs[SIZE(objects)];
+
+void
+objects_start_up()
+{
+    static boolean object_defs_set = FALSE;
+    if (!object_defs_set) {
+        memcpy(object_defs, objects, sizeof(objects));
+        object_defs_set = TRUE;
+    }
+    memcpy(objects, object_defs, sizeof(objects));
+}
+#endif
+
 #endif /* !OBJECTS_PASS_2_ */
 
 /*objects.c*/

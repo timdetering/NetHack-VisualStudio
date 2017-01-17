@@ -943,9 +943,12 @@ void rename_save_files()
 
 extern boolean uwpmain(void);
 extern void decl_clean_up(void);
+extern void objects_start_up(void);
 
 void mainloop(const char * localDir, const char * installDir)
 {
+    objects_start_up();
+
     /* first things first ... we jump buffer which is where we will jump to
        if we exit.  We assume anythign can fail so we do this first. */
     if(setjmp(Nethack::g_mainLoopJmpBuf) == 0) {
