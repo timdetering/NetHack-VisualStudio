@@ -311,7 +311,7 @@ namespace Nethack
         d2dContext->SetTarget(NULL);
         /* D2D */
         D2D1_POINT_2U dstPoint = { 0 , 0 };
-        D2D1_RECT_U srcRect = { 0, 0, textureWidth, textureHeight };
+        D2D1_RECT_U srcRect = { 0, 0, (UINT32) textureWidth, (UINT32) textureHeight };
         DX::ThrowIfFailed(bitmapStaging->CopyFromBitmap(&dstPoint, bitmapTarget.Get(), &srcRect));
 
         D2D1_MAPPED_RECT rect;

@@ -67,7 +67,7 @@ namespace Nethack
 
     struct IgnoreCase {
         bool operator() (const std::string& lhs, const std::string& rhs) const {
-            return stricmp(lhs.c_str(), rhs.c_str()) < 0;
+            return _stricmp(lhs.c_str(), rhs.c_str()) < 0;
         }
     };
 

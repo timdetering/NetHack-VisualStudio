@@ -854,6 +854,7 @@ bool main_menu(void)
             "[ ]",
             "[ ]",
             "[a]Play",
+            "[ ]",
             "[b]Save Guidebook.txt to file",
             "[c]Save License.txt to file",
             "[d]Change font",

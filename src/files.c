@@ -146,6 +146,9 @@ static int lockptr;
 #endif
 #define Close close
 #ifndef WIN_CE
+#ifdef UWP
+#undef DeleteFile
+#endif
 #define DeleteFile unlink
 #endif
 #endif

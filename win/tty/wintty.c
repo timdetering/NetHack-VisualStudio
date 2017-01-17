@@ -319,7 +319,10 @@ tty_init_nhwindows(argcp, argv)
 int *argcp UNUSED;
 char **argv UNUSED;
 {
-    int wid, hgt, i;
+    int wid, hgt;
+#ifndef UWP
+    int i;
+#endif
 
 /*
  *  Remember tty modes, to be restored on exit.
