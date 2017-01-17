@@ -39,7 +39,7 @@ namespace DisplayMetrics
     // games attempt to render at 60 frames per second at full fidelity.
     // The decision to render at full fidelity across all platforms and form factors
     // should be deliberate.
-    static const bool SupportHighResolutions = false;
+    static const bool SupportHighResolutions = true;
 
     // The default thresholds that define a "high resolution" display. If the thresholds
     // are exceeded and SupportHighResolutions is false, the dimensions will be scaled
@@ -102,22 +102,26 @@ DX::DeviceResources::DeviceResources() :
     m_asciiTextureNew(this),
     m_boldAsciiTextureNew(this)
 {
-    std::string fontFamilyName("Lucida Console");
-
-    assert(Nethack::g_fontCollection.m_fontFamilies.count(fontFamilyName) == 1);
-    Nethack::FontFamily & fontFamily = Nethack::g_fontCollection.m_fontFamilies[fontFamilyName];
-
-    assert(fontFamily.m_fonts.count("Regular") == 1);
-    Nethack::Font & font = fontFamily.m_fonts["Regular"];
-
     // 72 pixel height glyphs
 //    m_glyphPixels = Nethack::Int2D((int) ceil(72 * font.m_widthToHeight), 72);
 
     CreateDeviceIndependentResources();
     CreateDeviceResources();
 
-    m_asciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_THIN);
-    m_boldAsciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_BOLD);
+    std::string fontFamilyName("Lucida Console");
+
+    m_asciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_THIN, 72.0);
+    m_boldAsciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_BOLD, 72.0);
+
+#if 0
+    assert(Nethack::g_fontCollection.m_fontFamilies.count(fontFamilyName) == 1);
+    Nethack::FontFamily & fontFamily = Nethack::g_fontCollection.m_fontFamilies[fontFamilyName];
+
+    assert(fontFamily.m_fonts.count("Regular") == 1);
+    Nethack::Font & font = fontFamily.m_fonts["Regular"];
+
+#endif
+
 }
 
 // Configures resources that don't depend on the Direct3D device.
@@ -657,12 +661,12 @@ void DX::DeviceResources::HandleDeviceLost()
 
     CreateDeviceResources();
 
-    std::string fontFamilyName = m_asciiTextureNew.m_fontFamilyName;
-    m_asciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_THIN);
-    m_boldAsciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_BOLD);
-
     m_d2dContext->SetDpi(m_dpi, m_dpi);
     CreateWindowSizeDependentResources();
+
+    std::string fontFamilyName = m_asciiTextureNew.m_fontFamilyName;
+    m_asciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_THIN, 72.0);
+    m_boldAsciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_BOLD, 72.0);
 
     if (m_deviceNotify != nullptr)
     {

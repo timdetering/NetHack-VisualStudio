@@ -79,6 +79,8 @@ namespace Nethack {
             auto & option = *iter;
             if (option.compare(0, remove.length(), remove) == 0)
                 iter = m_options.erase(iter);
+            else
+                iter++;
         }
     }
 

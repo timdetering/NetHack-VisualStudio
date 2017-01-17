@@ -53,7 +53,7 @@ namespace Nethack
 {
         
    void AsciiTexture::Create(
-       const std::string & fontFamilyName, DWRITE_FONT_WEIGHT weight)
+       const std::string & fontFamilyName, DWRITE_FONT_WEIGHT weight, float lineHeight)
     {
         static const int glyphRowCount = 16;
         static const int glyphColumnCount = 16;
@@ -64,12 +64,30 @@ namespace Nethack
         FontFamily & fontFamily = g_fontCollection.m_fontFamilies[fontFamilyName];
         Font & font = fontFamily.m_fonts.begin()->second;
 
-        // note ratio is unitless
-        float widthToHeight = font.m_boxSizeEm.m_x / font.m_boxSizeEm.m_y;
+        m_lineHeight = lineHeight;
+
+        // line height is in dips
+        // we want lineHeight == font.m_lineSpacingEm * fontSize
+
+        float fontSize = lineHeight / font.m_lineSpacingEm;
+
+        if (fontSize >= 72.0f) fontSize = 72.0f;
+        else if (fontSize >= 36.0f) fontSize = 36.0f;
+        else if (fontSize >= 28.0f) fontSize = 28.0f;
+        else if (fontSize >= 24.0f) fontSize = 24.0f;
+        else if (fontSize >= 20.0f) fontSize = 20.0f;
+        else if (fontSize >= 18.0f) fontSize = 18.0f;
+        else if (fontSize >= 16.0f) fontSize = 16.0f;
+        else if (fontSize >= 14.0f) fontSize = 14.0f;
+        else if (fontSize >= 12.0f) fontSize = 12.0f;
+        else if (fontSize >= 10.0f) fontSize = 10.0f;
+        else if (fontSize >= 8.0f) fontSize = 8.0f;
+        else if (fontSize >= 7.0f) fontSize = 7.0f;
+        else if (fontSize >= 6.0f) fontSize = 6.0f;
+        else fontSize = 5.0f;
 
         // 1 EM is fontSize which is in dips.  To convert dips to pixels, pixels = dips * 96 / dpi
         const float dpi = 96.0f;
-        float fontSize = 72.0f;
 
         if (font.m_monospaced) {
             m_glyphPixels.m_x = (int) ceil(((float)font.m_glyphMetrics[0].advanceWidth / (float)font.m_metrics.designUnitsPerEm) * fontSize * 96.0f / dpi);

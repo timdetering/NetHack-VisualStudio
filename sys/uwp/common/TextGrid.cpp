@@ -504,9 +504,12 @@ namespace Nethack
 
             auto & asciiTexture = m_deviceResources->m_asciiTextureNew;
 
-            if(asciiTexture.m_fontFamilyName != m_fontFamilyName) {
-                m_deviceResources->m_asciiTextureNew.Create(m_fontFamilyName, DWRITE_FONT_WEIGHT_THIN);
-                m_deviceResources->m_boldAsciiTextureNew.Create(m_fontFamilyName, DWRITE_FONT_WEIGHT_BOLD);
+            // compute line height
+            float lineHeight = (float)(m_layoutRect.m_bottomRight.m_y - m_layoutRect.m_topLeft.m_y) / (float) m_gridDimensions.m_y;
+
+            if(asciiTexture.m_fontFamilyName != m_fontFamilyName || asciiTexture.m_lineHeight != lineHeight) {
+                m_deviceResources->m_asciiTextureNew.Create(m_fontFamilyName, DWRITE_FONT_WEIGHT_THIN, lineHeight);
+                m_deviceResources->m_boldAsciiTextureNew.Create(m_fontFamilyName, DWRITE_FONT_WEIGHT_BOLD, lineHeight);
                 ScaleAndCenter();
             }
 
