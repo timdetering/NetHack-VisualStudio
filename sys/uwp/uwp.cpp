@@ -293,7 +293,7 @@ char MapScanCode(const Nethack::Event & e)
             }
         }
     } else {
-        char scanToChar[(int)Nethack::ScanCode::Count] = {
+        int scanToChar[(int)Nethack::ScanCode::Count] = {
             0, // Unknown
             0, // Escape
             '1' | 0x80, // One
@@ -388,7 +388,7 @@ char MapScanCode(const Nethack::Event & e)
         assert(((int) e.m_scanCode >= 0) && ((int) e.m_scanCode < (int) Nethack::ScanCode::Count));
 
         if (e.m_scanCode >= Nethack::ScanCode::Unknown && e.m_scanCode < Nethack::ScanCode::Count) {
-            c = scanToChar[(int)e.m_scanCode];
+            c = (char) scanToChar[(int)e.m_scanCode];
             unsigned char uc = c & ~0x80;
             if (e.m_shift && isalpha(uc)) {
                 c = toupper(uc) | 0x80;
