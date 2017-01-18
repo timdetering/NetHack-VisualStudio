@@ -1,11 +1,9 @@
 12/31/2016
 
 High Priority
-- Add mip-map levels to font texture to see if we can get better texturing
 
 Medium Priority
 - Review all options
-- Change font size as window is resized
 - Protoype just calling into DWrite to render grid instead of trying to use D3D11 (although we
   we still need a means to render tiles eventually)
 - Review all code looking for more static locals.  This can be a problem since we can't re-initialize.
@@ -26,6 +24,8 @@ Low Priority
 - Add more advanced gesturing support.
 - Consider supporting tiles.
 - Consider providing a more advanced windowing support
+- Distinguish between development builds and official application package builds and set the build
+  version of development builds to zero
 
 Official NetHack Pull Request Work
 - Update various distribution documentation to describe UWP port.

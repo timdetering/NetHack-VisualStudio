@@ -23,6 +23,16 @@ using namespace Windows::System::Threading;
 [Platform::MTAThread]
 int main(Platform::Array<Platform::String^>^)
 {
+#ifdef _DEBUG
+    // We don't want to taint the application usage information with development builds
+    // development builds should have build version 0
+    auto package = Windows::ApplicationModel::Package::Current;
+    auto packageId = package->Id;
+    auto version = packageId->Version;
+    auto build = version.Build;
+    assert(build == 0);
+#endif
+
     auto direct3DApplicationSource = ref new Direct3DApplicationSource();
     CoreApplication::Run(direct3DApplicationSource);
     return 0;
