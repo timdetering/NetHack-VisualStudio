@@ -2108,4 +2108,11 @@ boolean ghostly;
     }
 }
 
+void
+timeout_first_init()
+{
+    timer_id = 1;
+    print_prop_header = TRUE;
+}
+
 /*timeout.c*/

@@ -1802,4 +1802,10 @@ struct obj *obj;
     return;
 }
 
+void spell_first_init()
+{
+    spl_sortmode = 0;
+    spl_orderindx = 0;
+}
+
 /*spell.c*/

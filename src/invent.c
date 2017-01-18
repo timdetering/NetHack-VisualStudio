@@ -3858,4 +3858,14 @@ boolean as_if_seen;
     return n;
 }
 
+void
+invent_first_init()
+{
+    lastinvnr = 51;
+    sortlootmode = 0;
+    cached_pickinv_win = WIN_ERR;
+    invbuf = (char *)0;
+    invbufsiz = 0;
+}
+
 /*invent.c*/

@@ -4583,4 +4583,12 @@ sasc_bug(struct obj *op, unsigned x)
 }
 #endif
 
+void
+shk_first_init()
+{
+    sell_response = 'a';
+    sell_how = SELL_NORMAL;
+    auto_credit = FALSE;
+}
+
 /*shk.c*/

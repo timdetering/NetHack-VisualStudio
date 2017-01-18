@@ -3262,4 +3262,12 @@ int threat;
     return FALSE;
 }
 
+void
+eat_first_init()
+{
+    // TODO(bhouse) Does this need to be initialized?
+    force_save_hs = FALSE;
+    eatmbuf = 0;
+}
+
 /*eat.c*/

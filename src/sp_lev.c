@@ -5938,4 +5938,16 @@ give_up:
  #pragma warning(pop)
 #endif
 
+void
+sp_lev_first_init()
+{
+    lev_message = 0;
+    lregions = 0;
+    num_lregions = 0;
+    splev_init_present = FALSE;
+    icedpools = FALSE;
+    container_idx = 0;
+    invent_carrying_monster = NULL;
+}
+
 /*sp_lev.c*/

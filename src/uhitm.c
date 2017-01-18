@@ -2725,4 +2725,10 @@ int dmg;
     }
 }
 
+void
+uhitm_first_init()
+{
+    override_confirmation = FALSE;
+}
+
 /*uhitm.c*/

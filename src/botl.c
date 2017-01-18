@@ -1622,4 +1622,11 @@ status_hilite_menu()
 #endif /*STATUS_HILITES*/
 #endif /*STATUS_VIA_WINDOWPORT*/
 
+void
+botl_first_init()
+{
+    // TODO(bhouse) Does this need to be initialize?
+    mrank_sz = 0;
+}
+
 /*botl.c*/

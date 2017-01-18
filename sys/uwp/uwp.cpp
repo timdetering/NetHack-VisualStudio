@@ -943,15 +943,14 @@ void rename_save_files()
 
 extern boolean uwpmain(void);
 extern void decl_clean_up(void);
-extern void objects_start_up(void);
 
 void mainloop(const char * localDir, const char * installDir)
 {
-    objects_start_up();
-
     /* first things first ... we jump buffer which is where we will jump to
        if we exit.  We assume anythign can fail so we do this first. */
     if(setjmp(Nethack::g_mainLoopJmpBuf) == 0) {
+
+        first_init();
 
         /* next thing we do is set the window system so that raw output will
            function correctly thorough the window proc */
@@ -1034,7 +1033,7 @@ void mainloop(const char * localDir, const char * installDir)
         }
     }
 
-    decl_clean_up();
+    final_cleanup();
 }
 
 

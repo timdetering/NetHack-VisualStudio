@@ -1433,7 +1433,7 @@ int x, y, glyph;
         }                              \
     }
 
-static gbuf_entry nul_gbuf = { 0, cmap_to_glyph(S_stone) };
+static const gbuf_entry nul_gbuf = { 0, cmap_to_glyph(S_stone) };
 /*
  * Turn the 3rd screen into stone.
  */

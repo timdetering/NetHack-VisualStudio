@@ -827,4 +827,12 @@ int x, y;
     return res;
 }
 
+void
+worm_first_init()
+{
+    memset(wheads, 0, sizeof(wheads));
+    memset(wtails, 0, sizeof(wtails));
+    memset(wgrowtime, 0, sizeof(wgrowtime));
+}
+
 /*worm.c*/

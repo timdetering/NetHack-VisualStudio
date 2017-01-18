@@ -97,7 +97,7 @@ void NDECL(monst_init);
  */
 
 #ifndef SPLITMON_2
-NEARDATA struct permonst mons[] = {
+NEARDATA const struct permonst const_mons[] = {
     /*
      * ants
      */
@@ -3228,6 +3228,14 @@ void
 monst_init()
 {
     return;
+}
+
+NEARDATA struct permonst mons[SIZE(const_mons)];
+
+void
+monst_first_init()
+{
+    memcpy(mons, const_mons, sizeof(mons));
 }
 
 struct attack sa_yes[NATTK] = SEDUCTION_ATTACKS_YES;

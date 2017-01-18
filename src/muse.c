@@ -2566,4 +2566,10 @@ struct monst *mon;
     return FALSE;
 }
 
+void
+muse_first_init()
+{
+    m_using = FALSE;
+}
+
 /*muse.c*/

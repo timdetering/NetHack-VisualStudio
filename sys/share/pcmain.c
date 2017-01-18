@@ -91,7 +91,7 @@ int argc;
 char *argv[];
 {
     boolean resuming;
-
+    first_init();
     sys_early_init();
 #ifdef WIN32
     Strcpy(default_window_sys, "tty");

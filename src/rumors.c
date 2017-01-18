@@ -546,4 +546,14 @@ struct monst *oracl;
     return 1;
 }
 
+void
+rumors_first_init()
+{
+    true_rumor_size = 0L;
+    oracle_flg = 0;
+    oracle_cnt = 0;
+    oracle_loc = 0;
+
+}
+
 /*rumors.c*/

@@ -251,6 +251,9 @@ main(void)
 
 #else /* ! MAC */
 
+extern void objects_first_init();
+extern void monst_first_init();
+
 int
 main(argc, argv)
 int argc;
@@ -273,6 +276,9 @@ char *argv[];
         argv++;
     }
 #endif
+
+    objects_first_init();
+    monst_first_init();
 
     if (argv[1][0] == '-' && argv[1][1] == '-') {
         do_ext_makedefs(argc, argv);

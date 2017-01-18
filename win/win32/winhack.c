@@ -88,6 +88,8 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine,
     UNREFERENCED_PARAMETER(lpCmdLine);
     UNREFERENCED_PARAMETER(nCmdShow);
 
+    first_init();
+
     sys_early_init();
 
     /* ensure that we don't access violate on a panic() */

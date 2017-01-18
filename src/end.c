@@ -30,7 +30,7 @@ static struct valuable_data
     gems[LAST_GEM + 1 - FIRST_GEM + 1], /* 1 extra for glass */
     amulets[LAST_AMULET + 1 - FIRST_AMULET];
 
-static struct val_list {
+static const struct val_list {
     struct valuable_data *list;
     int size;
 } valuables[] = { { gems, sizeof gems / sizeof *gems },
@@ -1203,9 +1203,9 @@ int how;
     if (how == ESCAPED || how == ASCENDED) {
         struct monst *mtmp;
         struct obj *otmp;
-        register struct val_list *val;
+        register const struct val_list *val;
         register int i;
-
+        
         for (val = valuables; val->list; val++)
             for (i = 0; i < val->size; i++) {
                 val->list[i].count = 0L;
@@ -1974,6 +1974,13 @@ char *in;
         break;
     }
     return out;
+}
+
+void
+end_first_init()
+{
+    Schroedingers_cat = FALSE;
+    vanq_sortmode = VANQ_MLVL_MNDX;
 }
 
 /*end.c*/

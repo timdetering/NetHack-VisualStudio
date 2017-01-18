@@ -3688,4 +3688,12 @@ boolean is_horn;
     return unfixable_trbl;
 }
 
+void
+apply_first_init(void)
+{
+    // TODO(bhouse) Do these values need to be initialized?
+    polearm_range_min = -1;
+    polearm_range_max = -1;
+}
+
 /*apply.c*/

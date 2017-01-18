@@ -3025,4 +3025,12 @@ boolean printdun;
     }
 }
 
+void
+dungeon_first_init()
+{
+    // TODO(bhouse) Do these need to be initialized?
+    branches = (branch *)0;
+    mapseenchn = (struct mapseen *) 0;
+}
+
 /*dungeon.c*/

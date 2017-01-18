@@ -2047,4 +2047,10 @@ int dropflag; /* 0==don't drop, 1==drop all, 2==drop weapon */
         clear_bypasses(); /* reset upon final exit */
 }
 
+void artifact_first_init()
+{
+    // TODO(bhouse) Does this need to be initialized?
+    spec_dbon_applies = 0;
+}
+
 /*artifact.c*/

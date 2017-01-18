@@ -5202,4 +5202,10 @@ maybe_finish_sokoban()
     }
 }
 
+void trap_first_init()
+{
+    force_mintrap = 0;
+    memset(&acid_ctx, 0, sizeof(acid_ctx));
+}
+
 /*trap.c*/

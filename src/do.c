@@ -1882,4 +1882,11 @@ heal_legs()
     }
 }
 
+void
+do_first_init()
+{
+    at_ladder = FALSE;
+    memset(&save_dlevel, 0, sizeof(save_dlevel));
+}
+
 /*do.c*/

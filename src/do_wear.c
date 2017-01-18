@@ -2686,4 +2686,10 @@ boolean only_if_known_cursed; /* ignore covering unless known to be cursed */
     return FALSE;
 }
 
+void
+do_wear_first_init()
+{
+    initial_don = FALSE;
+}
+
 /*do_wear.c*/

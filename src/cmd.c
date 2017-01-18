@@ -4880,4 +4880,12 @@ dosuspend_core()
     return 0;
 }
 
+void
+cmd_first_init()
+{
+    // TODO(bhouse) Does this need to be initialized?
+    memset(&Cmd, 0, sizeof(Cmd));
+    en_win = WIN_ERR;
+}
+
 /*cmd.c*/

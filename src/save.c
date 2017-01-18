@@ -1511,4 +1511,13 @@ co_false()
 
 #endif /* MFLOPPY */
 
+void
+save_first_init()
+{
+    bw_fd = -1;
+    bw_FILE = 0;
+    ustuck_id = 0;
+    usteed_id = 0;
+    buffering = FALSE;
+}
 /*save.c*/

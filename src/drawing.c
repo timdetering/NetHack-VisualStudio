@@ -753,4 +753,15 @@ struct symparse loadsyms[] = {
     { 0, 0, (const char *) 0 } /* fence post */
 };
 
+void
+drawing_first_init()
+{
+    // TOOD(bhouse) Do we need to initialize these?
+    currentgraphics = 0;
+    memset(showsyms, 0, sizeof(showsyms));
+    memset(l_syms, 0, sizeof(l_syms));
+    memset(r_syms, 0, sizeof(r_syms));
+    memset(warnsyms, 0, sizeof(warnsyms));
+}
+
 /*drawing.c*/

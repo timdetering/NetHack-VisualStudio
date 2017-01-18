@@ -2293,4 +2293,10 @@ struct monst *mon,  /* monster being split */
     return mtmp2;
 }
 
+void
+potion_first_init()
+{
+    notonhead = FALSE;
+}
+
 /*potion.c*/

@@ -61,7 +61,7 @@ struct monst { struct monst *dummy; };  /* lint: struct obj's union */
                cost,sdam,ldam,oc1,oc2,nut,color)  { obj }
 #define None (char *) 0 /* less visual distraction for 'no description' */
 
-NEARDATA struct objdescr obj_descr[] =
+NEARDATA const struct objdescr const_obj_descr[] =
 #else
 /* second pass -- object definitions */
 #define BITS(nmkn,mrg,uskn,ctnr,mgc,chrg,uniq,nwsh,big,tuf,dir,sub,mtrl) \
@@ -75,7 +75,7 @@ NEARDATA struct objdescr obj_descr[] =
 #define HARDGEM(n) (0)
 #endif
 
-NEARDATA struct objclass objects[] =
+NEARDATA const struct objclass const_objects[] =
 #endif
 {
 /* dummy object[0] -- description [2nd arg] *must* be NULL */
@@ -1161,20 +1161,15 @@ objects_init()
     return;
 }
 
-#if defined(UWP)
-struct objclass object_defs[SIZE(objects)];
+NEARDATA struct objdescr obj_descr[SIZE(const_obj_descr)];
+NEARDATA struct objclass objects[SIZE(const_objects)];
 
 void
-objects_start_up()
+objects_first_init()
 {
-    static boolean object_defs_set = FALSE;
-    if (!object_defs_set) {
-        memcpy(object_defs, objects, sizeof(objects));
-        object_defs_set = TRUE;
-    }
-    memcpy(objects, object_defs, sizeof(objects));
+    memcpy(obj_descr, const_obj_descr, sizeof(obj_descr));
+    memcpy(objects, const_objects, sizeof(objects));
 }
-#endif
 
 #endif /* !OBJECTS_PASS_2_ */
 

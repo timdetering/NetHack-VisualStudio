@@ -256,6 +256,10 @@ char **argv;
     argc = SIZE(mac_argv);
     argv = mac_argv;
 #endif
+
+    monst_first_init();
+    objects_first_init();
+
     /* Note:  these initializers don't do anything except guarantee that
      *        we're linked properly.
      */
