@@ -950,7 +950,7 @@ int mode;
                 int dir;
                 int x = travelstepx[set][i];
                 int y = travelstepy[set][i];
-                static int ordered[] = { 0, 2, 4, 6, 1, 3, 5, 7 };
+                static const int ordered[] = { 0, 2, 4, 6, 1, 3, 5, 7 };
                 /* no diagonal movement for grid bugs */
                 int dirmax = NODIAG(u.umonnum) ? 4 : 8;
                 boolean alreadyrepeated = FALSE;
@@ -1302,6 +1302,8 @@ u_rooted()
     return FALSE;
 }
 
+static int s_skates = 0;
+
 void
 domove()
 {
@@ -1363,11 +1365,10 @@ domove()
         /* check slippery ice */
         on_ice = !Levitation && is_ice(u.ux, u.uy);
         if (on_ice) {
-            static int skates = 0;
 
-            if (!skates)
-                skates = find_skates();
-            if ((uarmf && uarmf->otyp == skates) || resists_cold(&youmonst)
+            if (!s_skates)
+                s_skates = find_skates();
+            if ((uarmf && uarmf->otyp == s_skates) || resists_cold(&youmonst)
                 || Flying || is_floater(youmonst.data)
                 || is_clinger(youmonst.data) || is_whirly(youmonst.data)) {
                 on_ice = FALSE;
@@ -2005,15 +2006,16 @@ boolean newspot;             /* true if called by spoteffects */
     return FALSE;
 }
 
+static int s_inspoteffects = 0;
+static struct trap *s_spottrap = (struct trap *) 0;
+static unsigned s_spottraptyp = NO_TRAP;
+
 void
 spoteffects(pick)
 boolean pick;
 {
-    static int inspoteffects = 0;
     static coord spotloc;
     static int spotterrain;
-    static struct trap *spottrap = (struct trap *) 0;
-    static unsigned spottraptyp = NO_TRAP;
 
     struct monst *mtmp;
     struct trap *trap = t_at(u.ux, u.uy);
@@ -2021,14 +2023,14 @@ boolean pick;
     /* prevent recursion from affecting the hero all over again
        [hero poly'd to iron golem enters water here, drown() inflicts
        damage that triggers rehumanize() which calls spoteffects()...] */
-    if (inspoteffects && u.ux == spotloc.x && u.uy == spotloc.y
+    if (s_inspoteffects && u.ux == spotloc.x && u.uy == spotloc.y
         /* except when reason is transformed terrain (ice -> water) */
         && spotterrain == levl[u.ux][u.uy].typ
         /* or transformed trap (land mine -> pit) */
-        && (!spottrap || !trap || trap->ttyp == spottraptyp))
+        && (!s_spottrap || !trap || trap->ttyp == s_spottraptyp))
         return;
 
-    ++inspoteffects;
+    ++s_inspoteffects;
     spotterrain = levl[u.ux][u.uy].typ;
     spotloc.x = u.ux, spotloc.y = u.uy;
 
@@ -2074,17 +2076,17 @@ boolean pick;
             /*
              * dotrap on a fire trap calls melt_ice() which triggers
              * spoteffects() (again) which can trigger the same fire
-             * trap (again). Use static spottrap to prevent that.
-             * We track spottraptyp because some traps morph
+             * trap (again). Use static s_spottrap to prevent that.
+             * We track s_spottraptyp because some traps morph
              * (landmine to pit) and any new trap type
              * should get triggered.
              */
-            if (!spottrap || spottraptyp != trap->ttyp) {
-                spottrap = trap;
-                spottraptyp = trap->ttyp;
+            if (!s_spottrap || s_spottraptyp != trap->ttyp) {
+                s_spottrap = trap;
+                s_spottraptyp = trap->ttyp;
                 dotrap(trap, 0); /* fall into arrow trap, etc. */
-                spottrap = (struct trap *) 0;
-                spottraptyp = NO_TRAP;
+                s_spottrap = (struct trap *) 0;
+                s_spottraptyp = NO_TRAP;
             }
         }
         if (pick && pit)
@@ -2144,7 +2146,7 @@ boolean pick;
         mnexto(mtmp); /* have to move the monster */
     }
 spotdone:
-    if (!--inspoteffects) {
+    if (!--s_inspoteffects) {
         spotterrain = STONE; /* 0 */
         spotloc.x = spotloc.y = 0;
     }
@@ -2973,6 +2975,14 @@ struct obj *otmp;
         otmp = otmp->nobj;
     }
     return 0L;
+}
+
+void hack_first_init()
+{
+    s_skates = 0;
+    s_inspoteffects = 0;
+    s_spottrap = (struct trap *) 0;
+    s_spottraptyp = NO_TRAP;
 }
 
 /*hack.c*/

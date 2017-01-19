@@ -3789,10 +3789,11 @@ static struct other_opts {
 };
 
 /* the 'O' command */
+static boolean s_made_fmtstr = FALSE;
+
 int
 doset() /* changing options via menu by Per Liboriussen */
 {
-    static boolean made_fmtstr = FALSE;
     char buf[BUFSZ], buf2[BUFSZ];
     const char *name;
     int i = 0, pass, boolcount, pick_cnt, pick_idx, opt_indx;
@@ -3817,7 +3818,7 @@ doset() /* changing options via menu by Per Liboriussen */
         startpass = DISP_IN_GAME;
     endpass = (wizard) ? SET_IN_WIZGAME : SET_IN_GAME;
 
-    if (!made_fmtstr && !iflags.menu_tab_sep) {
+    if (!s_made_fmtstr && !iflags.menu_tab_sep) {
         /* spin through the options to find the longest name
            and adjust the format string accordingly */
         longest_name_len = 0;
@@ -3843,7 +3844,7 @@ doset() /* changing options via menu by Per Liboriussen */
                     longest_name_len = strlen(name);
             }
         Sprintf(fmtstr_doset, "%%s%%-%us [%%s]", longest_name_len);
-        made_fmtstr = TRUE;
+        s_made_fmtstr = TRUE;
     }
 
     any = zeroany;
@@ -5524,37 +5525,38 @@ option_help()
  * prints the next boolean option, on the same line if possible, on a new
  * line if not. End with next_opt("").
  */
+static char *s_buf = 0;
+
 void
 next_opt(datawin, str)
 winid datawin;
 const char *str;
 {
-    static char *buf = 0;
     int i;
     char *s;
 
-    if (!buf)
-        *(buf = (char *) alloc(BUFSZ)) = '\0';
+    if (!s_buf)
+        *(s_buf = (char *) alloc(BUFSZ)) = '\0';
 
     if (!*str) {
-        s = eos(buf);
-        if (s > &buf[1] && s[-2] == ',')
+        s = eos(s_buf);
+        if (s > &s_buf[1] && s[-2] == ',')
             Strcpy(s - 2, "."); /* replace last ", " */
         i = COLNO;              /* (greater than COLNO - 2) */
     } else {
-        i = strlen(buf) + strlen(str) + 2;
+        i = strlen(s_buf) + strlen(str) + 2;
     }
 
     if (i > COLNO - 2) { /* rule of thumb */
-        putstr(datawin, 0, buf);
-        buf[0] = 0;
+        putstr(datawin, 0, s_buf);
+        s_buf[0] = 0;
     }
     if (*str) {
-        Strcat(buf, str);
-        Strcat(buf, ", ");
+        Strcat(s_buf, str);
+        Strcat(s_buf, ", ");
     } else {
         putstr(datawin, 0, str);
-        free((genericptr_t) buf), buf = 0;
+        free((genericptr_t)s_buf), s_buf = 0;
     }
     return;
 }
@@ -6123,5 +6125,12 @@ set_playmode()
 }
 
 #endif /* OPTION_LISTS_ONLY */
+
+void
+options_first_init()
+{
+    s_made_fmtstr = FALSE;
+    s_buf = 0;
+}
 
 /*options.c*/

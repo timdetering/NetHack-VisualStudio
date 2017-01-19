@@ -901,11 +901,12 @@ static struct tmp_glyph {
     struct tmp_glyph *prev;
 } tgfirst;
 
+static struct tmp_glyph *s_tglyph = (struct tmp_glyph *) 0;
+
 void
 tmp_at(x, y)
 int x, y;
 {
-    static struct tmp_glyph *tglyph = (struct tmp_glyph *) 0;
     struct tmp_glyph *tmp;
 
     switch (x) {
@@ -913,24 +914,24 @@ int x, y;
     case DISP_ALL:
     case DISP_FLASH:
     case DISP_ALWAYS:
-        if (!tglyph)
+        if (!s_tglyph)
             tmp = &tgfirst;
         else /* nested effect; we need dynamic memory */
             tmp = (struct tmp_glyph *) alloc(sizeof(struct tmp_glyph));
-        tmp->prev = tglyph;
-        tglyph = tmp;
-        tglyph->sidx = 0;
-        tglyph->style = x;
-        tglyph->glyph = y;
+        tmp->prev = s_tglyph;
+        s_tglyph = tmp;
+        s_tglyph->sidx = 0;
+        s_tglyph->style = x;
+        s_tglyph->glyph = y;
         flush_screen(0); /* flush buffered glyphs */
         return;
 
     case DISP_FREEMEM: /* in case game ends with tmp_at() in progress */
-        while (tglyph) {
-            tmp = tglyph->prev;
-            if (tglyph != &tgfirst)
-                free((genericptr_t) tglyph);
-            tglyph = tmp;
+        while (s_tglyph) {
+            tmp = s_tglyph->prev;
+            if (s_tglyph != &tgfirst)
+                free((genericptr_t) s_tglyph);
+            s_tglyph = tmp;
         }
         return;
 
@@ -938,57 +939,57 @@ int x, y;
         break;
     }
 
-    if (!tglyph)
-        panic("tmp_at: tglyph not initialized");
+    if (!s_tglyph)
+        panic("tmp_at: s_tglyph not initialized");
 
     switch (x) {
     case DISP_CHANGE:
-        tglyph->glyph = y;
+        s_tglyph->glyph = y;
         break;
 
     case DISP_END:
-        if (tglyph->style == DISP_BEAM || tglyph->style == DISP_ALL) {
+        if (s_tglyph->style == DISP_BEAM || s_tglyph->style == DISP_ALL) {
             register int i;
 
             /* Erase (reset) from source to end */
-            for (i = 0; i < tglyph->sidx; i++)
-                newsym(tglyph->saved[i].x, tglyph->saved[i].y);
+            for (i = 0; i < s_tglyph->sidx; i++)
+                newsym(s_tglyph->saved[i].x, s_tglyph->saved[i].y);
         } else {              /* DISP_FLASH or DISP_ALWAYS */
-            if (tglyph->sidx) /* been called at least once */
-                newsym(tglyph->saved[0].x, tglyph->saved[0].y);
+            if (s_tglyph->sidx) /* been called at least once */
+                newsym(s_tglyph->saved[0].x, s_tglyph->saved[0].y);
         }
-        /* tglyph->sidx = 0; -- about to be freed, so not necessary */
-        tmp = tglyph->prev;
-        if (tglyph != &tgfirst)
-            free((genericptr_t) tglyph);
-        tglyph = tmp;
+        /* s_tglyph->sidx = 0; -- about to be freed, so not necessary */
+        tmp = s_tglyph->prev;
+        if (s_tglyph != &tgfirst)
+            free((genericptr_t) s_tglyph);
+        s_tglyph = tmp;
         break;
 
     default: /* do it */
         if (!isok(x, y))
             break;
-        if (tglyph->style == DISP_BEAM || tglyph->style == DISP_ALL) {
-            if (tglyph->style != DISP_ALL && !cansee(x, y))
+        if (s_tglyph->style == DISP_BEAM || s_tglyph->style == DISP_ALL) {
+            if (s_tglyph->style != DISP_ALL && !cansee(x, y))
                 break;
-            if (tglyph->sidx >= TMP_AT_MAX_GLYPHS)
+            if (s_tglyph->sidx >= TMP_AT_MAX_GLYPHS)
                 break; /* too many locations */
             /* save pos for later erasing */
-            tglyph->saved[tglyph->sidx].x = x;
-            tglyph->saved[tglyph->sidx].y = y;
-            tglyph->sidx += 1;
+            s_tglyph->saved[s_tglyph->sidx].x = x;
+            s_tglyph->saved[s_tglyph->sidx].y = y;
+            s_tglyph->sidx += 1;
         } else {                /* DISP_FLASH/ALWAYS */
-            if (tglyph->sidx) { /* not first call, so reset previous pos */
-                newsym(tglyph->saved[0].x, tglyph->saved[0].y);
-                tglyph->sidx = 0; /* display is presently up to date */
+            if (s_tglyph->sidx) { /* not first call, so reset previous pos */
+                newsym(s_tglyph->saved[0].x, s_tglyph->saved[0].y);
+                s_tglyph->sidx = 0; /* display is presently up to date */
             }
-            if (!cansee(x, y) && tglyph->style != DISP_ALWAYS)
+            if (!cansee(x, y) && s_tglyph->style != DISP_ALWAYS)
                 break;
-            tglyph->saved[0].x = x;
-            tglyph->saved[0].y = y;
-            tglyph->sidx = 1;
+            s_tglyph->saved[0].x = x;
+            s_tglyph->saved[0].y = y;
+            s_tglyph->sidx = 1;
         }
 
-        show_glyph(x, y, tglyph->glyph); /* show it */
+        show_glyph(x, y, s_tglyph->glyph); /* show it */
         flush_screen(0);                 /* make sure it shows up */
         break;
     } /* end case */
@@ -1466,25 +1467,29 @@ int start, stop, y;
             print_glyph(WIN_MAP, x, y, gbuf[y][x].glyph, get_bk_glyph(x,y));
 }
 
+static boolean s_in_cls = 0;
+
 void
 cls()
 {
-    static boolean in_cls = 0;
-
-    if (in_cls)
+    if (s_in_cls)
         return;
-    in_cls = TRUE;
+    s_in_cls = TRUE;
     display_nhwindow(WIN_MESSAGE, FALSE); /* flush messages */
     context.botlx = 1;                    /* force update of botl window */
     clear_nhwindow(WIN_MAP);              /* clear physical screen */
 
     clear_glyph_buffer(); /* this is sort of an extra effort, but OK */
-    in_cls = FALSE;
+    s_in_cls = FALSE;
 }
 
 /*
  * Synch the third screen with the display.
  */
+
+static boolean s_flushing = 0;
+static boolean s_delay_flushing = 0;
+
 void
 flush_screen(cursor_on_u)
 int cursor_on_u;
@@ -1492,17 +1497,15 @@ int cursor_on_u;
     /* Prevent infinite loops on errors:
      *      flush_screen->print_glyph->impossible->pline->flush_screen
      */
-    static boolean flushing = 0;
-    static boolean delay_flushing = 0;
     register int x, y;
 
     if (cursor_on_u == -1)
-        delay_flushing = !delay_flushing;
-    if (delay_flushing)
+        s_delay_flushing = !s_delay_flushing;
+    if (s_delay_flushing)
         return;
-    if (flushing)
+    if (s_flushing)
         return; /* if already flushing then return */
-    flushing = 1;
+    s_flushing = 1;
 #ifdef HANGUPHANDLING
     if (program_state.done_hup)
         return;
@@ -1521,7 +1524,7 @@ int cursor_on_u;
         curs(WIN_MAP, u.ux, u.uy); /* move cursor to the hero */
     display_nhwindow(WIN_MAP, FALSE);
     reset_glyph_bbox();
-    flushing = 0;
+    s_flushing = 0;
     if (context.botl || context.botlx)
         bot();
 }
@@ -2484,6 +2487,15 @@ struct rm *lev;
         idx = S_stone;
     }
     return idx;
+}
+
+void
+display_first_init()
+{
+    s_tglyph = NULL;
+    s_in_cls = 0;
+    s_flushing = 0;
+    s_delay_flushing = 0;
 }
 
 /*display.c*/

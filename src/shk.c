@@ -682,6 +682,8 @@ char *enterstring;
 }
 
 /* called when removing a pick-axe or mattock from a container */
+static NEARDATA long s_pickmovetime = 0L;
+
 void
 pick_pick(obj)
 struct obj *obj;
@@ -692,11 +694,10 @@ struct obj *obj;
         return;
     shkp = shop_keeper(*u.ushops);
     if (shkp && inhishop(shkp)) {
-        static NEARDATA long pickmovetime = 0L;
 
         /* if you bring a sack of N picks into a shop to sell,
            don't repeat this N times when they're taken out */
-        if (moves != pickmovetime) {
+        if (moves != s_pickmovetime) {
             if (!Deaf && !muteshk(shkp))
                 verbalize("You sneaky %s!  Get out of here with that pick!",
                       cad(FALSE));
@@ -706,7 +707,7 @@ struct obj *obj;
                       haseyes(shkp->data) ? "glares at"
                                           : "is dismayed because of");
         }
-        pickmovetime = moves;
+        s_pickmovetime = moves;
     }
 }
 
@@ -4589,6 +4590,7 @@ shk_first_init()
     sell_response = 'a';
     sell_how = SELL_NORMAL;
     auto_credit = FALSE;
+    s_pickmovetime = 0L;
 }
 
 /*shk.c*/

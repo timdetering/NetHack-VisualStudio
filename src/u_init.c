@@ -706,7 +706,7 @@ u_init()
         skill_init(Skill_K);
         break;
     case PM_MONK: {
-        static short M_spell[] = { SPE_HEALING, SPE_PROTECTION, SPE_SLEEP };
+        static const short M_spell[] = { SPE_HEALING, SPE_PROTECTION, SPE_SLEEP };
 
         Monk[M_BOOK].trotyp = M_spell[rn2(90) / 30]; /* [0..2] */
         ini_inv(Monk);
@@ -963,6 +963,11 @@ int otyp;
     return TRUE;
 }
 
+static NEARDATA short s_nocreate = STRANGE_OBJECT;
+static NEARDATA short s_nocreate2 = STRANGE_OBJECT;
+static NEARDATA short s_nocreate3 = STRANGE_OBJECT;
+static NEARDATA short s_nocreate4 = STRANGE_OBJECT;
+
 STATIC_OVL void
 ini_inv(trop)
 register struct trobj *trop;
@@ -984,10 +989,6 @@ register struct trobj *trop;
             }
             obj = mksobj(otyp, TRUE, FALSE);
         } else { /* UNDEF_TYP */
-            static NEARDATA short nocreate = STRANGE_OBJECT;
-            static NEARDATA short nocreate2 = STRANGE_OBJECT;
-            static NEARDATA short nocreate3 = STRANGE_OBJECT;
-            static NEARDATA short nocreate4 = STRANGE_OBJECT;
             /*
              * For random objects, do not create certain overly powerful
              * items: wand of wishing, ring of levitation, or the
@@ -1000,9 +1001,9 @@ register struct trobj *trop;
              */
             obj = mkobj(trop->trclass, FALSE);
             otyp = obj->otyp;
-            while (otyp == WAN_WISHING || otyp == nocreate
-                   || otyp == nocreate2 || otyp == nocreate3
-                   || otyp == nocreate4 || otyp == RIN_LEVITATION
+            while (otyp == WAN_WISHING || otyp == s_nocreate
+                   || otyp == s_nocreate2 || otyp == s_nocreate3
+                   || otyp == s_nocreate4 || otyp == RIN_LEVITATION
                    /* 'useless' items */
                    || otyp == POT_HALLUCINATION
                    || otyp == POT_ACID
@@ -1044,16 +1045,16 @@ register struct trobj *trop;
             case WAN_POLYMORPH:
             case RIN_POLYMORPH:
             case POT_POLYMORPH:
-                nocreate = RIN_POLYMORPH_CONTROL;
+                s_nocreate = RIN_POLYMORPH_CONTROL;
                 break;
             case RIN_POLYMORPH_CONTROL:
-                nocreate = RIN_POLYMORPH;
-                nocreate2 = SPE_POLYMORPH;
-                nocreate3 = POT_POLYMORPH;
+                s_nocreate = RIN_POLYMORPH;
+                s_nocreate2 = SPE_POLYMORPH;
+                s_nocreate3 = POT_POLYMORPH;
             }
             /* Don't have 2 of the same ring or spellbook */
             if (obj->oclass == RING_CLASS || obj->oclass == SPBOOK_CLASS)
-                nocreate4 = otyp;
+                s_nocreate4 = otyp;
         }
 
         /* nudist gets no armor */
@@ -1143,6 +1144,15 @@ register struct trobj *trop;
 #endif
         trop++;
     }
+}
+
+void
+uinit_first_init()
+{
+    s_nocreate = STRANGE_OBJECT;
+    s_nocreate2 = STRANGE_OBJECT;
+    s_nocreate3 = STRANGE_OBJECT;
+    s_nocreate4 = STRANGE_OBJECT;
 }
 
 /*u_init.c*/

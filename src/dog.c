@@ -146,6 +146,8 @@ boolean quietly;
     return mtmp;
 }
 
+static int s_petname_used = 0;
+
 struct monst *
 makedog()
 {
@@ -153,7 +155,6 @@ makedog()
     register struct obj *otmp;
     const char *petname;
     int pettype;
-    static int petname_used = 0;
 
     if (preferred_pet == 'n')
         return ((struct monst *) 0);
@@ -191,7 +192,7 @@ makedog()
         put_saddle_on_mon(otmp, mtmp);
     }
 
-    if (!petname_used++ && *petname)
+    if (!s_petname_used++ && *petname)
         mtmp = christen_monst(mtmp, petname);
 
     initedog(mtmp);
@@ -1052,6 +1053,12 @@ struct monst *mtmp;
         if (!mtmp->mtame)
             newsym(mtmp->mx, mtmp->my);
     }
+}
+
+void
+dog_first_init()
+{
+    s_petname_used = 0;
 }
 
 /*dog.c*/

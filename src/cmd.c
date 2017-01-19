@@ -3717,10 +3717,10 @@ boolean initial;
     const struct ext_func_tab *cmdtmp;
     boolean flagtemp;
     int c, i, updated = 0;
-    static boolean backed_dir_cmd = FALSE;
+    static boolean s_backed_dir_cmd;
 
     if (initial) {
-        backed_dir_cmd = FALSE;
+        s_backed_dir_cmd = FALSE;
         updated = 1;
         Cmd.num_pad = FALSE;
         Cmd.pcHack_compat = Cmd.phone_layout = Cmd.swap_yz = FALSE;
@@ -3729,7 +3729,7 @@ boolean initial;
         commands_init();
     } else {
 
-        if (backed_dir_cmd) {
+        if (s_backed_dir_cmd) {
             for (i = 0; i < 8; i++) {
                 Cmd.commands[(uchar) Cmd.dirchars[i]] = back_dir_cmd[i];
             }
@@ -3810,7 +3810,7 @@ boolean initial;
                 (struct ext_func_tab *) Cmd.commands[(uchar) Cmd.dirchars[i]];
             Cmd.commands[(uchar) Cmd.dirchars[i]] = (struct ext_func_tab *) 0;
         }
-        backed_dir_cmd = TRUE;
+        s_backed_dir_cmd = TRUE;
         for (i = 0; i < 8; i++)
             bind_key(Cmd.dirchars[i], "nothing");
     }

@@ -350,6 +350,7 @@ E int FDECL(glyph_at, (XCHAR_P, XCHAR_P));
 E void NDECL(set_wall_state);
 E void FDECL(unset_seenv, (struct rm *, int, int, int, int));
 E int FDECL(warning_of, (struct monst *));
+E void NDECL(display_first_init);
 
 /* ### do.c ### */
 
@@ -492,6 +493,7 @@ E int FDECL(dogfood, (struct monst *, struct obj *));
 E boolean FDECL(tamedog, (struct monst *, struct obj *));
 E void FDECL(abuse_dog, (struct monst *));
 E void FDECL(wary_dog, (struct monst *, BOOLEAN_P));
+E void NDECL(dog_first_init);
 
 /* ### dogmove.c ### */
 
@@ -535,6 +537,7 @@ E boolean FDECL(breaktest, (struct obj *));
 E boolean FDECL(walk_path, (coord *, coord *,
                             boolean (*)(genericptr, int, int), genericptr_t));
 E boolean FDECL(hurtle_step, (genericptr_t, int, int));
+E void NDECL(dothrow_first_init);
 
 /* ### drawing.c ### */
 #endif /* !MAKEDEFS_C && !LEV_LEX_C */
@@ -857,6 +860,7 @@ E int NDECL(max_capacity);
 E boolean FDECL(check_capacity, (const char *));
 E int FDECL(inv_cnt, (BOOLEAN_P));
 E long FDECL(money_cnt, (struct obj *));
+E void NDECL(hack_first_init);
 
 /* ### hacklib.c ### */
 
@@ -1724,6 +1728,7 @@ E boolean FDECL(msgtype_parse_add, (char *));
 E int FDECL(msgtype_type, (const char *, BOOLEAN_P));
 E void FDECL(hide_unhide_msgtypes, (BOOLEAN_P, int));
 E void NDECL(msgtype_free);
+E void NDECL(options_first_init);
 
 /* ### pager.c ### */
 
@@ -1740,6 +1745,7 @@ E int NDECL(dowhatdoes);
 E char *FDECL(dowhatdoes_core, (CHAR_P, char *));
 E int NDECL(dohelp);
 E int NDECL(dohistory);
+E void NDECL(pager_first_init);
 
 /* ### pcmain.c ### */
 
@@ -1822,6 +1828,7 @@ E int FDECL(use_container, (struct obj **, int, BOOLEAN_P));
 E int FDECL(loot_mon, (struct monst *, int *, boolean *));
 E int NDECL(dotip);
 E boolean FDECL(is_autopickup_exception, (struct obj *, BOOLEAN_P));
+E void NDECL(pickup_first_init);
 
 /* ### pline.c ### */
 
@@ -2089,7 +2096,7 @@ E boolean FDECL(setrolefilter, (const char *));
 E boolean NDECL(gotrolefilter);
 E void NDECL(clearrolefilter);
 E char *FDECL(build_plselection_prompt, (char *, int, int, int, int, int));
-E char *FDECL(root_plselection_prompt, (char *, int, int, int, int, int));
+E const char *FDECL(root_plselection_prompt, (char *, int, int, int, int, int));
 E void NDECL(plnamesuffix);
 E void FDECL(role_selection_prolog, (int, winid));
 E void FDECL(role_menu_extra, (int, winid, BOOLEAN_P));
@@ -2453,6 +2460,7 @@ E void NDECL(trap_first_init);
 /* ### u_init.c ### */
 
 E void NDECL(u_init);
+E void NDECL(uinit_first_init);
 
 /* ### uhitm.c ### */
 

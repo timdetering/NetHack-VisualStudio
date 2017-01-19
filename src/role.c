@@ -1464,7 +1464,7 @@ int racenum;
     return aligncount;
 }
 
-char *
+const char *
 root_plselection_prompt(suppliedbuf, buflen, rolenum, racenum, gendnum,
                         alignnum)
 char *suppliedbuf;
@@ -1472,7 +1472,7 @@ int buflen, rolenum, racenum, gendnum, alignnum;
 {
     int k, gendercount = 0, aligncount = 0;
     char buf[BUFSZ];
-    static char err_ret[] = " character's";
+    static const char err_ret[] = " character's";
     boolean donefirst = FALSE;
 
     if (!suppliedbuf || buflen < 1)

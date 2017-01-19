@@ -1795,6 +1795,10 @@ xchar x, y;
  * Unconditionally break an object. Assumes all resistance checks
  * and break messages have been delivered prior to getting here.
  */
+
+static NEARDATA long s_lastmovetime = 0L;
+static NEARDATA boolean s_peaceful_shk = FALSE;
+
 void
 breakobj(obj, x, y, hero_caused, from_invent)
 struct obj *obj;
@@ -1860,19 +1864,17 @@ boolean from_invent;
             struct monst *shkp = shop_keeper(*o_shop);
 
             if (shkp) { /* (implies *o_shop != '\0') */
-                static NEARDATA long lastmovetime = 0L;
-                static NEARDATA boolean peaceful_shk = FALSE;
                 /*  We want to base shk actions on her peacefulness
                     at start of this turn, so that "simultaneous"
                     multiple breakage isn't drastically worse than
                     single breakage.  (ought to be done via ESHK)  */
-                if (moves != lastmovetime)
-                    peaceful_shk = shkp->mpeaceful;
-                if (stolen_value(obj, x, y, peaceful_shk, FALSE) > 0L
+                if (moves != s_lastmovetime)
+                    s_peaceful_shk = shkp->mpeaceful;
+                if (stolen_value(obj, x, y, s_peaceful_shk, FALSE) > 0L
                     && (*o_shop != u.ushops[0] || !inside_shop(u.ux, u.uy))
-                    && moves != lastmovetime)
+                    && moves != s_lastmovetime)
                     make_angry_shk(shkp, x, y);
-                lastmovetime = moves;
+                s_lastmovetime = moves;
             }
         }
     }
@@ -2016,6 +2018,13 @@ struct obj *obj;
     stackobj(obj);
     newsym(bhitpos.x, bhitpos.y);
     return 1;
+}
+
+void
+dothrow_first_init()
+{
+    s_lastmovetime = 0L;
+    s_peaceful_shk = FALSE;
 }
 
 /*dothrow.c*/

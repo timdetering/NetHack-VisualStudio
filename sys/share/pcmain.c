@@ -848,9 +848,9 @@ char *dir;
 boolean wr;
 {
 #ifdef AMIGA
-    static char thisdir[] = "";
+    static const char thisdir[] = "";
 #else
-    static char thisdir[] = ".";
+    static const char thisdir[] = ".";
 #endif
     if (dir && chdir(dir) < 0) {
         error("Cannot chdir to %s.", dir);

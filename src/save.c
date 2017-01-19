@@ -364,11 +364,11 @@ char *whynot;
 }
 
 #ifdef INSURANCE
+static boolean s_havestate = TRUE;
 void
 savestateinlock()
 {
     int fd, hpid;
-    static boolean havestate = TRUE;
     char whynot[BUFSZ];
 
     /* When checkpointing is on, the full state needs to be written
@@ -382,7 +382,7 @@ savestateinlock()
      * noop pid rewriting will take place on the first "checkpoint" after
      * the game is started or restored, if checkpointing is off.
      */
-    if (flags.ins_chkpt || havestate) {
+    if (flags.ins_chkpt || s_havestate) {
         /* save the rest of the current game state in the lock file,
          * following the original int pid, the current level number,
          * and the current savefile name, which should not be subject
@@ -426,7 +426,7 @@ savestateinlock()
         }
         bclose(fd);
     }
-    havestate = flags.ins_chkpt;
+    s_havestate = flags.ins_chkpt;
 }
 #endif
 
@@ -1519,5 +1519,9 @@ save_first_init()
     ustuck_id = 0;
     usteed_id = 0;
     buffering = FALSE;
+#ifdef INSURANCE
+    s_havestate = TRUE;
+#endif
+
 }
 /*save.c*/
