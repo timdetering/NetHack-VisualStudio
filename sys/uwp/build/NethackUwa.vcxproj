@@ -123,7 +123,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <PackageCertificateKeyFile>NethackUwa_StoreKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateKeyFile>uwpstorekey.pfx</PackageCertificateKeyFile>
     <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
     <AppxBundle>Always</AppxBundle>
     <AppxBundlePlatforms>x86|x64</AppxBundlePlatforms>
@@ -1236,7 +1236,7 @@
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="$(SysDir)uwp\uwpkey.pfx" />
-    <None Include="NethackUwa_StoreKey.pfx" />
+    <None Include="uwpstorekey.pfx" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\uwppixelshader.hlsl">
