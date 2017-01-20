@@ -23,6 +23,7 @@ Contents
 2. ALT Key Combinations
 3. Boolean options - Option that you can toggle on or off
 4. Numeric Keypad (for number_pad mode)
+5. Color palette
 
 
 1. Main Menu
@@ -134,3 +135,29 @@ most of these keys:
       When you use the Ctrl key with a directional key (1, 2, 3, 4, 6, 7, 8, 9)
 	  it means "go in specified direction until you hit a wall or run into
 	  something interesting."
+	  
+5. Color Palette
+------------------------------------------------
+The color palette can be set in either the defaults.nh file or by setting
+NETHACKOPTIONS.  The format of the options is:
+  palette:<color-name>-red-green-blue
+  
+Here for example is how to set the entire palette.
+
+OPTIONS=palette:black-0-0-0
+OPTIONS=palette:red-210-0-0
+OPTIONS=palette:green-80-200-0
+OPTIONS=palette:brown-180-100-0
+OPTIONS=palette:blue-0-0-200
+OPTIONS=palette:magenta-128-0-128
+OPTIONS=palette:cyan-50-180-180
+OPTIONS=palette:gray-192-192-192
+OPTIONS=palette:dark gray-100-100-100
+OPTIONS=palette:orange-255-128-0
+OPTIONS=palette:bright green-0-255-0
+OPTIONS=palette:yellow-255-255-0
+OPTIONS=palette:bright blue-100-100-240
+OPTIONS=palette:bright magenta-255-0-255
+OPTIONS=palette:bright cyan-0-255-255
+OPTIONS=palette:white-255-255-255
+
