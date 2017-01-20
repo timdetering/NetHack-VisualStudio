@@ -17,9 +17,9 @@
 #include <concrt.h>
 
 #include "uwpglobals.h"
-#include "..\content\ShaderStructures.h"
-#include "DirectXHelper.h"
-#include "TextGrid.h"
+#include "uwpshaderstructures.h"
+#include "uwpdxhelper.h"
+#include "uwptextgrid.h"
 
 #include <memory.h>
 #include <assert.h>
@@ -411,9 +411,9 @@ namespace Nethack
         assert(m_deviceResources != nullptr);
 
         // Load shaders asynchronously.
-        auto loadVSTask = DX::ReadDataAsync(L"SampleVertexShader.cso");
-        auto loadPSTask = DX::ReadDataAsync(L"SamplePixelShader.cso");
-        auto loadSolidPSTask = DX::ReadDataAsync(L"SolidPixelShader.cso");
+        auto loadVSTask = DX::ReadDataAsync(L"uwpvertexshader.cso");
+        auto loadPSTask = DX::ReadDataAsync(L"uwppixelshader.cso");
+        auto loadSolidPSTask = DX::ReadDataAsync(L"uwpsolidpixelshader.cso");
 
         // After the vertex shader file is loaded, create the shader and input layout.
         auto createVSTask = loadVSTask.then([this](const std::vector<byte>& fileData) {

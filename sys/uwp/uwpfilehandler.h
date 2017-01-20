@@ -2,8 +2,9 @@
 
 #include <windows.h>
 #include <string>
-#include "common\uwplock.h"
-#include "common\uwpconditionvariable.h"
+
+#include "uwplock.h"
+#include "uwpconditionvariable.h"
 
 namespace Nethack
 {

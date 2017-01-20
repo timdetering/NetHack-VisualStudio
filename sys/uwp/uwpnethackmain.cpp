@@ -19,17 +19,11 @@
 #include <concrt.h>
 #include <math.h>
 
-#include "NethackMain.h"
-#include "Common\DirectXHelper.h"
-#include "common\uwpglobals.h"
-#include "common\uwpeventqueue.h"
-#include "common\ScaneCode.h"
-
-#ifdef NEWCODE
-#include "..\..\win\w8\w8_console.h"
-#include "..\..\win\w8\w8_procs.h"
-#include "..\..\win\w8\w8_window.h"
-#endif
+#include "uwpnethackmain.h"
+#include "uwpdxhelper.h"
+#include "uwpglobals.h"
+#include "uwpeventqueue.h"
+#include "uwpscancode.h"
 
 using namespace Nethack;
 using namespace Windows::Foundation;

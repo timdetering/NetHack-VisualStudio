@@ -1,7 +1,7 @@
 
 #include "..\..\sys\uwp\uwp.h"
-#include "..\..\sys\uwp\common\TextGrid.h"
-#include "..\..\sys\uwp\common\uwpglobals.h"
+#include "..\..\sys\uwp\uwptextgrid.h"
+#include "..\..\sys\uwp\uwpglobals.h"
 
 extern "C" {
 

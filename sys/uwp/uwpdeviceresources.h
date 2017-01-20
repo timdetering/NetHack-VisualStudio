@@ -24,12 +24,10 @@
 #include <agile.h>
 #include <concrt.h>
 
-#include "MyMath.h"
-
 #include <memory>
 
-#include "..\uwpasciitexture.h"
-
+#include "uwpasciitexture.h"
+#include "uwpmath.h"
 
 namespace DX
 {

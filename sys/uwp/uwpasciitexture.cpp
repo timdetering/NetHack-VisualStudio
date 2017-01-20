@@ -34,11 +34,10 @@
 #include <concrt.h>
 
 #include "uwpasciitexture.h"
-
-#include "common\DirectXHelper.h"
-#include "common\DeviceResources.h"
+#include "uwpdxhelper.h"
+#include "uwpdeviceresources.h"
 #include "uwputil.h"
-#include "common\uwpglobals.h"
+#include "uwpglobals.h"
 
 using namespace D2D1;
 using namespace DirectX;

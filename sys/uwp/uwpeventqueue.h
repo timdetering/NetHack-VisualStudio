@@ -6,11 +6,10 @@
 
 #include <list>
 
+#include "uwpmath.h"
+#include "uwpscancode.h"
 #include "uwplock.h"
 #include "uwpconditionvariable.h"
-#include "MyMath.h"
-#include "ScaneCode.h"
-#include "VirtualKey.h"
 
 namespace Nethack
 {

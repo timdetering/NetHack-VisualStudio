@@ -364,17 +364,8 @@
     <ClCompile Include="$(SrcDir)sys.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="$(SysDir)uwp\App.cpp">
-      <Filter>sys\uwp</Filter>
-    </ClCompile>
     <ClCompile Include="$(SysShareDir)cppregex.cpp">
       <Filter>sys\share</Filter>
-    </ClCompile>
-    <ClCompile Include="$(SysDir)uwp\common\DeviceResources.cpp">
-      <Filter>sys\uwp\common</Filter>
-    </ClCompile>
-    <ClCompile Include="$(SysDir)uwp\NethackMain.cpp">
-      <Filter>sys\uwp</Filter>
     </ClCompile>
     <ClCompile Include="$(SysDir)uwp\uwp.cpp">
       <Filter>sys\uwp</Filter>
@@ -382,29 +373,11 @@
     <ClCompile Include="$(WinTtyDir)topl.c">
       <Filter>win\tty</Filter>
     </ClCompile>
-    <ClCompile Include="..\common\TextGrid.cpp">
-      <Filter>sys\uwp\common</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\share\nhlan.c">
       <Filter>sys\share</Filter>
     </ClCompile>
     <ClCompile Include="..\uwpmain.c">
       <Filter>sys\uwp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\CellBuffer.cpp">
-      <Filter>sys\uwp\common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\uwplock.cpp">
-      <Filter>sys\uwp\common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\uwpgloabls.cpp">
-      <Filter>sys\uwp\common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\uwpunix.c">
-      <Filter>sys\uwp\common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\uwpoption.cpp">
-      <Filter>sys\uwp\common</Filter>
     </ClCompile>
     <ClCompile Include="..\uwpfilehandler.cpp">
       <Filter>sys\uwp</Filter>
@@ -433,6 +406,15 @@
     <ClCompile Include="..\uwpcolor.cpp">
       <Filter>sys\uwp</Filter>
     </ClCompile>
+    <ClCompile Include="$(SysDir)uwp\uwpapp.cpp" />
+    <ClCompile Include="$(SysDir)uwp\uwpdeviceresources.cpp" />
+    <ClCompile Include="$(SysDir)uwp\uwpnethackmain.cpp" />
+    <ClCompile Include="..\uwpcellbuffer.cpp" />
+    <ClCompile Include="..\uwpgloabls.cpp" />
+    <ClCompile Include="..\uwplock.cpp" />
+    <ClCompile Include="..\uwptextgrid.cpp" />
+    <ClCompile Include="..\uwpoption.cpp" />
+    <ClCompile Include="..\uwpunix.c" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="$(SysDir)uwp\assets\StoreLogo.png">
@@ -484,9 +466,6 @@
     <None Include="$(SysUwpDir)defaults.nh">
       <Filter>sys\winnt</Filter>
     </None>
-    <None Include="$(SysDir)uwp\Nethack_TemporaryKey.pfx">
-      <Filter>sys\uwp</Filter>
-    </None>
     <None Include="$(DocDir)Guidebook.txt">
       <Filter>doc</Filter>
     </None>
@@ -498,17 +477,12 @@
     <None Include="$(SysUwpDir)nhdat">
       <Filter>sys\uwp</Filter>
     </None>
+    <None Include="$(SysDir)uwp\uwpkey.pfx" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\content\SamplePixelShader.hlsl">
-      <Filter>sys\uwp\content</Filter>
-    </FxCompile>
-    <FxCompile Include="..\content\SampleVertexShader.hlsl">
-      <Filter>sys\uwp\content</Filter>
-    </FxCompile>
-    <FxCompile Include="..\content\SolidPixelShader.hlsl">
-      <Filter>sys\uwp\content</Filter>
-    </FxCompile>
+    <FxCompile Include="..\uwppixelshader.hlsl" />
+    <FxCompile Include="..\uwpvertexshader.hlsl" />
+    <FxCompile Include="..\uwpsolidpixelshader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(RootDir)\include\align.h">
@@ -721,75 +695,34 @@
     <ClInclude Include="$(RootDir)\include\vis_tab.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="$(SysDir)uwp\App.h">
-      <Filter>sys\uwp</Filter>
-    </ClInclude>
-    <ClInclude Include="$(SysDir)uwp\common\DeviceResources.h">
-      <Filter>sys\uwp\common</Filter>
-    </ClInclude>
-    <ClInclude Include="$(SysDir)uwp\common\DirectXHelper.h">
-      <Filter>sys\uwp\common</Filter>
-    </ClInclude>
-    <ClInclude Include="$(SysDir)uwp\common\MyMath.h">
-      <Filter>sys\uwp\common</Filter>
-    </ClInclude>
-    <ClInclude Include="$(SysDir)uwp\content\ShaderStructures.h">
-      <Filter>sys\uwp\content</Filter>
-    </ClInclude>
-    <ClInclude Include="$(SysDir)uwp\common\StepTimer.h">
-      <Filter>sys\uwp\common</Filter>
-    </ClInclude>
-    <ClInclude Include="$(SysDir)uwp\NethackMain.h">
-      <Filter>sys\uwp</Filter>
-    </ClInclude>
     <ClInclude Include="$(SysDir)uwp\uwp.h">
       <Filter>sys\uwp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\TextGrid.h">
-      <Filter>sys\uwp\common</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\uwpconf.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\common\CellBuffer.h">
-      <Filter>sys\uwp\common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\uwplock.h">
-      <Filter>sys\uwp\common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\uwpglobals.h">
-      <Filter>sys\uwp\common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\uwpeventqueue.h">
-      <Filter>sys\uwp\common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\uwpoption.h">
-      <Filter>sys\uwp\common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\uwpfilehandler.h">
-      <Filter>sys\uwp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\uwputil.h">
-      <Filter>sys\uwp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\uwpconditionvariable.h">
-      <Filter>sys\uwp\common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\uwpfont.h">
-      <Filter>sys\uwp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\uwpasciitexture.h">
-      <Filter>sys\uwp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\common\ScaneCode.h">
-      <Filter>sys\uwp\common</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\win\uwp\winuwp.h">
       <Filter>win\uwp</Filter>
     </ClInclude>
-    <ClInclude Include="VirtualKey.h">
-      <Filter>sys\uwp\common</Filter>
-    </ClInclude>
+    <ClInclude Include="$(SysDir)uwp\uwpapp.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpdeviceresources.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpmath.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpnethackmain.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpsteptimer.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpshaderstructures.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpcellbuffer.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpscanecode.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpconditionvariable.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpeventqueue.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpglobals.h" />
+    <ClInclude Include="$(SysDir)uwp\uwplock.h" />
+    <ClInclude Include="$(SysDir)uwp\uwptextgrid.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpoption.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpasciitexture.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpfilehandler.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpfont.h" />
+    <ClInclude Include="$(SysDir)uwp\uwputil.h" />
+    <ClInclude Include="$(SysDir)uwp\uwpvirtualkey.h" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="$(SysDir)uwp\Package.appxmanifest">

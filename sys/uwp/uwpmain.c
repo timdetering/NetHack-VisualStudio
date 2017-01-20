@@ -20,8 +20,6 @@
 #include "win32api.h" /* for GetModuleFileName */
 #endif
 
-#include "common\uwpglobals.h"
-
 #ifndef NOCWD_ASSUMPTIONS
 #error NOCWD_ASSUMPTIONS must be defined
 #endif

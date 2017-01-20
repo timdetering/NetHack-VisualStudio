@@ -27,15 +27,6 @@
 
 #include "uwp.h"
 
-#include "common\uwpglobals.h"
-#include "common\CellBuffer.h"
-#include "common\TextGrid.h"
-#include "common\ScaneCode.h"
-#include "common\uwpoption.h"
-
-#include "uwpfilehandler.h"
-#include "uwputil.h"
-
 using namespace Nethack;
 
 extern "C"  {

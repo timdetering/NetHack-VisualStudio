@@ -5,7 +5,6 @@
 
 /* Implement system port functions needed by TTY_GRAPHICS */
 
-#include "common\uwpglobals.h"
 #include "uwp.h"
 
 extern "C" {

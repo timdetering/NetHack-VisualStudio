@@ -22,7 +22,8 @@
 
 #include <vector>
 #include <map>
-#include "common\MyMath.h"
+
+#include "uwpmath.h"
 
 namespace Nethack
 {

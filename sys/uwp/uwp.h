@@ -7,7 +7,20 @@
 
 #define ESCAPE 27
 
-#include "common\uwpeventqueue.h"
+#include "uwpglobals.h"
+#include "uwpcellbuffer.h"
+#include "uwptextgrid.h"
+#include "uwpscancode.h"
+#include "uwpoption.h"
+#include "uwpfilehandler.h"
+#include "uwputil.h"
+#include "uwpeventqueue.h"
+#include "uwplock.h"
+#include "uwpconditionvariable.h"
+#include "uwpmath.h"
+#include "uwpscancode.h"
+#include "uwpvirtualkey.h"
+
 
 extern"C" {
 

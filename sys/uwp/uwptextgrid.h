@@ -4,11 +4,11 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include "StepTimer.h"
-#include "DeviceResources.h"
-#include "MyMath.h"
+#include "uwpsteptimer.h"
+#include "uwpdeviceresources.h"
+#include "uwpmath.h"
 #include "uwplock.h"
-#include "..\content\ShaderStructures.h"
+#include "uwpshaderstructures.h"
 
 #include <memory>
 #include <vector>

@@ -1,7 +1,7 @@
 #include "uwputil.h"
 #include "uwpfont.h"
+#include "uwpdxhelper.h"
 
-#include "common\DirectXHelper.h"
 #include <string>
 #include <vector> 
 

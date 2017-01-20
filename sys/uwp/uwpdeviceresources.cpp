@@ -17,11 +17,11 @@
 #include <concrt.h>
 #include <math.h>
 
-#include "DeviceResources.h"
-#include "DirectXHelper.h"
-#include "..\uwpfont.h"
+#include "uwpdeviceresources.h"
+#include "uwpdxhelper.h"
+#include "uwpfont.h"
 #include "uwpglobals.h"
-#include "..\uwputil.h"
+#include "uwputil.h"
 
 using namespace D2D1;
 using namespace DirectX;

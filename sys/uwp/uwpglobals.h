@@ -10,9 +10,9 @@
 #include <string>
 
 #include "uwpeventqueue.h"
-#include "TextGrid.h"
+#include "uwptextgrid.h"
 #include "uwpoption.h"
-#include "..\uwpfont.h"
+#include "uwpfont.h"
 
 namespace Nethack
 {

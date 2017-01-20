@@ -3,7 +3,7 @@
 /* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
 
-#include "CellBuffer.h"
+#include "uwpcellbuffer.h"
 
 #include <Windows.h>
 

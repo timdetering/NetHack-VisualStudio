@@ -4,10 +4,10 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include "Common\StepTimer.h"
-#include "Common\DeviceResources.h"
-#include "common\TextGrid.h"
-#include "common\uwpeventqueue.h"
+#include "uwpsteptimer.h"
+#include "uwpdeviceresources.h"
+#include "uwptextgrid.h"
+#include "uwpeventqueue.h"
 
 #ifdef NEWCODE
 #include <list>
