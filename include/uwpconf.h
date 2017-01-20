@@ -52,6 +52,7 @@
 
 #define RANDOM    /* have Berkeley random(3) */
 #define TEXTCOLOR /* Color text */
+#define CHANGE_COLOR /* allow modifications to color palette */
 
 #define EXEPATH              /* Allow .exe location to be used as HACKDIR */
 #define TRADITIONAL_GLYPHMAP /* Store glyph mappings at level change time */

@@ -639,6 +639,7 @@ void add_option()
     if(validateoptions(buf, FALSE)) {
         Nethack::g_options.m_options.push_back(option);
         Nethack::g_options.Store();
+        g_textGrid.SetPaletteDefault();
         initoptions();
         process_font_map();
     }
@@ -677,6 +678,7 @@ void remove_options()
 
     if(count > 0) {
         Nethack::g_options.Store();
+        g_textGrid.SetPaletteDefault();
         initoptions();
         process_font_map();
     }
@@ -994,6 +996,7 @@ void mainloop(const char * localDir, const char * installDir)
 
         Nethack::g_options.Load(g_nethackOptionsFilePath);
 
+        g_textGrid.SetPaletteDefault();
         initoptions();
         process_font_map();
 

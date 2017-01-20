@@ -335,6 +335,7 @@
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</CompileAsWinRT>
     </ClCompile>
     <ClCompile Include="..\uwpasciitexture.cpp" />
+    <ClCompile Include="..\uwpcolor.cpp" />
     <ClCompile Include="..\uwpfilehandler.cpp" />
     <ClCompile Include="..\uwpfont.cpp" />
     <ClCompile Include="..\uwpmain.c">

@@ -16,6 +16,7 @@
 #include <agile.h>
 #include <concrt.h>
 
+#include "uwpglobals.h"
 #include "..\content\ShaderStructures.h"
 #include "DirectXHelper.h"
 #include "TextGrid.h"
@@ -27,27 +28,6 @@
 
 namespace Nethack
 {
-    #define RGB_TO_XMFLOAT3(r,g,b) { (float) r / (float) 0xff, (float) g / (float) 0xff, (float) b / (float) 0xff }
-
-    static DirectX::XMFLOAT3 s_colorTable[] = {
-            RGB_TO_XMFLOAT3(0x55, 0x55, 0x55), // black
-            RGB_TO_XMFLOAT3(0xFF, 0x00, 0x00), // red
-            RGB_TO_XMFLOAT3(0x00, 0x80, 0x00), // green
-            RGB_TO_XMFLOAT3(205, 133, 63), // brown
-            RGB_TO_XMFLOAT3(0x00, 0x00, 0xFF), // blue
-            RGB_TO_XMFLOAT3(0xFF, 0x00, 0xFF), // magenta
-            RGB_TO_XMFLOAT3(0x00, 0xFF, 0xFF), // cyan
-            RGB_TO_XMFLOAT3(0x80, 0x80, 0x80), // gray
-            RGB_TO_XMFLOAT3(0xFF, 0xFF, 0xFF), // bright
-            RGB_TO_XMFLOAT3(0xFF, 0xA5, 0x00), // orange
-            RGB_TO_XMFLOAT3(0x00, 0xFF, 0x00), // bright green
-            RGB_TO_XMFLOAT3(0xFF, 0xFF, 0x00), // yellow
-            RGB_TO_XMFLOAT3(0x00, 0xC0, 0xFF), // bright blue
-            RGB_TO_XMFLOAT3(0xFF, 0x80, 0xFF), // bright magenta
-            RGB_TO_XMFLOAT3(0x80, 0xFF, 0xFF), // bright cyan
-            RGB_TO_XMFLOAT3(0xFF, 0xFF, 0xFF) // white
-    };
-
 
     TextGrid::TextGrid(const Int2D & inGridDimensions) :
         m_gridDimensions(inGridDimensions),
@@ -62,7 +42,9 @@ namespace Nethack
         m_cellCount = m_gridDimensions.m_x * m_gridDimensions.m_y;
 
         m_cells.resize(m_cellCount);
-        
+
+        memcpy(m_colorTable, g_colorTable, sizeof(m_colorTable));
+
         Clear();
 
         m_vertexCount = m_cellCount * 6;
@@ -86,6 +68,21 @@ namespace Nethack
         m_cursorBlink = false;
         m_cursorBlinkTicks = ::GetTickCount64() + kCursorTicks;
 
+    }
+
+    void TextGrid::SetPalette(int i, unsigned char red, unsigned char green, unsigned char blue)
+    {
+        m_colorTable[i] = RGB_TO_XMFLOAT3(red, green, blue);
+    }
+
+    void TextGrid::SetPaletteDefault(int i)
+    {
+        m_colorTable[i] = g_colorTable[i];
+    }
+
+    void TextGrid::SetPaletteDefault()
+    {
+        memcpy(m_colorTable, g_colorTable, sizeof(m_colorTable));
     }
 
     void TextGrid::SetCursor(Int2D & cursor)
@@ -557,7 +554,7 @@ namespace Nethack
                     FloatRect glyphRect;
                     unsigned char c = textCell.m_char;
                     asciiTexture.GetGlyphRect(c, glyphRect);
-                    DirectX::XMFLOAT3 foregroundColor = s_colorTable[(int) textCell.m_color];
+                    DirectX::XMFLOAT3 foregroundColor = m_colorTable[(int) textCell.m_color];
                     DirectX::XMFLOAT3 backgroundColor = { 0.0f, 0.0f, 0.0f };
 
                     float rightScreenX = leftScreenX + m_cellScreenDimensions.m_x;
@@ -574,7 +571,7 @@ namespace Nethack
                     }
                     else if (textCell.m_attribute == TextAttribute::Inverse)
                     {
-                        backgroundColor = s_colorTable[(int)textCell.m_color];
+                        backgroundColor = m_colorTable[(int)textCell.m_color];
                         foregroundColor = { 0.0f, 0.0f, 0.0f };
                         pv = &invertedVertex;
                     }

@@ -16,6 +16,7 @@
 
 namespace Nethack
 {
+    extern const DirectX::XMFLOAT3 g_colorTable[];
     extern EventQueue       g_eventQueue;
     extern TextGrid         g_textGrid;
     extern jmp_buf          g_mainLoopJmpBuf;

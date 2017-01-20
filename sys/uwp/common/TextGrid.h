@@ -13,8 +13,12 @@
 #include <memory>
 #include <vector>
 
+#include <DirectXColors.h>
+
 namespace Nethack
 {
+
+#define RGB_TO_XMFLOAT3(r,g,b) { (float) r / (float) 0xff, (float) g / (float) 0xff, (float) b / (float) 0xff }
 
 #define ATR_NONE 0
 #define ATR_BOLD 1
@@ -86,7 +90,6 @@ namespace Nethack
     //
     // Class used to render text to te screen.
     //
-
     class TextGrid
     {
     public:
@@ -142,6 +145,10 @@ namespace Nethack
         void SetCursor(Int2D & cursor);
 
         void SetFontFamilyName(std::string & fontFamilyName);
+
+        void SetPalette(int i, unsigned char red, unsigned char green, unsigned char blue);
+        void SetPaletteDefault(int i);
+        void SetPaletteDefault();
 
     private:
 
@@ -199,5 +206,6 @@ namespace Nethack
 
         IntRect m_layoutRect;
 
+        DirectX::XMFLOAT3                           m_colorTable[(int)TextColor::Count];
     };
 }
