@@ -1,5 +1,5 @@
 /* NetHack 3.6	uwp.h	$NHDT-Date:  $  $NHDT-Branch:  $:$NHDT-Revision:  $ */
-/* Copyright (c) Bart House, 2016. */
+/* Copyright (c) Bart House, 2016-2017. */
 /* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -18,9 +18,6 @@
 #include "uwplock.h"
 #include "uwpconditionvariable.h"
 #include "uwpmath.h"
-#include "uwpscancode.h"
-#include "uwpvirtualkey.h"
-
 
 extern"C" {
 

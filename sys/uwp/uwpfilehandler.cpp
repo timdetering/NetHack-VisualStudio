@@ -1,3 +1,7 @@
+/* NetHack 3.6	uwpfilehandler.cpp	$NHDT-Date:  $  $NHDT-Branch:  $:$NHDT-Revision:  $ */
+/* Copyright (c) Bart House, 2016-2017. */
+/* Nethack for the Universal Windows Platform (UWP) */
+/* NetHack may be freely redistributed.  See license for details. */
 #include "uwpfilehandler.h"
 #include "uwputil.h"
 

@@ -1,3 +1,7 @@
+/* NetHack 3.6	uwputil.h	$NHDT-Date:  $  $NHDT-Branch:  $:$NHDT-Revision:  $ */
+/* Copyright (c) Bart House, 2016-2017. */
+/* Nethack for the Universal Windows Platform (UWP) */
+/* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
 #include <assert.h>
@@ -28,11 +32,6 @@ namespace Nethack
     {
         outString.assign(inString.begin(), inString.end());
     }
-
-}
-
-namespace Nethack
-{
 
     inline Platform::String ^ to_platform_string(const std::string & inString)
     {

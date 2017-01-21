@@ -263,7 +263,6 @@
     <ClInclude Include="$(SysDir)uwp\uwpfilehandler.h" />
     <ClInclude Include="$(SysDir)uwp\uwpfont.h" />
     <ClInclude Include="$(SysDir)uwp\uwputil.h" />
-    <ClInclude Include="$(SysDir)uwp\uwpvirtualkey.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(SrcDir)sys.c">
@@ -337,14 +336,6 @@
     <ClCompile Include="..\uwpcolor.cpp" />
     <ClCompile Include="..\uwpfilehandler.cpp" />
     <ClCompile Include="..\uwpfont.cpp" />
-    <ClCompile Include="..\uwpmain.c">
-      <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsWinRT>
-      <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsWinRT>
-      <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">false</CompileAsWinRT>
-      <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">false</CompileAsWinRT>
-      <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</CompileAsWinRT>
-      <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</CompileAsWinRT>
-    </ClCompile>
     <ClCompile Include="..\uwptty.cpp" />
   </ItemGroup>
   <ItemGroup>

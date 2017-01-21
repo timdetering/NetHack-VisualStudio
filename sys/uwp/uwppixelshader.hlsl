@@ -1,3 +1,8 @@
+/* NetHack 3.6	uwppixelshader.hlsl	$NHDT-Date:  $  $NHDT-Branch:  $:$NHDT-Revision:  $ */
+/* Copyright (c) Bart House, 2016-2017. */
+/* Nethack for the Universal Windows Platform (UWP) */
+/* NetHack may be freely redistributed.  See license for details. */
+
 // Per-pixel color data passed through the pixel shader.
 Texture2D AsciiTexture : register(t0);
 SamplerState AsciiSampler : register(s0);
