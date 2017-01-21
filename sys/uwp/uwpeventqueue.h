@@ -4,13 +4,6 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include <list>
-
-#include "uwpenum.h"
-#include "uwpmath.h"
-#include "uwplock.h"
-#include "uwpconditionvariable.h"
-
 namespace Nethack
 {
         

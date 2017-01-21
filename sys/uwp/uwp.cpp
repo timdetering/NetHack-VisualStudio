@@ -2,51 +2,11 @@
 /* Copyright (c) Bart House, 2016-2017. */
 /* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
-
-#include <windows.h>
-#include <assert.h>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <streambuf>
-#include <sstream>
-
-#include <wrl.h>
-#include <wrl/client.h>
-#include <dxgi1_4.h>
-#include <d3d11_3.h>
-#include <d2d1_3.h>
-#include <d2d1effects_2.h>
-#include <dwrite_3.h>
-#include <wincodec.h>
-#include <DirectXColors.h>
-#include <DirectXMath.h>
-#include <memory>
-#include <agile.h>
-#include <concrt.h>
-#include <assert.h>
-#include <sys/stat.h>
-#include <errno.h>
-
 #include "uwp.h"
 
 using namespace Nethack;
 
-CellBuffer g_cellBuffer;
-
 extern "C"  {
-
-#include "hack.h"
-#include "spell.h"
-
-#ifdef TTY_GRAPHICS
-#include "wintty.h"
-#endif
-
-#include "date.h"
-#include "patchlevel.h"
-#include "dlb.h"
-
 
 #ifndef HANGUPHANDLING
 #error HANGUPHANDLING must be defined

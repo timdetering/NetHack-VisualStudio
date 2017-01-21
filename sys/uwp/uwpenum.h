@@ -2,6 +2,8 @@
 
 namespace Nethack
 {
+    const char ESCAPE = 27;
+
     enum class ScanCode
     {
         Unknown,

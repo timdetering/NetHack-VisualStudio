@@ -4,8 +4,6 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include <wrl.h>
-
 namespace DX
 {
     // Helper class for animation and simulation timing.

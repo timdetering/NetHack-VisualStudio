@@ -4,9 +4,6 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include <assert.h>
-#include <string>
-
 namespace Nethack
 {
     inline std::string to_string(const std::wstring & inString)

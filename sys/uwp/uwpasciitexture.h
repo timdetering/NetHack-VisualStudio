@@ -4,8 +4,6 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include "uwpfont.h"
-
 namespace DX
 {
     class DeviceResources;

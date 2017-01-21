@@ -4,8 +4,6 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include <DirectXMath.h>
-
 namespace Nethack
 {
     // Constant buffer used to send MVP matrices to the vertex shader.

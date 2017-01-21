@@ -9,12 +9,7 @@
 
 extern "C" {
 
-#include "hack.h"
-
 #ifdef TTY_GRAPHICS
-
-#include "wintty.h"
-
 
     // TODO: think through clear screen and its usage
     extern void NDECL(clear_screen);

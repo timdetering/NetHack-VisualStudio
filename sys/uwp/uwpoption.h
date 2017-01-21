@@ -4,9 +4,6 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include <string>
-#include <vector>
-
 namespace Nethack
 {
     class Options

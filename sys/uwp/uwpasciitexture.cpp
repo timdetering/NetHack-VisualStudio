@@ -2,46 +2,7 @@
 /* Copyright (c) Bart House, 2016-2017. */
 /* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
-#include <wrl.h>
-#include <wrl/client.h>
-#include <dxgi1_4.h>
-#include <d3d11_3.h>
-#include <d2d1_3.h>
-#include <d2d1effects_2.h>
-#include <dwrite_3.h>
-#include <wincodec.h>
-#include <DirectXColors.h>
-#include <DirectXMath.h>
-#include <memory>
-
-#include <agile.h>
-#include <concrt.h>
-#include <math.h>
-#include <d3d11_2.h>
-#include <d2d1_2.h>
-#include <dwrite_2.h>
-#include <wincodec.h>
-#include <DirectXMath.h>
-#include <agile.h>
-#include <d3d11_3.h>
-#include <dxgi1_4.h>
-#include <d2d1_3.h>
-#include <wrl.h>
-#include <wrl/client.h>
-#include <d2d1effects_2.h>
-#include <dwrite_3.h>
-#include <wincodec.h>
-#include <DirectXColors.h>
-#include <DirectXMath.h>
-#include <memory>
-#include <agile.h>
-#include <concrt.h>
-
-#include "uwpasciitexture.h"
-#include "uwpdxhelper.h"
-#include "uwpdeviceresources.h"
-#include "uwputil.h"
-#include "uwpglobals.h"
+#include "uwp.h"
 
 using namespace D2D1;
 using namespace DirectX;
@@ -120,11 +81,6 @@ namespace Nethack
             1,                   // Array Size
             1,                   // Mip Level
             D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET);
-
-#if 0
-        textureDesc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
-        textureDesc.Usage = D3D11_USAGE_DYNAMIC;
-#endif
 
         DX::ThrowIfFailed(
             d3dDevice->CreateTexture2D(
@@ -215,8 +171,6 @@ namespace Nethack
 
         d2dContext->SetTarget(bitmapTarget.Get());
 
-//        d2dContext->SetTarget(textureTarget.Get());
-
         ComPtr<ID2D1SolidColorBrush> whiteBrush;
         DX::ThrowIfFailed(
             d2dContext->CreateSolidColorBrush(
@@ -281,27 +235,12 @@ namespace Nethack
                     rect,
                     whiteBrush.Get()
                 );
-
-#if 0
-                rect = D2D1::RectF((float)((x * glyphWidth)), (float)((y * glyphHeight)),
-                    (float)(((x + 1) * glyphWidth)), (float)(((y + 1) * glyphHeight)));
-
-                d2dContext->DrawRectangle(rect, whiteBrush.Get());
-#endif
-
             }
         }
 
         d2dContext->SetTarget(textureTarget.Get());
 
         d2dContext->DrawBitmap(bitmapTarget.Get());
-
-#if 0
-        /* D2D1_MAP_OPTION_READ */
-        D2D1_MAPPED_RECT rect;
-
-        hr = bitmapTarget->Map(D2D1_MAP_OPTIONS_READ, &rect);
-#endif
 
         // We ignore D2DERR_RECREATE_TARGET here. This error indicates that the device
         // is lost. It will be handled during the next call to Present.
@@ -428,7 +367,4 @@ namespace Nethack
         outRect.m_topLeft.m_y = ((1.0f / 16.0f) * y) + gutterY;
         outRect.m_bottomRight.m_y = outRect.m_topLeft.m_y + (1.0f / 16.0f) - (2.0f * gutterY);
     }
-
-
-
 }

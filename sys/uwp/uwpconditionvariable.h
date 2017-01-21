@@ -4,9 +4,6 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include "uwplock.h"
-#include <assert.h>
-
 namespace Nethack
 {
 

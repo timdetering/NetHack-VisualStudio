@@ -4,7 +4,6 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include <windows.h>
 namespace Nethack
 {
 
@@ -20,9 +19,6 @@ namespace Nethack
         void AcquireExclusive(void);
         void ReleaseExclusive(void);
         bool HasExclusive(void);
-//        void AcquireShared(void);
-//        void ReleaseShared(void);
-
 
     private:
 

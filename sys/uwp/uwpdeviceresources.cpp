@@ -2,26 +2,7 @@
 /* Copyright (c) Bart House, 2016-2017. */
 /* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
-#include <wrl.h>
-#include <wrl/client.h>
-#include <dxgi1_4.h>
-#include <d3d11_3.h>
-#include <d2d1_3.h>
-#include <d2d1effects_2.h>
-#include <dwrite_3.h>
-#include <wincodec.h>
-#include <DirectXColors.h>
-#include <DirectXMath.h>
-#include <memory>
-#include <agile.h>
-#include <concrt.h>
-#include <math.h>
-
-#include "uwpdeviceresources.h"
-#include "uwpdxhelper.h"
-#include "uwpfont.h"
-#include "uwpglobals.h"
-#include "uwputil.h"
+#include "uwp.h"
 
 using namespace D2D1;
 using namespace DirectX;
@@ -102,9 +83,6 @@ DX::DeviceResources::DeviceResources() :
     m_asciiTextureNew(this),
     m_boldAsciiTextureNew(this)
 {
-    // 72 pixel height glyphs
-//    m_glyphPixels = Nethack::Int2D((int) ceil(72 * font.m_widthToHeight), 72);
-
     CreateDeviceIndependentResources();
     CreateDeviceResources();
 
@@ -112,15 +90,6 @@ DX::DeviceResources::DeviceResources() :
 
     m_asciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_THIN, 72.0);
     m_boldAsciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_BOLD, 72.0);
-
-#if 0
-    assert(Nethack::g_fontCollection.m_fontFamilies.count(fontFamilyName) == 1);
-    Nethack::FontFamily & fontFamily = Nethack::g_fontCollection.m_fontFamilies[fontFamilyName];
-
-    assert(fontFamily.m_fonts.count("Regular") == 1);
-    Nethack::Font & font = fontFamily.m_fonts["Regular"];
-
-#endif
 
 }
 

@@ -4,15 +4,6 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include "uwpsteptimer.h"
-#include "uwpdeviceresources.h"
-#include "uwptextgrid.h"
-#include "uwpeventqueue.h"
-
-#ifdef NEWCODE
-#include <list>
-#endif
-
 // Renders Direct2D and 3D content on the screen.
 namespace Nethack
 {

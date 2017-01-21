@@ -406,9 +406,6 @@
     <ClCompile Include="$(SysDir)uwp\uwpapp.cpp">
       <Filter>sys\uwp</Filter>
     </ClCompile>
-    <ClCompile Include="..\uwpcellbuffer.cpp">
-      <Filter>sys\uwp</Filter>
-    </ClCompile>
     <ClCompile Include="$(SysDir)uwp\uwpdeviceresources.cpp">
       <Filter>sys\uwp</Filter>
     </ClCompile>
@@ -422,9 +419,6 @@
       <Filter>sys\uwp</Filter>
     </ClCompile>
     <ClCompile Include="..\uwpoption.cpp">
-      <Filter>sys\uwp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\uwpunix.c">
       <Filter>sys\uwp</Filter>
     </ClCompile>
     <ClCompile Include="..\uwptextgrid.cpp">
@@ -729,9 +723,6 @@
       <Filter>sys\uwp</Filter>
     </ClInclude>
     <ClInclude Include="$(SysDir)uwp\uwpasciitexture.h">
-      <Filter>sys\uwp</Filter>
-    </ClInclude>
-    <ClInclude Include="$(SysDir)uwp\uwpcellbuffer.h">
       <Filter>sys\uwp</Filter>
     </ClInclude>
     <ClInclude Include="$(SysDir)uwp\uwpconditionvariable.h">

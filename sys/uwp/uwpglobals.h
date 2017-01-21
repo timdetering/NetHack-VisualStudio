@@ -4,16 +4,6 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include <setjmp.h>
-
-#ifdef __cplusplus
-#include <string>
-
-#include "uwpeventqueue.h"
-#include "uwptextgrid.h"
-#include "uwpoption.h"
-#include "uwpfont.h"
-
 namespace Nethack
 {
     extern const DirectX::XMFLOAT3 g_colorTable[];
@@ -35,6 +25,5 @@ namespace Nethack
     extern std::string      g_defaultFontMap;
 
 }
-#endif
 
 

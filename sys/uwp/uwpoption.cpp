@@ -2,10 +2,7 @@
 /* Copyright (c) Bart House, 2016-2017. */
 /* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
-#include "uwpoption.h"
-
-#include <fstream>
-#include <iostream>
+#include "uwp.h"
 
 namespace Nethack {
 

@@ -4,12 +4,6 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include <windows.h>
-#include <string>
-
-#include "uwplock.h"
-#include "uwpconditionvariable.h"
-
 namespace Nethack
 {
 

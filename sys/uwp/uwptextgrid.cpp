@@ -2,29 +2,7 @@
 /* Copyright (c) Bart House, 2016-2017. */
 /* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
-#include <wrl.h>
-#include <wrl/client.h>
-#include <dxgi1_4.h>
-#include <d3d11_3.h>
-#include <d2d1_3.h>
-#include <d2d1effects_2.h>
-#include <dwrite_3.h>
-#include <wincodec.h>
-#include <DirectXColors.h>
-#include <DirectXMath.h>
-#include <memory>
-#include <agile.h>
-#include <concrt.h>
-
-#include "uwpglobals.h"
-#include "uwpshaderstructures.h"
-#include "uwpdxhelper.h"
-#include "uwptextgrid.h"
-
-#include <memory.h>
-#include <assert.h>
-
-/* https://en.wikipedia.org/wiki/ANSI_escape_code */
+#include "uwp.h"
 
 namespace Nethack
 {
@@ -670,12 +648,6 @@ namespace Nethack
         }
 
         m_cellsLock.ReleaseExclusive();
-    }
-
-    // Called once per frame, rotates the cube and calculates the model and view matrices.
-    void TextGrid::Update(DX::StepTimer const& timer)
-    {
-        // do nothing
     }
 
     bool TextGrid::HitTest(const Float2D & inScreenPosition)

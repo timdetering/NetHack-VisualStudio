@@ -4,17 +4,6 @@
 /* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
-#include "uwpsteptimer.h"
-#include "uwpdeviceresources.h"
-#include "uwpmath.h"
-#include "uwplock.h"
-#include "uwpshaderstructures.h"
-
-#include <memory>
-#include <vector>
-
-#include <DirectXColors.h>
-
 namespace Nethack
 {
 
@@ -99,11 +88,7 @@ namespace Nethack
 
         void SetDeviceResources();
 
-//        const TextCell & GetCell(int inX, int inY) const;
-//        TextCell & EditCell(int inX, int inY);
-
         void Render();
-        void Update(DX::StepTimer const& timer);
 
         void CreateWindowSizeDependentResources(void);
         void CreateDeviceDependentResources(void);

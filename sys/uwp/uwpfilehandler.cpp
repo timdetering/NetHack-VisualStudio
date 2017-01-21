@@ -2,11 +2,7 @@
 /* Copyright (c) Bart House, 2016-2017. */
 /* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
-#include "uwpfilehandler.h"
-#include "uwputil.h"
-
-#include <collection.h>
-#include <ppltasks.h>
+#include "uwp.h"
 
 using namespace Platform;
 using namespace Windows::Foundation;

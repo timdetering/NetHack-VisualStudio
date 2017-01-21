@@ -2,27 +2,7 @@
 /* Copyright (c) Bart House, 2016-2017. */
 /* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
-#define _USE_MATH_DEFINES
-
-#include <wrl.h>
-#include <wrl/client.h>
-#include <dxgi1_4.h>
-#include <d3d11_3.h>
-#include <d2d1_3.h>
-#include <d2d1effects_2.h>
-#include <dwrite_3.h>
-#include <wincodec.h>
-#include <DirectXColors.h>
-#include <DirectXMath.h>
-#include <memory>
-#include <agile.h>
-#include <concrt.h>
-#include <math.h>
-
-#include "uwpnethackmain.h"
-#include "uwpdxhelper.h"
-#include "uwpglobals.h"
-#include "uwpeventqueue.h"
+#include "uwp.h"
 
 using namespace Nethack;
 using namespace Windows::Foundation;
