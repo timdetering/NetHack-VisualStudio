@@ -20,9 +20,6 @@
     <Filter Include="dat">
       <UniqueIdentifier>{ff6b3c45-2072-47f0-9c47-b9b8c0102996}</UniqueIdentifier>
     </Filter>
-    <Filter Include="win\uwp">
-      <UniqueIdentifier>{12011a66-9d71-4be3-ad8f-f49afd7d8432}</UniqueIdentifier>
-    </Filter>
     <Filter Include="sys\uwp\build">
       <UniqueIdentifier>{634ebabc-4671-47ba-a731-bf2d95ae667a}</UniqueIdentifier>
     </Filter>
@@ -385,18 +382,6 @@
     <ClCompile Include="..\uwpasciitexture.cpp">
       <Filter>sys\uwp</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\win\uwp\winuwp.c">
-      <Filter>win\uwp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\win\uwp\uwptopl.c">
-      <Filter>win\uwp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\win\uwp\uwpgetline.c">
-      <Filter>win\uwp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\win\uwp\ntuwp.cpp">
-      <Filter>win\uwp</Filter>
-    </ClCompile>
     <ClCompile Include="..\uwptty.cpp">
       <Filter>sys\uwp</Filter>
     </ClCompile>
@@ -715,9 +700,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\include\uwpconf.h">
       <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\win\uwp\winuwp.h">
-      <Filter>win\uwp</Filter>
     </ClInclude>
     <ClInclude Include="$(SysDir)uwp\uwpapp.h">
       <Filter>sys\uwp</Filter>
