@@ -40,27 +40,6 @@ extern "C" {
         }
 
         Nethack::g_textGrid.SetCursor(Nethack::Int2D(console.cursor.X, console.cursor.Y));
-
-#if 0
-#ifdef PORT_DEBUG
-        char oldtitle[BUFSZ], newtitle[BUFSZ];
-        if (display_cursor_info && wizard) {
-            oldtitle[0] = '\0';
-            if (GetConsoleTitle(oldtitle, BUFSZ)) {
-                oldtitle[39] = '\0';
-            }
-            Sprintf(newtitle, "%-55s tty=(%02d,%02d) nttty=(%02d,%02d)", oldtitle,
-                ttyDisplay->curx, ttyDisplay->cury, console.cursor.X, console.cursor.Y);
-            (void)SetConsoleTitle(newtitle);
-        }
-#endif
-        if (ttyDisplay) {
-            console.cursor.X = ttyDisplay->curx;
-            console.cursor.Y = ttyDisplay->cury;
-        }
-        SetConsoleCursorPosition(hConOut, console.cursor);
-#endif
-
     }
 
     void getreturn(const char * str)

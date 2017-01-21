@@ -6,8 +6,6 @@
 
 namespace Nethack
 {
-
-
     Font::Font(const Microsoft::WRL::ComPtr<IDWriteFont3> & font, const std::string & name)
     {
         m_font = font;
