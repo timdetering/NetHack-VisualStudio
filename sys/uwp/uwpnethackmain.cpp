@@ -17,7 +17,7 @@ NethackMain::NethackMain(const std::shared_ptr<DX::DeviceResources>& deviceResou
     m_deviceResources->RegisterDeviceNotify(this);
 
     // Initialize text grid state
-    const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->m_asciiTextureNew.m_glyphPixels;
+    const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->m_asciiTexture.m_glyphPixels;
     Windows::Foundation::Size & outputSize = DX::DeviceResources::s_deviceResources->GetOutputSize();
 
     // TODO: Can we enforce some minimum screen size?
@@ -46,7 +46,7 @@ void NethackMain::Suspend()
 // Updates application state when the window size changes (e.g. device orientation change)
 void NethackMain::CreateWindowSizeDependentResources() 
 {
-    const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->m_asciiTextureNew.m_glyphPixels;
+    const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->m_asciiTexture.m_glyphPixels;
     Windows::Foundation::Size & outputSize = DX::DeviceResources::s_deviceResources->GetOutputSize();
     
     // TODO: Can we enforce some minimum screen size?

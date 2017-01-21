@@ -26,8 +26,6 @@ namespace Nethack
         float                                               m_lineHeight;
 
         Microsoft::WRL::ComPtr<ID3D11Texture2D>             m_newTexture;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>             m_asciiTexture;
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    m_asciiTextureShaderResourceView;
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    m_newTextureShaderResourceView;
         Microsoft::WRL::ComPtr<ID3D11SamplerState>          m_asciiTextureSampler;
         Int2D                                               m_glyphPixels;

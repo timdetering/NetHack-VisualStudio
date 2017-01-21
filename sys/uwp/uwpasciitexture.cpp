@@ -74,51 +74,9 @@ namespace Nethack
         int textureWidth = glyphWidth * glyphColumnCount;
         int textureHeight = glyphHeight * glyphRowCount;
 
-        CD3D11_TEXTURE2D_DESC textureDesc(
-            DXGI_FORMAT_B8G8R8A8_UNORM,
-            textureWidth,        // Width
-            textureHeight,       // Height
-            1,                   // Array Size
-            1,                   // Mip Level
-            D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET);
-
-        DX::ThrowIfFailed(
-            d3dDevice->CreateTexture2D(
-                &textureDesc,
-                nullptr,
-                &m_asciiTexture
-            )
-        );
-
-        CD3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc(
-            m_asciiTexture.Get(),
-            D3D11_SRV_DIMENSION_TEXTURE2D,  // D3D11_SRV_DIMENSION
-            DXGI_FORMAT_UNKNOWN,            // DXGI_FORMAT
-            0,                              // most detailed Mip
-            -1,                             // mip levels
-            0,                              // first array slice
-            -1                              // array size
-        );
-
-        DX::ThrowIfFailed(
-            d3dDevice->CreateShaderResourceView(
-                m_asciiTexture.Get(),
-                &shaderResourceViewDesc,
-                &m_asciiTextureShaderResourceView
-            )
-        );
-
         ID2D1DeviceContext2 * d2dContext = m_deviceResources->GetD2DDeviceContext();
 
         d2dContext->SetDpi(dpi, dpi);
-
-        D2D1_BITMAP_PROPERTIES1 bitmapProperties =
-            D2D1::BitmapProperties1(
-                D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-                D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-                dpi,
-                dpi
-            );
 
         D2D1_BITMAP_PROPERTIES1 bitmapTargetProperties =
             D2D1::BitmapProperties1(
@@ -128,44 +86,15 @@ namespace Nethack
             dpi
             );
 
-        D2D1_BITMAP_PROPERTIES1 bitmapStagingProperties =
-            D2D1::BitmapProperties1(
-            D2D1_BITMAP_OPTIONS_CPU_READ | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-            dpi,
-            dpi
-            );
-
-        ComPtr<ID2D1Bitmap1> textureTarget;
-        ComPtr<IDXGISurface> textureSurface;
-        DX::ThrowIfFailed(
-            m_asciiTexture.As(&textureSurface)
-        );
-
         D2D1_SIZE_U bitmapSize;
         bitmapSize.width = textureWidth;
         bitmapSize.height = textureHeight;
 
         ComPtr<ID2D1Bitmap1> bitmapTarget;
-        ComPtr<ID2D1Bitmap1> bitmapStaging;
 
         DX::ThrowIfFailed(
             d2dContext->CreateBitmap(
                 bitmapSize, NULL, 0, &bitmapTargetProperties, &bitmapTarget
-            )
-        );
-
-        DX::ThrowIfFailed(
-            d2dContext->CreateBitmap(
-                bitmapSize, NULL, 0, &bitmapStagingProperties, &bitmapStaging
-            )
-        );
-
-        DX::ThrowIfFailed(
-            d2dContext->CreateBitmapFromDxgiSurface(
-                textureSurface.Get(),
-                &bitmapProperties,
-                &textureTarget
             )
         );
 
@@ -238,10 +167,6 @@ namespace Nethack
             }
         }
 
-        d2dContext->SetTarget(textureTarget.Get());
-
-        d2dContext->DrawBitmap(bitmapTarget.Get());
-
         // We ignore D2DERR_RECREATE_TARGET here. This error indicates that the device
         // is lost. It will be handled during the next call to Present.
         hr = d2dContext->EndDraw();
@@ -251,7 +176,23 @@ namespace Nethack
         }
 
         d2dContext->SetTarget(NULL);
-        /* D2D */
+
+        ComPtr<ID2D1Bitmap1> bitmapStaging;
+
+        D2D1_BITMAP_PROPERTIES1 bitmapStagingProperties =
+            D2D1::BitmapProperties1(
+            D2D1_BITMAP_OPTIONS_CPU_READ | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+            dpi,
+            dpi
+            );
+
+        DX::ThrowIfFailed(
+            d2dContext->CreateBitmap(
+            bitmapSize, NULL, 0, &bitmapStagingProperties, &bitmapStaging
+            )
+        );
+
         D2D1_POINT_2U dstPoint = { 0 , 0 };
         D2D1_RECT_U srcRect = { 0, 0, (UINT32) textureWidth, (UINT32) textureHeight };
         DX::ThrowIfFailed(bitmapStaging->CopyFromBitmap(&dstPoint, bitmapTarget.Get(), &srcRect));
@@ -319,7 +260,6 @@ namespace Nethack
             d3dDeviceContext->GenerateMips(m_newTextureShaderResourceView.Get());
         }
 
-
         DX::ThrowIfFailed(bitmapStaging->Unmap());
 
         D3D_FEATURE_LEVEL featureLevel = m_deviceResources->GetDeviceFeatureLevel();
@@ -328,7 +268,6 @@ namespace Nethack
         D3D11_SAMPLER_DESC samplerDescription;
         ZeroMemory(&samplerDescription, sizeof(D3D11_SAMPLER_DESC));
         samplerDescription.Filter = D3D11_FILTER_ANISOTROPIC;
-        //    samplerDescription.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
         samplerDescription.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
         samplerDescription.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
         samplerDescription.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;

@@ -89,7 +89,7 @@ namespace Nethack
 
     void TextGrid::ScaleAndCenter(void)
     {
-        const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->m_asciiTextureNew.m_glyphPixels;
+        const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->m_asciiTexture.m_glyphPixels;
 
         int screenPixelWidth = m_layoutRect.m_bottomRight.m_x - m_layoutRect.m_topLeft.m_x;
         int screenPixelHeight = m_layoutRect.m_bottomRight.m_y - m_layoutRect.m_topLeft.m_y;
@@ -233,13 +233,8 @@ namespace Nethack
 
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-#if 0
-        auto asciiTextureShaderResourceView = m_deviceResources->m_asciiTextureNew.m_asciiTextureShaderResourceView.Get();
-        auto boldAsciiTextureShaderResourceView = m_deviceResources->m_boldAsciiTextureNew.m_asciiTextureShaderResourceView.Get();
-#else
-        auto asciiTextureShaderResourceView = m_deviceResources->m_asciiTextureNew.m_newTextureShaderResourceView.Get();
-        auto boldAsciiTextureShaderResourceView = m_deviceResources->m_boldAsciiTextureNew.m_newTextureShaderResourceView.Get();
-#endif
+        auto asciiTextureShaderResourceView = m_deviceResources->m_asciiTexture.m_newTextureShaderResourceView.Get();
+        auto boldAsciiTextureShaderResourceView = m_deviceResources->m_boldAsciiTexture.m_newTextureShaderResourceView.Get();
 
         ID3D11ShaderResourceView * shaderResourceViews[2]{ asciiTextureShaderResourceView , boldAsciiTextureShaderResourceView };
 
@@ -249,8 +244,8 @@ namespace Nethack
             &shaderResourceViews[0]
             );
 
-        auto asciiTextureSampler = m_deviceResources->m_asciiTextureNew.m_asciiTextureSampler.Get();
-        auto boldAsciiTextureSampler = m_deviceResources->m_boldAsciiTextureNew.m_asciiTextureSampler.Get();
+        auto asciiTextureSampler = m_deviceResources->m_asciiTexture.m_asciiTextureSampler.Get();
+        auto boldAsciiTextureSampler = m_deviceResources->m_boldAsciiTexture.m_asciiTextureSampler.Get();
 
         ID3D11SamplerState * samplerStates[2] = { asciiTextureSampler , boldAsciiTextureSampler };
 
@@ -370,13 +365,13 @@ namespace Nethack
 
         m_screenRect = FloatRect(gridScreenTopLeft, gridScreenBottomRight);
 
-        const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->m_asciiTextureNew.m_glyphPixels;
+        const Nethack::Int2D & glyphPixelDimensions = DX::DeviceResources::s_deviceResources->m_asciiTexture.m_glyphPixels;
 
         m_cellScreenDimensions = m_pixelScreenDimensions * glyphPixelDimensions;
         m_cellScreenDimensions *= m_scale;
 
-        float cursorPixelOffset = DX::DeviceResources::s_deviceResources->m_asciiTextureNew.m_underlinePosition;
-        float cursorPixelThickness = DX::DeviceResources::s_deviceResources->m_asciiTextureNew.m_underlineThickness;
+        float cursorPixelOffset = DX::DeviceResources::s_deviceResources->m_asciiTexture.m_underlinePosition;
+        float cursorPixelThickness = DX::DeviceResources::s_deviceResources->m_asciiTexture.m_underlineThickness;
 
         m_cursorScreenOffset = m_scale * m_pixelScreenDimensions.m_y * cursorPixelOffset;
         m_cursorScreenThickness = m_scale * m_pixelScreenDimensions.m_y * cursorPixelThickness;
@@ -477,14 +472,14 @@ namespace Nethack
             m_boldVertexCount = 0;
             m_invertedVertexCount = 0;
 
-            auto & asciiTexture = m_deviceResources->m_asciiTextureNew;
+            auto & asciiTexture = m_deviceResources->m_asciiTexture;
 
             // compute line height
             float lineHeight = (float)(m_layoutRect.m_bottomRight.m_y - m_layoutRect.m_topLeft.m_y) / (float) m_gridDimensions.m_y;
 
             if(asciiTexture.m_fontFamilyName != m_fontFamilyName || asciiTexture.m_lineHeight != lineHeight) {
-                m_deviceResources->m_asciiTextureNew.Create(m_fontFamilyName, DWRITE_FONT_WEIGHT_THIN, lineHeight);
-                m_deviceResources->m_boldAsciiTextureNew.Create(m_fontFamilyName, DWRITE_FONT_WEIGHT_BOLD, lineHeight);
+                m_deviceResources->m_asciiTexture.Create(m_fontFamilyName, DWRITE_FONT_WEIGHT_THIN, lineHeight);
+                m_deviceResources->m_boldAsciiTexture.Create(m_fontFamilyName, DWRITE_FONT_WEIGHT_BOLD, lineHeight);
                 ScaleAndCenter();
             }
 

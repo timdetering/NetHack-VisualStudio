@@ -57,8 +57,8 @@ namespace DX
 
         static std::shared_ptr<DX::DeviceResources> s_deviceResources;
 
-        Nethack::AsciiTexture m_asciiTextureNew;
-        Nethack::AsciiTexture m_boldAsciiTextureNew;
+        Nethack::AsciiTexture m_asciiTexture;
+        Nethack::AsciiTexture m_boldAsciiTexture;
 
     private:
         void CreateDeviceIndependentResources();

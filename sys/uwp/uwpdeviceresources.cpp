@@ -80,16 +80,16 @@ DX::DeviceResources::DeviceResources() :
     m_dpi(-1.0f),
     m_effectiveDpi(-1.0f),
     m_deviceNotify(nullptr),
-    m_asciiTextureNew(this),
-    m_boldAsciiTextureNew(this)
+    m_asciiTexture(this),
+    m_boldAsciiTexture(this)
 {
     CreateDeviceIndependentResources();
     CreateDeviceResources();
 
     std::string fontFamilyName("Lucida Console");
 
-    m_asciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_THIN, 72.0);
-    m_boldAsciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_BOLD, 72.0);
+    m_asciiTexture.Create(fontFamilyName, DWRITE_FONT_WEIGHT_THIN, 72.0);
+    m_boldAsciiTexture.Create(fontFamilyName, DWRITE_FONT_WEIGHT_BOLD, 72.0);
 
 }
 
@@ -633,9 +633,9 @@ void DX::DeviceResources::HandleDeviceLost()
     m_d2dContext->SetDpi(m_dpi, m_dpi);
     CreateWindowSizeDependentResources();
 
-    std::string fontFamilyName = m_asciiTextureNew.m_fontFamilyName;
-    m_asciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_THIN, 72.0);
-    m_boldAsciiTextureNew.Create(fontFamilyName, DWRITE_FONT_WEIGHT_BOLD, 72.0);
+    std::string fontFamilyName = m_asciiTexture.m_fontFamilyName;
+    m_asciiTexture.Create(fontFamilyName, DWRITE_FONT_WEIGHT_THIN, 72.0);
+    m_boldAsciiTexture.Create(fontFamilyName, DWRITE_FONT_WEIGHT_BOLD, 72.0);
 
     if (m_deviceNotify != nullptr)
     {
