@@ -1,14 +1,7 @@
-/* NetHack 3.6	uwpscancode.h	$NHDT-Date:  $  $NHDT-Branch:  $:$NHDT-Revision:  $ */
-/* Copyright (c) Bart House, 2016-2017. */
-/* Nethack for the Universal Windows Platform (UWP) */
-/* NetHack may be freely redistributed.  See license for details. */
 #pragma once
 
 namespace Nethack
 {
-
-    // Scan codes
-
     enum class ScanCode
     {
         Unknown,
@@ -103,4 +96,46 @@ namespace Nethack
         Count
 
     };
+
+    enum class VirtualKey
+    {
+        Zero = 0x30,
+        One,
+        Two,
+        Three,
+        Four,
+        Five,
+        Six,
+        Seven,
+        Eight,
+        Nine,
+
+        A = 0x41,
+        B,
+        C,
+        D,
+        E,
+        F,
+        G,
+        H,
+        I,
+        J,
+        K,
+        L,
+        M,
+        N,
+        O,
+        P,
+        Q,
+        R,
+        S,
+        T,
+        U,
+        V,
+        W,
+        X,
+        Y,
+        Z
+    };
+
 }

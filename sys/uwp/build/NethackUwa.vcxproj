@@ -252,7 +252,6 @@
     <ClInclude Include="..\..\..\include\uwpconf.h" />
     <ClInclude Include="..\..\..\win\uwp\winuwp.h" />
     <ClInclude Include="$(SysDir)uwp\uwpcellbuffer.h" />
-    <ClInclude Include="$(SysDir)uwp\uwpscancode.h" />
     <ClInclude Include="$(SysDir)uwp\uwpconditionvariable.h" />
     <ClInclude Include="$(SysDir)uwp\uwpeventqueue.h" />
     <ClInclude Include="$(SysDir)uwp\uwpglobals.h" />
@@ -263,6 +262,7 @@
     <ClInclude Include="$(SysDir)uwp\uwpfilehandler.h" />
     <ClInclude Include="$(SysDir)uwp\uwpfont.h" />
     <ClInclude Include="$(SysDir)uwp\uwputil.h" />
+    <ClInclude Include="..\uwpenum.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(SrcDir)sys.c">

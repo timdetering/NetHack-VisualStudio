@@ -7,10 +7,10 @@
 
 #define ESCAPE 27
 
+#include "uwpenum.h"
 #include "uwpglobals.h"
 #include "uwpcellbuffer.h"
 #include "uwptextgrid.h"
-#include "uwpscancode.h"
 #include "uwpoption.h"
 #include "uwpfilehandler.h"
 #include "uwputil.h"

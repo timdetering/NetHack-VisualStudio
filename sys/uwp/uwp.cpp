@@ -24,6 +24,9 @@
 #include <memory>
 #include <agile.h>
 #include <concrt.h>
+#include <assert.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #include "uwp.h"
 
@@ -48,6 +51,106 @@ extern "C"  {
 #ifndef HANGUPHANDLING
 #error HANGUPHANDLING must be defined
 #endif
+
+#ifdef PC_LOCKING
+    static int
+        eraseoldlocks()
+    {
+        register int i;
+
+        /* cannot use maxledgerno() here, because we need to find a lock name
+        * before starting everything (including the dungeon initialization
+        * that sets astral_level, needed for maxledgerno()) up
+        */
+        for (i = 1; i <= MAXDUNGEON * MAXLEVEL + 1; i++) {
+            /* try to remove all */
+            set_levelfile_name(lock, i);
+            (void)unlink(fqname(lock, LEVELPREFIX, 0));
+        }
+        set_levelfile_name(lock, 0);
+#ifdef HOLD_LOCKFILE_OPEN
+        really_close();
+#endif
+        if (unlink(fqname(lock, LEVELPREFIX, 0)))
+            return 0; /* cannot remove it */
+        return (1);   /* success! */
+    }
+
+    void
+        getlock()
+    {
+        register int fd, ern;
+        int fcmask = FCMASK;
+        char tbuf[BUFSZ];
+        const char *fq_lock;
+
+        // Shoudl only be called when windowing system is initialized
+        assert(iflags.window_inited);
+
+        /* we ignore QUIT and INT at this point */
+        if (!lock_file(HLOCK, LOCKPREFIX, 10)) {
+            wait_synch();
+            error("Quitting.");
+        }
+
+        /* regularize(lock); */ /* already done in uwpmains */
+        Sprintf(tbuf, "%s", fqname(lock, LEVELPREFIX, 0));
+        set_levelfile_name(lock, 0);
+        fq_lock = fqname(lock, LEVELPREFIX, 1);
+
+        if ((fd = open(fq_lock, 0)) == -1) {
+
+            if (errno == ENOENT)
+                goto gotlock; /* no such file */
+
+            unlock_file(HLOCK);
+            error("Unexpected failure.  Cannot open %s", fq_lock);
+        }
+
+        (void)nhclose(fd);
+
+        if (yn("There are files from a game in progress under your name. Recover?")) {
+            if (recover_savefile()) {
+                goto gotlock;
+            }
+            else if (yn("Recovery failed.  Continue by removing corrupt saved files?")) {
+                if (!eraseoldlocks()) {
+                    unlock_file(HLOCK);
+                    error("Cound not remove corrupt saved files.  Exiting.");
+                }
+                goto gotlock;
+            }
+            else {
+                unlock_file(HLOCK);
+                error("Can not continue.  Exiting.");
+            }
+        }
+        else {
+            unlock_file(HLOCK);
+            error("Cannot start a new game.");
+        }
+
+    gotlock:
+        fd = creat(fq_lock, fcmask);
+
+        if (fd == -1)
+            ern = errno;
+
+        unlock_file(HLOCK);
+
+        if (fd == -1) {
+            error("Unexpected error creating file (%s).", fq_lock);
+        }
+        else {
+            if (write(fd, (char *)&hackpid, sizeof(hackpid)) != sizeof(hackpid)) {
+                error("Unexpected error writing to file (%s)", fq_lock);
+            }
+            if (nhclose(fd) == -1) {
+                error("Cannot close file (%s)", fq_lock);
+            }
+        }
+    }
+#endif /* PC_LOCKING */
 
 void
     verify_record_file()

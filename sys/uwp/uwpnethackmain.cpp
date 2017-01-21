@@ -23,7 +23,6 @@
 #include "uwpdxhelper.h"
 #include "uwpglobals.h"
 #include "uwpeventqueue.h"
-#include "uwpscancode.h"
 
 using namespace Nethack;
 using namespace Windows::Foundation;

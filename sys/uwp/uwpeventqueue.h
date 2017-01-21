@@ -6,8 +6,8 @@
 
 #include <list>
 
+#include "uwpenum.h"
 #include "uwpmath.h"
-#include "uwpscancode.h"
 #include "uwplock.h"
 #include "uwpconditionvariable.h"
 

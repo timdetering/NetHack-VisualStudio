@@ -764,9 +764,6 @@
     <ClInclude Include="$(SysDir)uwp\uwpoption.h">
       <Filter>sys\uwp</Filter>
     </ClInclude>
-    <ClInclude Include="$(SysDir)uwp\uwpscancode.h">
-      <Filter>sys\uwp</Filter>
-    </ClInclude>
     <ClInclude Include="$(SysDir)uwp\uwpshaderstructures.h">
       <Filter>sys\uwp</Filter>
     </ClInclude>
@@ -777,6 +774,9 @@
       <Filter>sys\uwp</Filter>
     </ClInclude>
     <ClInclude Include="$(SysDir)uwp\uwputil.h">
+      <Filter>sys\uwp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\uwpenum.h">
       <Filter>sys\uwp</Filter>
     </ClInclude>
   </ItemGroup>
