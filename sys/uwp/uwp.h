@@ -82,7 +82,6 @@
 #include <concrt.h>
 
 #include "uwpenum.h"
-#include "uwpcellbuffer.h"
 #include "uwpmath.h"
 #include "uwplock.h"
 #include "uwputil.h"
