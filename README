@@ -1,35 +1,4 @@
 
-If you are new to NetHack, please see the Guidebook found here:
-
-https://github.com/barthouse/NetHackPublic/blob/Nethack-3.6.0.uwp/doc/Guidebook.txt
-
- 
-              Universal Windows Platform (UWP) port for NetHack
-				
-This branch of the official NetHack 3.6.1 is focused on a port of NetHack
-to the Universal Windows Platform.  The results of this work will be
-published on the Windows Store under the product name "Nethack".  (Yes,
-that is lower case h ... ugh ... need to fight with Microsoft to adjust
-the name).
-
-The initial port work is focusing solely on providing tty windowing
-support and ensuring that the game plays well as a Windows Store
-application requiring a keyboard.  The port supports mouse and limited
-gesture support (for moving the character).
-
-The application has been submitted to the store and should become available
-in the first week of 2017.
-
-There is still a great deal of polishing work to be done on the port.
-Some of this work is outlined in sys\uwp\Todo.txt.
-
-I would like to incorporate this work into the official branch when the
-work becomes mature and stable.
-
-Please see https://github.com/barthouse/NetHackPublic for more information
-about this work.
-
-
                 NetHack 3.6.1 -- General information
 
 NetHack 3.6 is an enhancement to the dungeon exploration game NetHack.
