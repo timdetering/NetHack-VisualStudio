@@ -28,7 +28,7 @@ namespace Nethack
 
 
     EventQueue      g_eventQueue;
-    TextGrid        g_textGrid(Int2D(80, 25));
+    TextGrid        g_textGrid(Int2D(80, 24));
     jmp_buf         g_mainLoopJmpBuf;
     Options         g_options;
     FontCollection  g_fontCollection;

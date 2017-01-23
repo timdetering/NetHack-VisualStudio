@@ -974,7 +974,7 @@ register struct trobj *trop;
 {
     struct obj *obj;
     int otyp, i;
-
+    int trquan = trop->trquan;
     while (trop->trclass) {
         if (trop->trotyp != UNDEF_TYP) {
             otyp = (int) trop->trotyp;
@@ -1061,6 +1061,7 @@ register struct trobj *trop;
         if (u.uroleplay.nudist && obj->oclass == ARMOR_CLASS) {
             dealloc_obj(obj);
             trop++;
+            trquan = trop->trquan;
             continue;
         }
 
@@ -1079,8 +1080,8 @@ register struct trobj *trop;
             if (obj->opoisoned && u.ualign.type != A_CHAOTIC)
                 obj->opoisoned = 0;
             if (obj->oclass == WEAPON_CLASS || obj->oclass == TOOL_CLASS) {
-                obj->quan = (long) trop->trquan;
-                trop->trquan = 1;
+                obj->quan = (long) trquan;
+                trquan = 1;
             } else if (obj->oclass == GEM_CLASS && is_graystone(obj)
                        && obj->otyp != FLINT) {
                 obj->quan = 1L;
@@ -1133,16 +1134,17 @@ register struct trobj *trop;
             initialspell(obj);
 
 #if !defined(PYRAMID_BUG) && !defined(MAC)
-        if (--trop->trquan)
+        if (--trquan)
             continue; /* make a similar object */
 #else
-        if (trop->trquan) { /* check if zero first */
-            --trop->trquan;
-            if (trop->trquan)
+        if (trquan) { /* check if zero first */
+            --trquan;
+            if (trquan)
                 continue; /* make a similar object */
         }
 #endif
         trop++;
+        trquan = trop->trquan;
     }
 }
 
