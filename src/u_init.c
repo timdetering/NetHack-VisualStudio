@@ -1155,6 +1155,10 @@ uinit_first_init()
     s_nocreate2 = STRANGE_OBJECT;
     s_nocreate3 = STRANGE_OBJECT;
     s_nocreate4 = STRANGE_OBJECT;
+
+    u.uhp = 1; /* prevent RIP on early quits */
+    u.ux = 0;  /* prevent flush_screen() */
+
 }
 
 /*u_init.c*/

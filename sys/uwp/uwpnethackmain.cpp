@@ -484,12 +484,10 @@ void NethackMain::RunNethackMainLoop(void)
     std::wstring localDirW = Windows::Storage::ApplicationData::Current->LocalFolder->Path->Data();
     std::wstring installDirW = Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data();
 
-    uwp_one_time_init(localDirW, installDirW);
-
     while (1)
     {
         NethackMainLoopHold();
-        uwp_main_loop();
+        uwp_main_loop(localDirW, installDirW);
     }
 
 }

@@ -119,8 +119,11 @@ extern"C" {
     extern char MapScanCode(const Nethack::Event & e);
     extern int raw_getchar();
 
-    void uwp_main_loop();
+    void uwp_play_nethack(void);
+    void uwp_main_loop(std::wstring & localDirW, std::wstring & installDirW);
     void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW);
     void uwp_init_options();
+    void uwp_warn(const char * s, ...);
+    void uwp_error(const char * s, ...);
 
 }

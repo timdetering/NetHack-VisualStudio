@@ -50,7 +50,7 @@ extern "C"  {
         /* we ignore QUIT and INT at this point */
         if (!lock_file(HLOCK, LOCKPREFIX, 10)) {
             wait_synch();
-            error("Quitting.");
+            uwp_error("Quitting.");
         }
 
         /* regularize(lock); */ /* already done in uwpmains */
@@ -64,7 +64,7 @@ extern "C"  {
                 goto gotlock; /* no such file */
 
             unlock_file(HLOCK);
-            error("Unexpected failure.  Cannot open %s", fq_lock);
+            uwp_error("Unexpected failure.  Cannot open %s", fq_lock);
         }
 
         (void)nhclose(fd);
@@ -76,18 +76,18 @@ extern "C"  {
             else if (yn("Recovery failed.  Continue by removing corrupt saved files?")) {
                 if (!eraseoldlocks()) {
                     unlock_file(HLOCK);
-                    error("Cound not remove corrupt saved files.  Exiting.");
+                    uwp_error("Cound not remove corrupt saved files.  Exiting.");
                 }
                 goto gotlock;
             }
             else {
                 unlock_file(HLOCK);
-                error("Can not continue.  Exiting.");
+                uwp_error("Can not continue.  Exiting.");
             }
         }
         else {
             unlock_file(HLOCK);
-            error("Cannot start a new game.");
+            uwp_error("Cannot start a new game.");
         }
 
     gotlock:
@@ -99,21 +99,20 @@ extern "C"  {
         unlock_file(HLOCK);
 
         if (fd == -1) {
-            error("Unexpected error creating file (%s).", fq_lock);
+            uwp_error("Unexpected error creating file (%s).", fq_lock);
         }
         else {
             if (write(fd, (char *)&hackpid, sizeof(hackpid)) != sizeof(hackpid)) {
-                error("Unexpected error writing to file (%s)", fq_lock);
+                uwp_error("Unexpected error writing to file (%s)", fq_lock);
             }
             if (nhclose(fd) == -1) {
-                error("Cannot close file (%s)", fq_lock);
+                uwp_error("Cannot close file (%s)", fq_lock);
             }
         }
     }
 #endif /* PC_LOCKING */
 
-void
-    verify_record_file()
+void verify_record_file()
 {
     const char *fq_record;
     int fd;
@@ -127,8 +126,7 @@ void
         /* try to create empty record */
         if ((fd = open(fq_record, O_CREAT | O_RDWR, S_IREAD | S_IWRITE))
             < 0) {
-            raw_printf("Warning: cannot write record %s", tmp);
-            wait_synch();
+            uwp_warn("Unable to create record file");
         }
         else
             (void)nhclose(fd);
@@ -522,13 +520,22 @@ toggle_mouse_support()
 }
 #endif
 
-void error VA_DECL(const char *, s)
+/* error needs to be provided due to a few spots in the engine which call it */
+void error(const char * s, ...)
 {
-    char buf[BUFSZ];
-    VA_START(s);
-    VA_INIT(s, const char *);
+    va_list the_args;
+    va_start(the_args, s);
+    uwp_error(s, the_args);
+    va_end(the_args);
+}
 
-    (void)vsprintf(buf, s, VA_ARGS);
+void uwp_error(const char * s, ...)
+{
+    va_list the_args;
+    char buf[BUFSZ];
+    va_start(the_args, s);
+
+    (void)vsprintf(buf, s, the_args);
 
     if(iflags.window_inited) {
         clear_nhwindow(BASE_WINDOW);
@@ -538,32 +545,31 @@ void error VA_DECL(const char *, s)
         raw_printf(buf);
     }
 
-    VA_END();
-
+    va_end(the_args);
     nethack_exit(EXIT_FAILURE);
 }
 
 // TODO(bhouse) Do we already have a warn somewhere else called something else?
-void warn VA_DECL(const char *, s)
+void uwp_warn(const char * s, ...)
 {
+    va_list the_args;
     char buf[BUFSZ];
-    VA_START(s);
-    VA_INIT(s, const char *);
+    va_start(the_args, s);
 
-    (void)vsprintf(buf, s, VA_ARGS);
+    (void)vsprintf(buf, s, the_args);
 
     if (iflags.window_inited) {
         clear_nhwindow(BASE_WINDOW);
         putstr(BASE_WINDOW, 0, buf);
-        putstr(BASE_WINDOW, 0, "Hit <ENTER> to exit.");
+        putstr(BASE_WINDOW, 0, "Hit <ENTER> to continue.");
     }
     else {
         raw_clear_screen();
         raw_printf(buf);
-        raw_printf("Hit <ENTER> to exit.");
+        raw_printf("Hit <ENTER> to continue.");
     }
 
-    VA_END();
+    va_end(the_args);
 
     while (pgetchar() != '\n')
         ;
@@ -669,13 +675,13 @@ bool validate_font_map(std::string & fontFamilyName)
     {
         auto & font = g_fontCollection.m_fontFamilies[fontFamilyName];
         if (!font.m_fonts.begin()->second.m_monospaced) {
-            warn("font_map font '%s' must be monospaced.", fontFamilyName.c_str());
+            uwp_warn("font_map font '%s' must be monospaced.", fontFamilyName.c_str());
         } else {
             goodGood = true;
         }
     }
     else {
-        warn("unable to find font_map font '%s'", fontFamilyName.c_str());
+        uwp_warn("unable to find font_map font '%s'", fontFamilyName.c_str());
     }
     return goodGood;
 }
@@ -879,7 +885,7 @@ void save_file(std::string & filePath)
         Platform::String ^ extensionStr = Nethack::to_platform_string(fileExtension);
         Nethack::FileHandler::s_instance->SaveFilePicker(fileText, fileNameStr, extensionStr);
     } else {
-        error("Unable to open %s%s", fileName.c_str(), fileExtension.c_str());
+        uwp_error("Unable to open %s%s", fileName.c_str(), fileExtension.c_str());
     }
 
 }
@@ -908,6 +914,16 @@ void reset_defaults_file(void)
 
 bool main_menu(void)
 {
+    /* we will using windowing so setup windowing system */
+    init_nhwindows(NULL, NULL);
+
+    display_gamewindows();
+
+    assert(iflags.window_inited);
+    if (!iflags.window_inited) {
+        uwp_error("Windowing system failed to initialize");
+    }
+
     // TODO(bhouse): Need to review use of BASE_WINDOW.  Really like to have this code be
     //               windowing system agnostic.  Use and knowledge of BASE_WINDOW breaks
     //               that goal.
@@ -979,6 +995,8 @@ bool main_menu(void)
         free((genericptr_t)pick);
     }
 
+    exit_nhwindows((char *)0);
+
     return play;
 }
 
@@ -1017,12 +1035,15 @@ void rename_save_files()
     }
 }
 
-extern boolean uwpmain(void);
 extern void decl_clean_up(void);
 
 /* one time initialization */
 void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW)
 {
+    bool static initialized = false;
+
+    if (initialized) return;
+
     g_localDir = std::string(localDirW.begin(), localDirW.end());
     g_localDir += "\\";
 
@@ -1056,97 +1077,97 @@ void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW)
     copy_to_local(g_guidebookFileName, true);
     copy_to_local(g_licenseFileName, true);
 
+    verify_record_file();
+
     rename_save_files();
 
     Nethack::g_options.Load(g_nethackOptionsFilePath);
+
+    initialized = true;
 }
 
 void uwp_init_options()
 {
     g_textGrid.SetDefaultPalette();
+
     initoptions();
+
     process_font_map();
+
+    if (!symset[PRIMARY].name) {
+        load_symset("IBMGraphics_2", PRIMARY);
+    }
+
+    if (!symset[ROGUESET].name) {
+        load_symset("RogueEpyx", ROGUESET);
+    }
 }
 
-void uwp_main_loop()
+void uwp_main_loop(std::wstring & localDirW, std::wstring & installDirW)
 {
-    /* set jump buffer before doing any operation that might fail */
+    /* we must treat early long jumps as fatal to avoid endless error loops */
+    bool jumpIsFatal = true;
+
     if(setjmp(Nethack::g_mainLoopJmpBuf) == 0) {
 
-        // set initialization state
-        first_init();
-
-        /* next thing we do is set the window system so that raw output will
-           function correctly thorough the window proc */
+        /* set the windowing system -- this is necessary for
+           raw printing to work which used during warning and error
+           reporting */
         choose_windows(DEFAULT_WINDOW_SYS);
 
+        uwp_one_time_init(localDirW, installDirW);
+
+        /* set engine initialization state */
+        first_init();
+
+        /* initialize options -- we do this here to ensure options
+           can influence all other systems (such as windowing) */
         uwp_init_options();
-
-        init_nhwindows(NULL, NULL);
-
-        display_gamewindows();
-
-        assert(iflags.window_inited);
-        if(!iflags.window_inited) {
-            error("Windowing system failed to initialize");
-        }
 
         bool bPlay = main_menu();
 
-        exit_nhwindows((char *)0);
-
         if (bPlay) {
+            /* errors will no longer be considered fatal */
+            jumpIsFatal = false;
 
-            sys_early_init();
-
-            char failbuf[BUFSZ];
-            if (!validate_prefix_locations(failbuf)) {
-                error("Some invalid directory locations were specified:\n\t%s",
-                    failbuf);
-            }
-
-            if(!dlb_init()) {
-                error("dlb_init failure");
-            }
-
-            boolean resuming = uwpmain();
-
-            moveloop(resuming);
+            uwp_play_nethack();
         }
+    } else {
+        if (jumpIsFatal) exit(EXIT_FAILURE);
     }
 
     final_cleanup();
 }
 
-
-
-boolean
-uwpmain(void)
+void 
+uwp_play_nethack(void)
 {
-    u.uhp = 1; /* prevent RIP on early quits */
-    u.ux = 0;  /* prevent flush_screen() */
+    sys_early_init();
 
-    verify_record_file();
+    char failbuf[BUFSZ];
+    if (!validate_prefix_locations(failbuf)) {
+        uwp_error("Some invalid directory locations were specified:\n\t%s",
+            failbuf);
+    }
 
-    /* In 3.6.0, several ports process options before they init
-    * the window port. This allows settings that impact window
-    * ports to be specified or read from the sys or user config files.
-    */
+    if (!dlb_init()) {
+        uwp_error("dlb_init failure");
+    }
 
-    iflags.use_background_glyph = FALSE;
-    nttty_open(1);
-
+    assert(symset[PRIMARY].name);
+    assert(symset[ROGUESET].name);
+#if 0
     /* Player didn't specify any symbol set so use IBM defaults */
     if (!symset[PRIMARY].name) {
         load_symset("IBMGraphics_2", PRIMARY);
     }
+
     if (!symset[ROGUESET].name) {
         load_symset("RogueEpyx", ROGUESET);
     }
+#endif
 
     init_nhwindows(NULL, NULL);
-
-    toggle_mouse_support(); /* must come after process_options */
 
     display_gamewindows();
 
@@ -1210,9 +1231,9 @@ uwpmain(void)
     * First, try to find and restore a save file for specified character.
     * We'll return here if new game player_selection() renames the hero.
     */
-attempt_restore:
-
     boolean resuming = FALSE; /* assume new game */
+
+attempt_restore:
 
     if ((fd = restore_saved_game()) >= 0) {
         pline("Restoring save file...");
@@ -1253,7 +1274,8 @@ attempt_restore:
             You("are in non-scoring discovery mode.");
     }
 
-    return resuming;
+    moveloop(resuming);
+
 }
 
 #ifdef PORT_HELP
