@@ -1024,19 +1024,22 @@ void rename_save_files()
 extern boolean uwpmain(void);
 extern void decl_clean_up(void);
 
-void mainloop()
+void uwp_one_time_init()
 {
-    /* first things first ... we jump buffer which is where we will jump to
-       if we exit.  We assume anythign can fail so we do this first. */
+
+}
+
+void uwp_main_loop()
+{
+    /* set jump buffer before doing any operation that might fail */
     if(setjmp(Nethack::g_mainLoopJmpBuf) == 0) {
 
+        // set initialization state
         first_init();
 
         /* next thing we do is set the window system so that raw output will
            function correctly thorough the window proc */
         choose_windows(DEFAULT_WINDOW_SYS);
-
-        hname = "NetHack"; /* used for syntax messages */
 
         fqn_prefix[HACKPREFIX] = (char *) g_installDir.c_str();
         fqn_prefix[LEVELPREFIX] = (char *) g_localDir.c_str();
@@ -1053,18 +1056,6 @@ void mainloop()
         copy_to_local(g_guidebookFileName, true);
         copy_to_local(g_licenseFileName, true);
         rename_save_files();
-
-        g_nethackOptionsFilePath = g_localDir;
-        g_nethackOptionsFilePath += g_nethackOptionsFileName;
-
-        g_defaultsFilePath = Nethack::g_localDir;
-        g_defaultsFilePath += g_defaultsFileName;
-
-        g_guidebookFilePath = Nethack::g_installDir;
-        g_guidebookFilePath += g_guidebookFileName;
-
-        g_licenseFilePath = Nethack::g_installDir;
-        g_licenseFilePath += g_licenseFileName;
 
         Nethack::g_options.Load(g_nethackOptionsFilePath);
 

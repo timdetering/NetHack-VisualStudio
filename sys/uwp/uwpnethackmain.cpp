@@ -442,8 +442,6 @@ void NethackMain::OnManipulationCompleted(Windows::UI::Input::GestureRecognizer^
     }
 }
 
-extern "C" { void mainloop(); }
-
 void NethackMain::SuspendNethackMainLoop(void)
 {
     m_mainLoopLock.AcquireExclusive();
@@ -492,10 +490,24 @@ void NethackMain::RunNethackMainLoop(void)
     g_installDir = std::string(installDirW.begin(), installDirW.end());
     g_installDir += "\\";
 
+    g_nethackOptionsFilePath = g_localDir;
+    g_nethackOptionsFilePath += g_nethackOptionsFileName;
+
+    g_defaultsFilePath = Nethack::g_localDir;
+    g_defaultsFilePath += g_defaultsFileName;
+
+    g_guidebookFilePath = Nethack::g_installDir;
+    g_guidebookFilePath += g_guidebookFileName;
+
+    g_licenseFilePath = Nethack::g_installDir;
+    g_licenseFilePath += g_licenseFileName;
+
+    uwp_one_time_init();
+
     while (1)
     {
         NethackMainLoopHold();
-        mainloop();
+        uwp_main_loop();
     }
 
 }

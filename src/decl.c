@@ -357,8 +357,6 @@ void decl_clean_up(void)
 {
     // TODO: Should review to see if we need to free memory before NULLing pointers
 
-    hname = NULL;
-
     hackpid = 0;
 
 #define ZEROARRAY(x) memset((void *) &x[0], 0, sizeof(x))
