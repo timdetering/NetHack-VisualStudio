@@ -120,6 +120,7 @@ extern"C" {
     extern int raw_getchar();
 
     void uwp_main_loop();
-    void uwp_one_time_init();
+    void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW);
+    void uwp_init_options();
 
 }

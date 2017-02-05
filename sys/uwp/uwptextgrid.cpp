@@ -58,7 +58,7 @@ namespace Nethack
         m_colorTable[i] = g_colorTable[i];
     }
 
-    void TextGrid::SetPaletteDefault()
+    void TextGrid::SetDefaultPalette()
     {
         memcpy(m_colorTable, g_colorTable, sizeof(m_colorTable));
     }

@@ -484,25 +484,7 @@ void NethackMain::RunNethackMainLoop(void)
     std::wstring localDirW = Windows::Storage::ApplicationData::Current->LocalFolder->Path->Data();
     std::wstring installDirW = Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data();
 
-    g_localDir = std::string(localDirW.begin(), localDirW.end());
-    g_localDir += "\\";
-
-    g_installDir = std::string(installDirW.begin(), installDirW.end());
-    g_installDir += "\\";
-
-    g_nethackOptionsFilePath = g_localDir;
-    g_nethackOptionsFilePath += g_nethackOptionsFileName;
-
-    g_defaultsFilePath = Nethack::g_localDir;
-    g_defaultsFilePath += g_defaultsFileName;
-
-    g_guidebookFilePath = Nethack::g_installDir;
-    g_guidebookFilePath += g_guidebookFileName;
-
-    g_licenseFilePath = Nethack::g_installDir;
-    g_licenseFilePath += g_licenseFileName;
-
-    uwp_one_time_init();
+    uwp_one_time_init(localDirW, installDirW);
 
     while (1)
     {

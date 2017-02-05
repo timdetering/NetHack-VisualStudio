@@ -509,8 +509,6 @@ void decl_clean_up(void)
 
     ZERO(tc_gbl_data);
 
-    ZEROARRAY(fqn_prefix);
-
     ZEROPTR(plinemsg_types);
 
     nhUse_dummy = 0;

@@ -717,9 +717,7 @@ void add_option()
     if(validateoptions(buf, FALSE)) {
         Nethack::g_options.m_options.push_back(option);
         Nethack::g_options.Store();
-        g_textGrid.SetPaletteDefault();
-        initoptions();
-        process_font_map();
+        uwp_init_options();
     }
 }
 
@@ -756,9 +754,7 @@ void remove_options()
 
     if(count > 0) {
         Nethack::g_options.Store();
-        g_textGrid.SetPaletteDefault();
-        initoptions();
-        process_font_map();
+        uwp_init_options();
     }
 
 }
@@ -1024,9 +1020,52 @@ void rename_save_files()
 extern boolean uwpmain(void);
 extern void decl_clean_up(void);
 
-void uwp_one_time_init()
+/* one time initialization */
+void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW)
 {
+    g_localDir = std::string(localDirW.begin(), localDirW.end());
+    g_localDir += "\\";
 
+    g_installDir = std::string(installDirW.begin(), installDirW.end());
+    g_installDir += "\\";
+
+    g_nethackOptionsFilePath = g_localDir;
+    g_nethackOptionsFilePath += g_nethackOptionsFileName;
+
+    g_defaultsFilePath = Nethack::g_localDir;
+    g_defaultsFilePath += g_defaultsFileName;
+
+    g_guidebookFilePath = Nethack::g_installDir;
+    g_guidebookFilePath += g_guidebookFileName;
+
+    g_licenseFilePath = Nethack::g_installDir;
+    g_licenseFilePath += g_licenseFileName;
+
+    fqn_prefix[HACKPREFIX] = (char *)g_installDir.c_str();
+    fqn_prefix[LEVELPREFIX] = (char *)g_localDir.c_str();
+    fqn_prefix[SAVEPREFIX] = (char *)g_localDir.c_str();
+    fqn_prefix[BONESPREFIX] = (char *)g_localDir.c_str();
+    fqn_prefix[DATAPREFIX] = (char *)g_installDir.c_str();
+    fqn_prefix[SCOREPREFIX] = (char *)g_localDir.c_str();
+    fqn_prefix[LOCKPREFIX] = (char *)g_localDir.c_str();
+    fqn_prefix[SYSCONFPREFIX] = (char *)g_installDir.c_str();
+    fqn_prefix[CONFIGPREFIX] = (char *)g_localDir.c_str();
+    fqn_prefix[TROUBLEPREFIX] = (char *)g_localDir.c_str();
+
+    copy_to_local(g_defaultsFileName, true);
+    copy_to_local(g_guidebookFileName, true);
+    copy_to_local(g_licenseFileName, true);
+
+    rename_save_files();
+
+    Nethack::g_options.Load(g_nethackOptionsFilePath);
+}
+
+void uwp_init_options()
+{
+    g_textGrid.SetDefaultPalette();
+    initoptions();
+    process_font_map();
 }
 
 void uwp_main_loop()
@@ -1041,38 +1080,15 @@ void uwp_main_loop()
            function correctly thorough the window proc */
         choose_windows(DEFAULT_WINDOW_SYS);
 
-        fqn_prefix[HACKPREFIX] = (char *) g_installDir.c_str();
-        fqn_prefix[LEVELPREFIX] = (char *) g_localDir.c_str();
-        fqn_prefix[SAVEPREFIX] = (char *)g_localDir.c_str();
-        fqn_prefix[BONESPREFIX] = (char *)g_localDir.c_str();
-        fqn_prefix[DATAPREFIX] = (char *) g_installDir.c_str();
-        fqn_prefix[SCOREPREFIX] = (char *)g_localDir.c_str();
-        fqn_prefix[LOCKPREFIX] = (char *)g_localDir.c_str();
-        fqn_prefix[SYSCONFPREFIX] = (char *) g_installDir.c_str();
-        fqn_prefix[CONFIGPREFIX] = (char *)g_localDir.c_str();
-        fqn_prefix[TROUBLEPREFIX] = (char *)g_localDir.c_str();
+        uwp_init_options();
 
-        copy_to_local(g_defaultsFileName, true);
-        copy_to_local(g_guidebookFileName, true);
-        copy_to_local(g_licenseFileName, true);
-        rename_save_files();
-
-        Nethack::g_options.Load(g_nethackOptionsFilePath);
-
-        g_textGrid.SetPaletteDefault();
-        initoptions();
-        process_font_map();
-
-        int argc = 1;
-        char * argv[1] = { "nethack" };
-
-        init_nhwindows(&argc, argv);
+        init_nhwindows(NULL, NULL);
 
         display_gamewindows();
 
         assert(iflags.window_inited);
         if(!iflags.window_inited) {
-            error("Default windowing system failed to initialize");
+            error("Windowing system failed to initialize");
         }
 
         bool bPlay = main_menu();
@@ -1107,13 +1123,6 @@ void uwp_main_loop()
 boolean
 uwpmain(void)
 {
-    int fd;
-    char *envp = NULL;
-    char *sptr = NULL;
-
-    char fnamebuf[BUFSZ], encodedfnamebuf[BUFSZ];
-    boolean resuming = FALSE; /* assume new game */
-
     u.uhp = 1; /* prevent RIP on early quits */
     u.ux = 0;  /* prevent flush_screen() */
 
@@ -1135,13 +1144,10 @@ uwpmain(void)
         load_symset("RogueEpyx", ROGUESET);
     }
 
-    int argc = 1;
-    char * argv[1] = { "nethack" };
-    init_nhwindows(&argc, argv);
+    init_nhwindows(NULL, NULL);
 
     toggle_mouse_support(); /* must come after process_options */
 
-                            // load up the game windows before we start asking questions
     display_gamewindows();
 
     /* strip role,race,&c suffix; calls askname() if plname[] is empty
@@ -1170,6 +1176,7 @@ uwpmain(void)
     */
     /* Obtain the name of the logged on user and incorporate
     * it into the name. */
+    char fnamebuf[BUFSZ], encodedfnamebuf[BUFSZ];
     Sprintf(fnamebuf, "%s", plname);
     (void)fname_encode(
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-.", '%',
@@ -1180,7 +1187,7 @@ uwpmain(void)
 
     /* Set up level 0 file to keep the game state.
     */
-    fd = create_levelfile(0, (char *)0);
+    int fd = create_levelfile(0, (char *)0);
     if (fd < 0) {
         /* TODO(bhouse) do we need to pring anything here?
         commenting out for now.  Either we have an error and
@@ -1204,6 +1211,9 @@ uwpmain(void)
     * We'll return here if new game player_selection() renames the hero.
     */
 attempt_restore:
+
+    boolean resuming = FALSE; /* assume new game */
+
     if ((fd = restore_saved_game()) >= 0) {
         pline("Restoring save file...");
         mark_synch(); /* flush output */

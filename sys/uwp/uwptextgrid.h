@@ -133,7 +133,7 @@ namespace Nethack
 
         void SetPalette(int i, unsigned char red, unsigned char green, unsigned char blue);
         void SetPaletteDefault(int i);
-        void SetPaletteDefault();
+        void SetDefaultPalette();
 
     private:
 

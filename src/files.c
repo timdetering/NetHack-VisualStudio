@@ -2084,6 +2084,7 @@ const char *name; /* name of option for error message */
     /*NOTREACHED*/
 }
 
+#ifndef UWP
 #ifdef NOCWD_ASSUMPTIONS
 STATIC_OVL void
 adjust_prefix(bufp, prefixid)
@@ -2103,6 +2104,7 @@ int prefixid;
         append_slash(fqn_prefix[prefixid]);
     }
 }
+#endif
 #endif
 
 #define match_varname(INP, NAM, LEN) match_optname(INP, NAM, LEN, TRUE)
