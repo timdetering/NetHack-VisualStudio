@@ -55,5 +55,37 @@ namespace Nethack
         return std::wstring(inString->Data());
     }
 
+    class Semaphore
+    {
+    public:
+
+        Semaphore()
+        {
+            m_semaphore = ::CreateSemaphore(NULL, 0, 1, NULL);
+            assert(m_semaphore != NULL);
+        }
+
+        ~Semaphore()
+        {
+            CloseHandle(m_semaphore);
+        }
+
+        void Signal()
+        {
+            ReleaseSemaphore(m_semaphore, 1, NULL);
+        }
+
+        void Wait()
+        {
+            DWORD hr = WaitForSingleObject(m_semaphore, INFINITE);
+            assert(hr == WAIT_OBJECT_0);
+        }
+
+    private:
+
+        HANDLE m_semaphore;
+
+    };
+
 }
 

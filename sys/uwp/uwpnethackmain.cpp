@@ -7,11 +7,14 @@
 using namespace Nethack;
 using namespace Windows::Foundation;
 using namespace Windows::System::Threading;
+using namespace Windows::ApplicationModel;
 using namespace Concurrency;
 
 // Loads and initializes application assets when the application is loaded.
 NethackMain::NethackMain(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
-    m_deviceResources(deviceResources)
+    m_deviceResources(deviceResources),
+    m_mainLoopHeld(false),
+    m_mainLoopHold(false)
 {
     // Register to be notified if the Device is lost or recreated
     m_deviceResources->RegisterDeviceNotify(this);
@@ -29,18 +32,45 @@ NethackMain::NethackMain(const std::shared_ptr<DX::DeviceResources>& deviceResou
     g_textGrid.SetDeviceResources();
     g_textGrid.SetLayoutRect(m_gridLayoutRect);
     g_textGrid.ScaleAndCenter();
+
+    // Start worker thread which will run the nethack main loop
+    auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction^)
+    {
+        RunNethackMainLoop();
+    });
+
+    m_nethackWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
+
 }
 
 NethackMain::~NethackMain()
 {
     // Deregister device notification
     m_deviceResources->RegisterDeviceNotify(nullptr);
+
 }
 
-void NethackMain::Suspend()
+void NethackMain::Suspend(Platform::Object^ sender, SuspendingEventArgs^ args)
 {
-    // Send EOF causing a hangup to occur and exiting out of mainloop
-    g_eventQueue.PushBack(Nethack::Event(EOF));
+    // Save app state asynchronously after requesting a deferral. Holding a deferral
+    // indicates that the application is busy performing suspending operations. Be
+    // aware that a deferral may not be held indefinitely. After about five seconds,
+    // the app will be forced to exit.
+    SuspendingDeferral^ deferral = args->SuspendingOperation->GetDeferral();
+
+    create_task([this, deferral]()
+    {
+        SuspendNethackMainLoop();
+
+        m_deviceResources->Trim();
+
+        deferral->Complete();
+    });
+}
+
+void NethackMain::Resume()
+{
+    ResumeNethackMainLoop();
 }
 
 // Updates application state when the window size changes (e.g. device orientation change)
@@ -200,6 +230,7 @@ void NethackMain::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Co
 void NethackMain::OnCharacterReceived(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::CharacterReceivedEventArgs^ args)
 {
     char c = args->KeyCode;
+
     if (c == '\r') c = '\n';
     g_eventQueue.PushBack(Event(c));
 }
@@ -411,16 +442,61 @@ void NethackMain::OnManipulationCompleted(Windows::UI::Input::GestureRecognizer^
     }
 }
 
-extern "C" { void mainloop(const char * localDir, const char * installDir); }
+extern "C" { void mainloop(); }
 
-void NethackMain::MainLoop(void)
+void NethackMain::SuspendNethackMainLoop(void)
+{
+    m_mainLoopLock.AcquireExclusive();
+    m_mainLoopHold = true;
+
+    // Send EOF causing a hangup to occur and exiting out of mainloop
+    g_eventQueue.PushBack(Nethack::Event(EOF));
+
+    // wait till main loop is held
+    while(!m_mainLoopHeld)
+        m_mainLoopConditionVariable.Sleep(m_mainLoopLock);
+
+    m_mainLoopLock.ReleaseExclusive();
+}
+
+void NethackMain::ResumeNethackMainLoop(void)
+{
+    m_mainLoopLock.AcquireExclusive();
+    m_mainLoopHold = false;
+    m_mainLoopLock.ReleaseExclusive();
+    m_mainLoopConditionVariable.Wake();
+}
+
+void NethackMain::NethackMainLoopHold(void)
+{
+    m_mainLoopLock.AcquireExclusive();
+    if (m_mainLoopHold)
+    {
+        m_mainLoopHeld = true;
+        m_mainLoopConditionVariable.Wake();
+        while (m_mainLoopHold)
+            m_mainLoopConditionVariable.Sleep(m_mainLoopLock);
+        m_mainLoopHeld = false;
+    }
+    m_mainLoopLock.ReleaseExclusive();
+}
+
+void NethackMain::RunNethackMainLoop(void)
 {
     std::wstring localDirW = Windows::Storage::ApplicationData::Current->LocalFolder->Path->Data();
-    std::string localDir(localDirW.begin(), localDirW.end());
-
     std::wstring installDirW = Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data();
-    std::string installDir(installDirW.begin(), installDirW.end());
 
-    mainloop(localDir.c_str(), installDir.c_str());
+    g_localDir = std::string(localDirW.begin(), localDirW.end());
+    g_localDir += "\\";
+
+    g_installDir = std::string(installDirW.begin(), installDirW.end());
+    g_installDir += "\\";
+
+    while (1)
+    {
+        NethackMainLoopHold();
+        mainloop();
+    }
+
 }
 

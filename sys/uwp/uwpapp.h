@@ -50,13 +50,8 @@ namespace Nethack
         // gesture support
         void Attach(_In_ Windows::UI::Input::GestureRecognizer^ gestureRecognizer);
 
-        // Nethack main loop
-        void RunNethackMainLoop(void);
-
     private:
         bool m_exit;
-
-        int m_loopCount;
 
         std::shared_ptr<DX::DeviceResources> m_deviceResources;
         std::unique_ptr<NethackMain> m_main;
@@ -65,9 +60,6 @@ namespace Nethack
 
         // file handler
         FileHandler ^ m_fileHandler;
-
-        // worker thread which runs nethack main loop
-        Windows::Foundation::IAsyncAction^     m_nethackWorker;
 
         // gesture support
         Windows::UI::Input::GestureRecognizer^ m_gestureRecognizer;

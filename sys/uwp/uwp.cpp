@@ -1024,7 +1024,7 @@ void rename_save_files()
 extern boolean uwpmain(void);
 extern void decl_clean_up(void);
 
-void mainloop(const char * localDir, const char * installDir)
+void mainloop()
 {
     /* first things first ... we jump buffer which is where we will jump to
        if we exit.  We assume anythign can fail so we do this first. */
@@ -1037,12 +1037,6 @@ void mainloop(const char * localDir, const char * installDir)
         choose_windows(DEFAULT_WINDOW_SYS);
 
         hname = "NetHack"; /* used for syntax messages */
-
-        g_localDir = std::string(localDir);
-        g_localDir += "\\";
-
-        g_installDir = std::string(installDir);
-        g_installDir += "\\";
 
         fqn_prefix[HACKPREFIX] = (char *) g_installDir.c_str();
         fqn_prefix[LEVELPREFIX] = (char *) g_localDir.c_str();

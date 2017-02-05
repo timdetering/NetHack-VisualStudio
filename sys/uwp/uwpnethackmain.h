@@ -15,14 +15,12 @@ namespace Nethack
         void CreateWindowSizeDependentResources();
         void Update();
         bool Render();
-        void Suspend();
-        void MainLoop();
+        void Suspend(Platform::Object^ sender, Windows::ApplicationModel::SuspendingEventArgs^ args);
+        void Resume();
 
         // IDeviceNotify
         virtual void OnDeviceLost();
         virtual void OnDeviceRestored();
-
-        void Attach(_In_ Windows::UI::Input::GestureRecognizer^ gestureRecognizer);
 
         // Gesture event handlers
         void OnPointerPressed(Windows::UI::Input::GestureRecognizer^ gestureRecognizer, Windows::UI::Core::PointerEventArgs^ args);
@@ -63,6 +61,20 @@ namespace Nethack
         Direction AngleToDirection(float inAngle);
 
         void ProcessTap(Float2D &screenPosition, Nethack::Event::Tap tap);
+
+        // Nethack main loop
+        void SuspendNethackMainLoop(void);
+        void ResumeNethackMainLoop(void);
+        void NethackMainLoopHold(void);
+        void RunNethackMainLoop(void);
+
+        Lock m_mainLoopLock;
+        ConditionVariable m_mainLoopConditionVariable;
+        volatile bool m_mainLoopHold;
+        volatile bool m_mainLoopHeld;
+
+        // worker thread which runs nethack main loop
+        Windows::Foundation::IAsyncAction^     m_nethackWorker;
 
     };
 }

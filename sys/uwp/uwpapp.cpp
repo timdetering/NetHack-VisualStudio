@@ -44,8 +44,7 @@ IFrameworkView^ Direct3DApplicationSource::CreateView()
 App::App() :
     m_windowClosed(false),
     m_windowVisible(true),
-    m_exit(false),
-    m_loopCount(0)
+    m_exit(false)
 {
 }
 
@@ -74,13 +73,6 @@ void App::Initialize(CoreApplicationView^ applicationView)
 
     m_fileHandler = ref new Nethack::FileHandler();
 
-    // Start worker thread which will run the nethack main loop
-    auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction^)
-    {
-        RunNethackMainLoop();
-    });
-
-    m_nethackWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
 }
 
 // Called when the CoreWindow object is created (or re-created).
@@ -190,33 +182,12 @@ void App::OnActivated(CoreApplicationView^ applicationView, IActivatedEventArgs^
 
 void App::OnSuspending(Platform::Object^ sender, SuspendingEventArgs^ args)
 {
-    int loopCount = m_loopCount;
-
-    m_main->Suspend();
-
-    // Save app state asynchronously after requesting a deferral. Holding a deferral
-    // indicates that the application is busy performing suspending operations. Be
-    // aware that a deferral may not be held indefinitely. After about five seconds,
-    // the app will be forced to exit.
-    SuspendingDeferral^ deferral = args->SuspendingOperation->GetDeferral();
-
-    create_task([this, deferral, loopCount]()
-    {
-        m_deviceResources->Trim();
-
-        while (m_loopCount == loopCount) Sleep(100);
-
-        deferral->Complete();
-    });
+    m_main->Suspend(sender, args);
 }
 
 void App::OnResuming(Platform::Object^ sender, Platform::Object^ args)
 {
-    // Restore any data or state that was unloaded on suspend. By default, data
-    // and state are persisted when resuming from suspend. Note that this event
-    // does not occur if the app was previously terminated.
-
-    // Insert your code here.
+    m_main->Resume();
 }
 
 // Window event handlers.
@@ -403,25 +374,4 @@ void App::OnManipulationCompleted(Windows::UI::Input::GestureRecognizer^ sender,
 {
     if (m_main != nullptr)
         m_main->OnManipulationCompleted(sender, args);
-}
-
-//
-//
-//
-
-void App::RunNethackMainLoop(void)
-{
-    while (1)
-    {
-        m_main->MainLoop();
-        m_loopCount++;
-    }
-
-#if 0
-    // TODO: We should just call back into mainloop again but Nethack can not handle getting started again ... need to force exit
-    m_exit = true;
-
-    while (1) Sleep(1000);
-#endif
-
 }
