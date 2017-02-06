@@ -7,6 +7,8 @@
 
 #include "uwp.h"
 
+using namespace Nethack;
+
 extern "C" {
 
 #ifdef TTY_GRAPHICS
@@ -39,7 +41,7 @@ extern "C" {
             console.cursor.Y = ttyDisplay->cury;
         }
 
-        Nethack::g_textGrid.SetCursor(Nethack::Int2D(console.cursor.X, console.cursor.Y));
+        g_textGrid.SetCursor(Int2D(console.cursor.X, console.cursor.Y));
     }
 
     void getreturn(const char * str)
@@ -79,8 +81,8 @@ extern "C" {
     void
         tty_startup(int * wid, int * hgt)
     {
-        *wid = Nethack::g_textGrid.GetDimensions().m_x;
-        *hgt = Nethack::g_textGrid.GetDimensions().m_y;
+        *wid = g_textGrid.GetDimensions().m_x;
+        *hgt = g_textGrid.GetDimensions().m_y;
 
         set_option_mod_status("mouse_support", SET_IN_GAME);
     }
@@ -175,10 +177,10 @@ extern "C" {
         int x = ttyDisplay->curx;
         int y = ttyDisplay->cury;
 
-        int cx = Nethack::g_textGrid.GetDimensions().m_x - x;
-        int cy = (Nethack::g_textGrid.GetDimensions().m_y - (y + 1)) * Nethack::g_textGrid.GetDimensions().m_x;
+        int cx = g_textGrid.GetDimensions().m_x - x;
+        int cy = (g_textGrid.GetDimensions().m_y - (y + 1)) * g_textGrid.GetDimensions().m_x;
 
-        Nethack::g_textGrid.Put(x, y, Nethack::TextCell(), cx + cy);
+        g_textGrid.Put(x, y, TextCell(), cx + cy);
 
         tty_curs(BASE_WINDOW, x + 1, y);
     }
@@ -189,16 +191,16 @@ extern "C" {
         int cx;
         console.cursor.X = ttyDisplay->curx;
         console.cursor.Y = ttyDisplay->cury;
-        cx = Nethack::g_textGrid.GetDimensions().m_x - console.cursor.X;
+        cx = g_textGrid.GetDimensions().m_x - console.cursor.X;
 
-        Nethack::g_textGrid.Put(console.cursor.X, console.cursor.Y, Nethack::TextCell(), cx);
+        g_textGrid.Put(console.cursor.X, console.cursor.Y, TextCell(), cx);
 
         tty_curs(BASE_WINDOW, (int)ttyDisplay->curx + 1, (int)ttyDisplay->cury);
     }
 
     void clear_screen(void)
     {
-        raw_clear_screen();
+        g_textGrid.Clear();
         home();
     }
 
@@ -220,9 +222,9 @@ extern "C" {
         console.cursor.X = ttyDisplay->curx;
         console.cursor.Y = ttyDisplay->cury;
 
-        Nethack::TextCell textCell((Nethack::TextColor) console.current_nhcolor, (Nethack::TextAttribute) console.current_nhattr, in_ch);
+        TextCell textCell((TextColor) console.current_nhcolor, (TextAttribute) console.current_nhattr, in_ch);
 
-        Nethack::g_textGrid.Put(console.cursor.X, console.cursor.Y, textCell, 1);
+        g_textGrid.Put(console.cursor.X, console.cursor.Y, textCell, 1);
     }
 
     void
@@ -240,9 +242,9 @@ extern "C" {
             break;
         default:
 
-            Nethack::TextCell textCell((Nethack::TextColor) console.current_nhcolor, (Nethack::TextAttribute) console.current_nhattr, ch);
+            TextCell textCell((TextColor) console.current_nhcolor, (TextAttribute) console.current_nhattr, ch);
 
-            Nethack::g_textGrid.Put(console.cursor.X, console.cursor.Y, textCell, 1);
+            g_textGrid.Put(console.cursor.X, console.cursor.Y, textCell, 1);
 
             console.cursor.X++;
         }
@@ -320,14 +322,14 @@ extern "C" {
         if (program_state.done_hup)
             return '\033';
 
-        Nethack::Event e;
+        Event e;
 
-        while (e.m_type == Nethack::Event::Type::Undefined ||
-            (e.m_type == Nethack::Event::Type::Mouse && !iflags.wc_mouse_support) ||
-            (e.m_type == Nethack::Event::Type::ScanCode && MapScanCode(e) == 0))
-            e = Nethack::g_eventQueue.PopFront();
+        while (e.m_type == Event::Type::Undefined ||
+            (e.m_type == Event::Type::Mouse && !iflags.wc_mouse_support) ||
+            (e.m_type == Event::Type::ScanCode && MapScanCode(e) == 0))
+            e = g_eventQueue.PopFront();
 
-        if (e.m_type == Nethack::Event::Type::Char)
+        if (e.m_type == Event::Type::Char)
         {
             if (e.m_char == EOF)
             {
@@ -337,17 +339,17 @@ extern "C" {
 
             return e.m_char;
         }
-        else if (e.m_type == Nethack::Event::Type::Mouse)
+        else if (e.m_type == Event::Type::Mouse)
         {
             *x = e.m_pos.m_x;
             *y = e.m_pos.m_y;
-            *mod = (e.m_tap == Nethack::Event::Tap::Left ? CLICK_1 : CLICK_2);
+            *mod = (e.m_tap == Event::Tap::Left ? CLICK_1 : CLICK_2);
 
             return 0;
         }
         else
         {
-            assert(e.m_type == Nethack::Event::Type::ScanCode);
+            assert(e.m_type == Event::Type::ScanCode);
             return MapScanCode(e);
         }
     }

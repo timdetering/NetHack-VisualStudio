@@ -16,6 +16,12 @@ extern "C"  {
 #error HOLD_LOCKFILE_OPEN should not be defined
 #endif
 
+/* clear the raw output area in preparation for raw output */
+static void raw_clear_screen(void)
+{
+    g_textGrid.Clear();
+}
+
 /* erase all level files returning failure if we are
  * unable to erase the level 0 file.
  */
@@ -38,7 +44,7 @@ static bool erase_save_files()
 }
 
 /* Check if there is a game in progress and recover  */
-void check_game_in_progress()
+static void check_game_in_progress()
 {
     register int fd;
     int fcmask = FCMASK;
@@ -75,7 +81,7 @@ void check_game_in_progress()
 }
 
 /* create the checkpoint file (aka level 0 file, lock file) */
-void create_checkpoint_file()
+static void create_checkpoint_file()
 {
     /* If checkpointing is turned on then the matching
      * pid is expected to be stored in the file.
@@ -95,7 +101,7 @@ void create_checkpoint_file()
 /* verify we can open existing record file or create
  * a new record file.
  */
-void verify_record_file()
+static void verify_record_file()
 {
     const char *fq_record;
     int fd;
@@ -118,61 +124,40 @@ void verify_record_file()
         (void)nhclose(fd);
 }
 
+/* nttty_open is called during tty windowing system 
+ * initialization.  this call must set the width and height of
+ * the tty output device. 
+ */
 void
 nttty_open(int mode)
 {
-    LI = Nethack::g_textGrid.GetDimensions().m_y;
-    CO = Nethack::g_textGrid.GetDimensions().m_x;
+    LI = g_textGrid.GetDimensions().m_y;
+    CO = g_textGrid.GetDimensions().m_x;
 }
 
-    
+/* kbhit is called by the engine's moveloop to determine if
+ * there is any available input
+ */
 int kbhit(void)
 {
-    return !Nethack::g_eventQueue.Empty();
+    return !g_eventQueue.Empty();
 }
 
-// used in panic
-#if 1
+/* win32_abort() is called as part of panic processing */
 void
 win32_abort()
 {
-    // TODO(bhouse) Decide whether there is any value in retail NetHack
-    //              having abilty to enter debug break.  For now, we
-    //              will not allow it.
-
-#if 0
-    if (wizard) {
-        int c, ci, ct;
-
-        if (!iflags.window_inited)
-            c = 'n';
-        ct = 0;
-        msmsg("Execute debug breakpoint wizard?");
-        while ((ci = nhgetch()) != '\n') {
-            if (ct > 0) {
-                backsp(); /* \b is visible on NT */
-                (void)putchar(' ');
-                backsp();
-                ct = 0;
-                c = 'n';
-            }
-            if (ci == 'y' || ci == 'n' || ci == 'Y' || ci == 'N') {
-                ct = 1;
-                c = ci;
-                msmsg("%c", c);
-            }
-        }
-        if (c == 'y')
-            __debugbreak();
-    }
+#if _DEBUG
+    __debugbreak();
 #endif
 
     abort();
 }
-#endif
 
-/* caller should have cleared screen appropriately before calling exit 
-   and the screen should have exit reason. */
+/* immediately exit the nethack engine. if hang up processing is not in 
+ * progress, then prompt the user that they are exiting. the reason for
+ * the exit should already be displayed.
+ */
 void nethack_exit(int result)
 {
     if(!program_state.done_hup) {
@@ -186,12 +171,13 @@ void nethack_exit(int result)
             ;
     }
 
-    longjmp(Nethack::g_mainLoopJmpBuf, -1);
+    longjmp(g_mainLoopJmpBuf, -1);
 }
 
-HANDLE ffhandle = (HANDLE)0;
-WIN32_FIND_DATAA ffd;
+static HANDLE ffhandle = (HANDLE)0;
+static WIN32_FIND_DATAA ffd;
 
+/* findfirst() is called by files.c to iterate over the files of a directory */
 int findfirst(char *path)
 {
     if (ffhandle) {
@@ -202,16 +188,19 @@ int findfirst(char *path)
     return (ffhandle == INVALID_HANDLE_VALUE) ? 0 : 1;
 }
 
+/* findnext() is called by files.c to iterate over the files of a directory */
 int findnext(void)
 {
     return FindNextFileA(ffhandle, &ffd) ? 1 : 0;
 }
 
+/* foundfile_buffer() is used by files.c while iterating over the files of a directory */
 char * foundfile_buffer()
 {
     return &ffd.cFileName[0];
 }
 
+/* Delay is needed by files.c when locking a file. */
 void Delay(int ms)
 {
     Sleep(ms);
@@ -220,7 +209,7 @@ void Delay(int ms)
 /* ensure the given string ends in a slash.  Note, this is a 
  * dangerous call since the slash is added in place and the
  * caller is responsible for ensuring there is sufficient
- * storage for the slash.
+ * storage for the slash.  This is called by files.c.
  */
 void append_slash(char * name)
 {
@@ -237,20 +226,22 @@ void append_slash(char * name)
     }
 }
 
-char erase_char, kill_char;
-
+/* has_color() is used by mapglyph.c to determine whether tty graphics support color text */
 int
 has_color(int color)
 {
-    if ((color >= 0) && (color < (int) Nethack::TextColor::Count))
+    if ((color >= 0) && (color < (int) TextColor::Count))
         return 1;
 
     return 0;
 }
 
 #define MAX_OVERRIDES 256
-unsigned char key_overrides[MAX_OVERRIDES];
+static unsigned char key_overrides[MAX_OVERRIDES];
 
+/* options.c calls map_subkeyvalue to set option based key overrides.
+ * Note, this is currently not fully implemented
+ */
 void
 map_subkeyvalue(char * op)
 {
@@ -284,20 +275,22 @@ map_subkeyvalue(char * op)
     key_overrides[idx] = val;
 }
 
+/* called when windowing base options are configured */
 void
 nttty_preference_update(const char * pref)
 {
     // do nothing
 }
 
-char MapScanCode(const Nethack::Event & e)
+/* map a scan code event to a character */
+char MapScanCode(const Event & e)
 {
-    assert(e.m_type == Nethack::Event::Type::ScanCode);
+    assert(e.m_type == Event::Type::ScanCode);
 
     char c = 0;
 
     if (!e.m_alt) {
-        if (e.m_scanCode >= Nethack::ScanCode::Home && e.m_scanCode <= Nethack::ScanCode::Delete) {
+        if (e.m_scanCode >= ScanCode::Home && e.m_scanCode <= ScanCode::Delete) {
             typedef struct {
                 char normal, shift, control;
             } PadMapping;
@@ -337,7 +330,7 @@ char MapScanCode(const Nethack::Event & e)
 
             const PadMapping * pad = iflags.num_pad ? numpad : keypad;
 
-            int i = (int) e.m_scanCode - (int)Nethack::ScanCode::Home;
+            int i = (int) e.m_scanCode - (int)ScanCode::Home;
 
             if (e.m_shift) {
                 c = pad[i].shift;
@@ -348,101 +341,24 @@ char MapScanCode(const Nethack::Event & e)
             }
         }
     } else {
-        int scanToChar[(int)Nethack::ScanCode::Count] = {
-            0, // Unknown
-            0, // Escape
-            '1' | 0x80, // One
-            '2' | 0x80, // Two
-            '3' | 0x80, // Three
-            '4' | 0x80, // Four
-            '5' | 0x80, // Five
-            '6' | 0x80, // Six
-            '7' | 0x80, // Seven
-            '8' | 0x80, // Eight
-            '9' | 0x80, // Nine
-            '0' | 0x80, // Zero
-            0, // Minus
-            0, // Equal
-            0, // Backspace
-            0, // Tab
-            'q' | 0x80, // Q
-            'w' | 0x80, // W
-            'e' | 0x80, // E
-            'r' | 0x80, // R
-            't' | 0x80, // T
-            'y' | 0x80, // Y
-            'u' | 0x80, // U
-            'i' | 0x80, // I
-            'o' | 0x80, // O
-            'p' | 0x80, // P
-            0, // LeftBracket
-            0, //  RightBracket
-            0, // Enter
-            0, // Control
-            'a' | 0x80, // A
-            's' | 0x80, // S
-            'd' | 0x80, // D
-            'f' | 0x80, // F
-            'g' | 0x80, // G
-            'h' | 0x80, // H
-            'j' | 0x80, // J
-            'k' | 0x80, // K
-            'l' | 0x80, // L
-            0, // SemiColon
-            0, // Quote
-            0, // BackQuote
-            0, // LeftShift
-            0, // BackSlash
-            'z' | 0x80, // Z
-            'x' | 0x80, // X
-            'c' | 0x80, // C
-            'v' | 0x80, // V
-            'b' | 0x80, // B
-            'n' | 0x80, // N
-            'm' | 0x80, // M
-            0, // Comma
-            0, // Period
-            '?' | 0x80, // ForwardSlash
-            0, // RightShift
-            0, // NotSure
-            0, // Alt
-            0, // Space
-            0, // Caps
-            0, // F1
-            0, // F2
-            0, // F3
-            0, // F4
-            0, // F5
-            0, // F6
-            0, // F7
-            0, // F8
-            0, // F9
-            0, // F10
-            0, // Num
-            0, // Scroll
-            0, // Home
-            0, // Up
-            0, // PageUp
-            0, // PadMinus
-            0, // Left
-            0, // Center
-            0, // Right
-            0, // PadPlus
-            0, // End
-            0, // Down
-            0, // PageDown
-            0, // Insert
-            0, // Delete
-            0, // Scan84
-            0, // Scan85
-            0, // Scan86
-            0, // F11
-            0, // F12
+        static const int scanToChar[(int)ScanCode::Count] = {
+            0,  0,
+            '1' | 0x80, '2' | 0x80, '3' | 0x80,  '4' | 0x80,  '5' | 0x80,
+            '6' | 0x80,  '7' | 0x80,  '8' | 0x80,  '9' | 0x80,  '0' | 0x80,
+            0,  0,  0,  0,
+            'q' | 0x80,  'w' | 0x80, 'e' | 0x80,  'r' | 0x80, 't' | 0x80,
+            'y' | 0x80, 'u' | 0x80, 'i' | 0x80,  'o' | 0x80,  'p' | 0x80,
+            0, 0, 0, 0,
+            'a' | 0x80, 's' | 0x80, 'd' | 0x80, 'f' | 0x80, 'g' | 0x80,
+            'h' | 0x80,  'j' | 0x80, 'k' | 0x80, 'l' | 0x80,
+            0, 0, 0, 0, 0,
+            'z' | 0x80, 'x' | 0x80, 'c' | 0x80, 'v' | 0x80, 'b' | 0x80, 'n' | 0x80, 'm' | 0x80,
+            0, 0, '?' | 0x80, 0
         };
 
-        assert(((int) e.m_scanCode >= 0) && ((int) e.m_scanCode < (int) Nethack::ScanCode::Count));
+        assert(((int) e.m_scanCode >= 0) && ((int) e.m_scanCode < (int) ScanCode::Count));
 
-        if (e.m_scanCode >= Nethack::ScanCode::Unknown && e.m_scanCode < Nethack::ScanCode::Count) {
+        if (e.m_scanCode >= ScanCode::Unknown && e.m_scanCode < ScanCode::Count) {
             c = (char) scanToChar[(int)e.m_scanCode];
             unsigned char uc = c & ~0x80;
             if (e.m_shift && isalpha(uc)) {
@@ -455,27 +371,34 @@ char MapScanCode(const Nethack::Event & e)
     return c;
 }
 
+/* get a character of input from the input stream.  if we were hung up
+ * then always return ESCAPE. 
+ */
 int raw_getchar()
 {
     if (program_state.done_hup)
         return ESCAPE;
 
-    Nethack::Event e;
+    Event e;
 
-    while (e.m_type == Nethack::Event::Type::Undefined ||
-           (e.m_type == Nethack::Event::Type::ScanCode && MapScanCode(e) == 0) ||
-           (e.m_type == Nethack::Event::Type::Mouse)) {
-        e = Nethack::g_eventQueue.PopFront();
+    while (e.m_type == Event::Type::Undefined ||
+           (e.m_type == Event::Type::ScanCode && MapScanCode(e) == 0) ||
+           (e.m_type == Event::Type::Mouse)) {
+        e = g_eventQueue.PopFront();
     }
 
-    if (e.m_type == Nethack::Event::Type::ScanCode)
+    if (e.m_type == Event::Type::ScanCode)
         return MapScanCode(e);
     else  {
-        assert(e.m_type == Nethack::Event::Type::Char);
+        assert(e.m_type == Event::Type::Char);
         return e.m_char;
     }
 }
 
+/* erase_char and kill_char are usd by getline.c and topl.c */
+char erase_char, kill_char;
+
+/* gettty is called as part of wintty support */
 void
 gettty()
 {
@@ -484,6 +407,7 @@ gettty()
     iflags.cbreak = TRUE;
 }
 
+/* setftty is called as part of wintty support */
 void
 setftty()
 {
@@ -499,6 +423,9 @@ void error(const char * s, ...)
     va_end(the_args);
 }
 
+/* report error to the user and exit the game.  this may be called when the
+ * windowing system is not yet initialized.
+ */
 void uwp_error(const char * s, ...)
 {
     va_list the_args;
@@ -519,6 +446,9 @@ void uwp_error(const char * s, ...)
     nethack_exit(EXIT_FAILURE);
 }
 
+/* warn the player without exiting the game.  this may be called
+ * when the windowing system is not yet initialized
+ */
 void uwp_warn(const char * s, ...)
 {
     va_list the_args;
@@ -544,48 +474,15 @@ void uwp_warn(const char * s, ...)
         ;
 }
 
-void raw_clear_screen(void)
-{
-    Nethack::g_textGrid.Clear();
-}
-
-bool get_string(std::string & string, unsigned int maxLength)
-{
-    string = "";
-
-    bool done = false;
-    while (1) {
-        char c = raw_getchar();
-
-        if (c == EOF || c == ESCAPE) return false;
-
-        if (c == '\n') return true;
-
-        if (c == '\b') {
-            if (string.length() > 0) {
-                Nethack::g_textGrid.Putstr(Nethack::TextColor::White, Nethack::TextAttribute::None, "\b");
-                string = string.substr(0, string.length() - 1);
-            }
-            continue;
-        }
-
-        if (!isprint(c))
-            continue;
-
-        if (string.length() < maxLength)  {
-            Nethack::g_textGrid.Put(Nethack::TextColor::White, Nethack::TextAttribute::None, c);
-            string += c;
-        }
-    }
-}
-
-bool file_exists(std::string & filePath)
+/* check whether a given file exits */
+static bool file_exists(std::string & filePath)
 {
     std::ifstream f(filePath.c_str());
     return f.good();
 }
 
-void rename_file(const char * from, const char * to)
+/* rename the file if it exists */
+static void rename_file(const char * from, const char * to)
 {
     std::string toPath(to);
 
@@ -595,12 +492,15 @@ void rename_file(const char * from, const char * to)
     rename(from, to);
 }
 
-void copy_to_local(std::string & fileName, bool onlyIfMissing)
+/* copy the give file from the install directory to the
+ * local directory
+ */
+static void copy_to_local(std::string & fileName, bool onlyIfMissing)
 {
-    std::string localPath = Nethack::g_localDir;
+    std::string localPath = g_localDir;
     localPath += fileName;
 
-    std::string installPath = Nethack::g_installDir;
+    std::string installPath = g_installDir;
     installPath += fileName;
 
     if (onlyIfMissing && file_exists(localPath))
@@ -636,9 +536,12 @@ void copy_to_local(std::string & fileName, bool onlyIfMissing)
     }
 }
 
-bool validate_font_map(std::string & fontFamilyName)
+/* determine whether the given font family name can be used for rendering.
+ * it must be among the known font families and must be monospaced.
+ */
+static bool validate_font_map(std::string & fontFamilyName)
 {
-    bool goodGood = false;
+    bool fontIsValid = false;
 
     if (g_fontCollection.m_fontFamilies.count(fontFamilyName) != 0)
     {
@@ -646,16 +549,19 @@ bool validate_font_map(std::string & fontFamilyName)
         if (!font.m_fonts.begin()->second.m_monospaced) {
             uwp_warn("font_map font '%s' must be monospaced.", fontFamilyName.c_str());
         } else {
-            goodGood = true;
+            fontIsValid = true;
         }
     }
     else {
         uwp_warn("unable to find font_map font '%s'", fontFamilyName.c_str());
     }
-    return goodGood;
+    return fontIsValid;
 }
 
-void process_font_map()
+/* process iflags.wc_font_map option.  if the font is valid
+ * use that font otherwise use the default font
+ */
+static void process_font_map()
 {
     std::string fontFamilyName;
 
@@ -670,8 +576,8 @@ void process_font_map()
     g_textGrid.SetFontFamilyName(fontFamilyName);
 }
 
-
-void add_option()
+/* allow the user to add to NETHACKOPTIONS */
+static void add_option()
 {
     clear_nhwindow(BASE_WINDOW);
 
@@ -690,13 +596,14 @@ void add_option()
     }
 
     if(validateoptions(buf, FALSE)) {
-        Nethack::g_options.m_options.push_back(option);
-        Nethack::g_options.Store();
+        g_options.m_options.push_back(option);
+        g_options.Store();
         uwp_init_options();
     }
 }
 
-void remove_options()
+/* allow the user to remove one or more of the NETHACKOPTIONS */
+static void remove_options()
 {
     clear_nhwindow(BASE_WINDOW);
 
@@ -728,13 +635,14 @@ void remove_options()
         if(removals[i]) g_options.m_options.erase(g_options.m_options.begin() + i);
 
     if(count > 0) {
-        Nethack::g_options.Store();
+        g_options.Store();
         uwp_init_options();
     }
 
 }
 
-void change_options()
+/* allow the user to add/remove from NETHACKOPTIONS. */
+static void change_options()
 {
     bool done = false;
     while (!done) {
@@ -742,7 +650,7 @@ void change_options()
         clear_nhwindow(BASE_WINDOW);
 
         std::string optionsString = "[ ]";
-        optionsString += Nethack::g_options.GetString();
+        optionsString += g_options.GetString();
 
         winid menu = create_nhwindow(NHW_MENU);
         start_menu(menu);
@@ -782,7 +690,11 @@ void change_options()
     }
 }
 
-void change_font(void)
+/* put up a menu allowing the user to change the font that will be
+ * used.  if a change is made, that choice is reflected in the
+ * NETHACKOPTIONS.
+ */
+static void change_font(void)
 {
     clear_nhwindow(BASE_WINDOW);
 
@@ -823,17 +735,25 @@ void change_font(void)
     free((genericptr_t)pick);
 }
 
+/* every port must provide support for getenv.  We redefine
+ * getenv to uwp_getenv in uwpconf.h and support it here.  The
+ * only environment variable we support is NETHACKOPTIONS which is
+ * set via the main menu.
+ */
 char * uwp_getenv(const char * env)
 {
     if(strcmp(env, "NETHACKOPTIONS") == 0) {
         static std::string options;
-        options = Nethack::g_options.GetString();
+        options = g_options.GetString();
         return (char *)options.c_str();
     }
     return NULL;
 }
 
-void save_file(std::string & filePath)
+/* prompt the user to pick a file name and location.  if the user picks,
+ * a copy of file from the given filePath is made to the picked name and location.
+ */
+static void save_file(std::string & filePath)
 {
     std::string fileExtension = filePath.substr(filePath.rfind('.'), std::string::npos);
     std::string fileName = filePath.substr(filePath.rfind('\\') + 1, filePath.rfind('.') - filePath.rfind('\\') - 1);
@@ -849,23 +769,26 @@ void save_file(std::string & filePath)
         input.close();
         readText = std::string(bytes.data(), size);
 
-        Platform::String ^ fileText = Nethack::to_platform_string(readText);
-        Platform::String ^ fileNameStr = Nethack::to_platform_string(fileName);
-        Platform::String ^ extensionStr = Nethack::to_platform_string(fileExtension);
-        Nethack::FileHandler::s_instance->SaveFilePicker(fileText, fileNameStr, extensionStr);
+        Platform::String ^ fileText = to_platform_string(readText);
+        Platform::String ^ fileNameStr = to_platform_string(fileName);
+        Platform::String ^ extensionStr = to_platform_string(fileExtension);
+        FileHandler::s_instance->SaveFilePicker(fileText, fileNameStr, extensionStr);
     } else {
         uwp_error("Unable to open %s%s", fileName.c_str(), fileExtension.c_str());
     }
 
 }
 
+/* prompt the user to select a file.  if the file is picked, then copy
+ * its contents to the file path given.
+ */
 void load_file(std::string & filePath)
 {
     std::string fileExtension = filePath.substr(filePath.rfind('.'), std::string::npos);
-    Platform::String ^ extensionStr = Nethack::to_platform_string(fileExtension);
-    Platform::String ^ fileText = Nethack::FileHandler::s_instance->LoadFilePicker(extensionStr);
+    Platform::String ^ extensionStr = to_platform_string(fileExtension);
+    Platform::String ^ fileText = FileHandler::s_instance->LoadFilePicker(extensionStr);
     if (fileText != nullptr)  {
-        std::string writeText = Nethack::to_string(fileText);
+        std::string writeText = to_string(fileText);
         std::fstream output(filePath.c_str(), std::fstream::out | std::fstream::trunc | std::fstream::binary);
         if (output.is_open())  {
             output.write(writeText.c_str(), writeText.length());
@@ -874,14 +797,18 @@ void load_file(std::string & filePath)
     }
 }
 
-void reset_defaults_file(void)
+/* copy the defaults file from the installation location */
+static void reset_defaults_file(void)
 {
     copy_to_local(g_defaultsFileName, false);
     clear_nhwindow(BASE_WINDOW);
     getreturn("Reset complete");
 }
 
-bool main_menu(void)
+/* using the windowing system, show a menu that allows the player
+ * to perform various actions prior to playing a game.
+ */
+static bool main_menu(void)
 {
     /* we will using windowing so setup windowing system */
     init_nhwindows(NULL, NULL);
@@ -902,7 +829,7 @@ bool main_menu(void)
     bool done = false;
     while (!done && !play) {
         // TODO(bhouse): this can be removed when we switch to using nh menus for all actions
-        Nethack::g_textGrid.Clear();
+        g_textGrid.Clear();
 
         const char * items[] = {
             "[ ]" COPYRIGHT_BANNER_A,
@@ -969,41 +896,10 @@ bool main_menu(void)
     return play;
 }
 
-/* to support previous releases, we rename save games to new save game format */
-void rename_save_files()
-{
-    char *foundfile;
-    const char *fq_save;
-
-    const char * oldsaves[] = { 
-        "bhouse-*.NetHack-saved-game",
-        "noname-*.NetHack-saved-game" };
-
-    for (int i = 0; i < SIZE(oldsaves); i++) {
-        fq_save = fqname(oldsaves[i], SAVEPREFIX, 0);
-
-        foundfile = foundfile_buffer();
-        if (findfirst((char *)fq_save)) {
-            do {
-                char oldPath[512];
-                char newname[512];
-
-                strcpy(newname, &foundfile[7]);
-
-                fq_save = fqname(foundfile, SAVEPREFIX, 0);
-                strcpy(oldPath, fq_save);
-
-                const char * newPath = fqname(newname, SAVEPREFIX, 0);
-
-                rename_file(oldPath, newPath);
-
-            } while (findnext());
-        }
-    }
-}
-
-/* one time initialization */
-void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW)
+/* one time initialization.  this state must be constant state. this does
+ * not include constant state managed (i.e. set) by the game engine.
+ */
+static void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW)
 {
     bool static initialized = false;
 
@@ -1018,13 +914,13 @@ void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW)
     g_nethackOptionsFilePath = g_localDir;
     g_nethackOptionsFilePath += g_nethackOptionsFileName;
 
-    g_defaultsFilePath = Nethack::g_localDir;
+    g_defaultsFilePath = g_localDir;
     g_defaultsFilePath += g_defaultsFileName;
 
-    g_guidebookFilePath = Nethack::g_installDir;
+    g_guidebookFilePath = g_installDir;
     g_guidebookFilePath += g_guidebookFileName;
 
-    g_licenseFilePath = Nethack::g_installDir;
+    g_licenseFilePath = g_installDir;
     g_licenseFilePath += g_licenseFileName;
 
     fqn_prefix[HACKPREFIX] = (char *)g_installDir.c_str();
@@ -1050,9 +946,7 @@ void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW)
 
     verify_record_file();
 
-    rename_save_files();
-
-    Nethack::g_options.Load(g_nethackOptionsFilePath);
+    g_options.Load(g_nethackOptionsFilePath);
 
     initialized = true;
 }
@@ -1060,8 +954,7 @@ void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW)
 /* Initialize options.  This can get called multiple times prior
  * to game start.
  */
-
-void uwp_init_options()
+static void uwp_init_options()
 {
     g_textGrid.SetDefaultPalette();
 
@@ -1078,43 +971,11 @@ void uwp_init_options()
     }
 }
 
-void uwp_main(std::wstring & localDirW, std::wstring & installDirW)
-{
-    /* we must treat early long jumps as fatal to avoid endless error loops */
-    bool jumpIsFatal = true;
-
-    if(setjmp(Nethack::g_mainLoopJmpBuf) == 0) {
-
-        /* set the windowing system -- this is necessary for
-           raw printing to work which used during warning and error
-           reporting */
-        choose_windows(DEFAULT_WINDOW_SYS);
-
-        uwp_one_time_init(localDirW, installDirW);
-
-        /* set engine initialization state */
-        first_init();
-
-        /* initialize options -- we do this here to ensure options
-           can influence all other systems (such as windowing) */
-        uwp_init_options();
-
-        bool bPlay = main_menu();
-
-        if (bPlay) {
-            /* errors will no longer be considered fatal */
-            jumpIsFatal = false;
-
-            uwp_play_nethack();
-        }
-    } else {
-        if (jumpIsFatal) exit(EXIT_FAILURE);
-    }
-
-    final_cleanup();
-}
-
-void 
+/* player has elected to play a game of nethack.
+ * let play chose between resuming a game in progress
+ * or start a new game and then play.
+ */
+static void 
 uwp_play_nethack(void)
 {
     sys_early_init();
@@ -1192,13 +1053,67 @@ port_help()
 }
 #endif /* PORT_HELP */
 
-/* validate wizard mode if player has requested access to it */
+/* validate wizard mode if player has requested access to it.
+ * This call is required by options.c.
+ */
 boolean
 authorize_wizard_mode()
 {
     if (!strcmp(plname, WIZARD_NAME))
         return TRUE;
     return FALSE;
+}
+
+/* main entry point of nethack engine thread.
+ * this thread never exits (until process termination).
+ */
+void uwp_main(std::wstring & localDirW, std::wstring & installDirW)
+{
+    /* we must treat early long jumps as fatal to avoid endless error loops */
+    bool jumpIsFatal = true;
+
+    /* any error encountered within this thread will cause us to
+     * long jump out.  this has the potential of leaving any
+     * global or static state in a bad state.  becaues of this, we initialize
+     * all global and static state to a good known state at the start
+     */
+
+    if (setjmp(g_mainLoopJmpBuf) == 0) {
+
+        /* set the windowing system -- this is necessary for
+         * raw printing to work which is used during warning and error
+         * reporting 
+         */
+        choose_windows(DEFAULT_WINDOW_SYS);
+
+        uwp_one_time_init(localDirW, installDirW);
+
+        /* set engine initialization state */
+        first_init();
+
+        /* initialize options -- we do this here to ensure options
+         * can influence all other systems (such as windowing)
+         */
+        uwp_init_options();
+
+        /* show a main menu allowing the player to change some settings
+         * prior to starting a game.
+         */
+        bool bPlay = main_menu();
+
+        if (bPlay) {
+            /* errors will no longer be considered fatal and thus will cause
+             * us to long jump out
+             */
+            jumpIsFatal = false;
+
+            uwp_play_nethack();
+        }
+    } else {
+        if (jumpIsFatal) exit(EXIT_FAILURE);
+    }
+
+    final_cleanup();
 }
 
 } // extern "C"

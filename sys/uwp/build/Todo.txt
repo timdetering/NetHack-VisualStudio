@@ -3,6 +3,7 @@
 High Priority
 
 Medium Priority
+- finish implementing key overrides and test
 - remove WIN32CON definition (currently defined in vcxproj )
 - Review all options
 - Protoype just calling into DWrite to render grid instead of trying to use D3D11 (although we
