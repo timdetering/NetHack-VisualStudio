@@ -188,13 +188,13 @@ defaults.nh             Package.appxmanifest        porthelp
 uwp.cpp                 uwp.h                       uwpapp.cpp
 uwpapp.h                uwpasciitexture.cpp         uwpasciitexture.h
 uwpcolor.cpp            uwpdeviceresources.cpp
-uwpdeviceresources.h    uwpdxhelper.h               uwpenum.h
+uwpdeviceresources.h    uwpdxhelper.h
 uwpeventqueue.h         uwpfilehandler.cpp          uwpfilehandler.h
 uwpfont.cpp             uwpfont.h                   uwpgloabls.cpp
 uwpglobals.h            uwpkey.pfx                  
-uwpmath.h               uwpnethackmain.cpp
+uwpnethackmain.cpp
 uwpnethackmain.h        uwpoption.cpp               uwpoption.h
-uwppixelshader.hlsl     uwpscreen.h                 uwpshaderstructures.h
+uwppixelshader.hlsl
 uwpsolidpixelshader.hlsl
 uwpsteptimer.h          uwptextgrid.cpp             uwptextgrid.h
 uwptty.cpp              uwputil.h                   uwpvertexshader.hlsl

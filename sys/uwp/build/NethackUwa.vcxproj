@@ -244,10 +244,8 @@
   <ItemGroup>
     <ClInclude Include="$(SysDir)uwp\uwpapp.h" />
     <ClInclude Include="$(SysDir)uwp\uwpdeviceresources.h" />
-    <ClInclude Include="$(SysDir)uwp\uwpmath.h" />
     <ClInclude Include="$(SysDir)uwp\uwpnethackmain.h" />
     <ClInclude Include="$(SysDir)uwp\uwpsteptimer.h" />
-    <ClInclude Include="$(SysDir)uwp\uwpshaderstructures.h" />
     <ClInclude Include="$(SysDir)uwp\uwp.h" />
     <ClInclude Include="..\..\..\include\uwpconf.h" />
     <ClInclude Include="$(SysDir)uwp\uwpeventqueue.h" />
@@ -258,7 +256,6 @@
     <ClInclude Include="$(SysDir)uwp\uwpfilehandler.h" />
     <ClInclude Include="$(SysDir)uwp\uwpfont.h" />
     <ClInclude Include="$(SysDir)uwp\uwputil.h" />
-    <ClInclude Include="..\uwpenum.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(SrcDir)sys.c">

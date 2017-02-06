@@ -6,6 +6,109 @@
 
 namespace Nethack
 {
+    const char ESCAPE = 27;
+
+    enum class ScanCode
+    {
+        Unknown, Escape, One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Zero,
+        Minus, Equal, Backspace, Tab,
+        Q, W, E, R, T, Y, U, I, O, P, LeftBracket, RightBracket,
+        Enter, Control,
+        A, S, D, F, G, H, J, K, L, SemiColon, Quote,
+        BackQuote, LeftShift, BackSlash,
+        Z, X, C, V, B, N, M, Comma, Period, ForwardSlash,
+        RightShift, NotSure, Alt, Space, Caps,
+        F1, F2, F3, F4, F5, F6, F7, F8, F9, F10,
+        Num, Scroll, Home, Up, PageUp, PadMinus, Left, Center, Right, PadPlus,
+        End, Down, PageDown, Insert, Delete,
+        Scan84, Scan85, Scan86,
+        F11, F12, Count
+
+    };
+
+    enum class VirtualKey
+    {
+        Zero = 0x30, One, Two, Three, Four, Five, Six, Seven, Eight, Nine,
+        A = 0x41, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
+    };
+
+    // Constant buffer used to send MVP matrices to the vertex shader.
+    struct ModelViewProjectionConstantBuffer
+    {
+        DirectX::XMFLOAT4X4 model;
+        DirectX::XMFLOAT4X4 view;
+        DirectX::XMFLOAT4X4 projection;
+    };
+
+    // Used to send per-vertex data to the vertex shader.
+    struct VertexPositionColor
+    {
+        DirectX::XMFLOAT3 pos;
+        DirectX::XMFLOAT3 foregroundColor;
+        DirectX::XMFLOAT3 backgroundColor;
+        DirectX::XMFLOAT2 coord;
+    };
+
+    template<typename T>
+    class Vector2D
+    {
+    public:
+
+        Vector2D() : m_x(0), m_y(0) {}
+        Vector2D(const T & inX, const T & inY) : m_x(inX), m_y(inY) {}
+
+        T m_x;
+        T m_y;
+
+        Vector2D & operator+=(const Vector2D & a) { m_x += a.m_x; m_y += a.m_y; return *this; }
+        Vector2D & operator-=(const Vector2D & a) { m_x -= a.m_x; m_y -= a.m_y; return *this; }
+        Vector2D & operator*=(const Vector2D & a) { m_x *= a.m_x; m_y *= a.m_y; return *this; }
+        Vector2D & operator/=(const Vector2D & a) { m_x /= a.m_x; m_y /= a.m_y; return *this; }
+
+        Vector2D & operator+=(T a) { m_x += a; m_y += a; return *this; }
+        Vector2D & operator-=(T a) { m_x -= a; m_y -= a; return *this; }
+        Vector2D & operator*=(T a) { m_x *= a; m_y *= a; return *this; }
+        Vector2D & operator/=(T a) { m_x /= a; m_y /= a; return *this; }
+
+    };
+
+    template<typename T>  Vector2D<T> operator+(Vector2D<T> a, const Vector2D<T> & b) { return a += b; }
+    template<typename T>  Vector2D<T> operator-(Vector2D<T> a, const Vector2D<T> & b) { return a -= b; }
+    template<typename T>  Vector2D<T> operator*(Vector2D<T> a, const Vector2D<T> & b) { return a *= b; }
+    template<typename T>  Vector2D<T> operator/(Vector2D<T> a, const Vector2D<T> & b) { return a /= b; }
+
+    template<typename T>  Vector2D<T> operator+(Vector2D<T> a, T b) { return a += b; }
+    template<typename T>  Vector2D<T> operator-(Vector2D<T> a, T b) { return a -= b; }
+    template<typename T>  Vector2D<T> operator*(Vector2D<T> a, T b) { return a *= b; }
+    template<typename T>  Vector2D<T> operator/(Vector2D<T> a, T b) { return a /= b; }
+
+    typedef Vector2D<float> Float2D;
+    typedef Vector2D<int> Int2D;
+
+    inline Float2D operator+(const Float2D & a, const Int2D & b) { return Float2D(a.m_x + (float)b.m_x, a.m_y + (float)b.m_y); }
+    inline Float2D operator-(const Float2D & a, const Int2D & b) { return Float2D(a.m_x - (float)b.m_x, a.m_y - (float)b.m_y); }
+    inline Float2D operator*(const Float2D & a, const Int2D & b) { return Float2D(a.m_x * (float)b.m_x, a.m_y * (float)b.m_y); }
+    inline Float2D operator/(const Float2D & a, const Int2D & b) { return Float2D(a.m_x / (float)b.m_x, a.m_y / (float)b.m_y); }
+
+    template<typename T>
+    class Rect
+    {
+    public:
+
+        Rect() {}
+        Rect(const T & inTopLeft, const T & inBottomRight)
+            : m_topLeft(inTopLeft), m_bottomRight(inBottomRight)
+        {
+
+        }
+
+        T m_topLeft;
+        T m_bottomRight;
+    };
+
+    typedef Rect<Float2D> FloatRect;
+    typedef Rect<Int2D> IntRect;
+
     inline std::string to_string(const std::wstring & inString)
     {
         std::string outString;

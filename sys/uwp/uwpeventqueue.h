@@ -78,16 +78,6 @@ namespace Nethack
             m_conditionVariable.Wake();
         }
 
-#if 0
-        void PushFront(const Event & inEvent)
-        {
-            m_lock.AcquireExclusive();
-            m_list.push_front(inEvent);
-            m_lock.ReleaseExclusive();
-            m_conditionVariable.Wake();
-        }
-#endif
-
         Event PopFront()
         {
             m_lock.AcquireExclusive();

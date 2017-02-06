@@ -719,16 +719,10 @@
     <ClInclude Include="$(SysDir)uwp\uwpglobals.h">
       <Filter>sys\uwp</Filter>
     </ClInclude>
-    <ClInclude Include="$(SysDir)uwp\uwpmath.h">
-      <Filter>sys\uwp</Filter>
-    </ClInclude>
     <ClInclude Include="$(SysDir)uwp\uwpnethackmain.h">
       <Filter>sys\uwp</Filter>
     </ClInclude>
     <ClInclude Include="$(SysDir)uwp\uwpoption.h">
-      <Filter>sys\uwp</Filter>
-    </ClInclude>
-    <ClInclude Include="$(SysDir)uwp\uwpshaderstructures.h">
       <Filter>sys\uwp</Filter>
     </ClInclude>
     <ClInclude Include="$(SysDir)uwp\uwpsteptimer.h">
@@ -738,9 +732,6 @@
       <Filter>sys\uwp</Filter>
     </ClInclude>
     <ClInclude Include="$(SysDir)uwp\uwputil.h">
-      <Filter>sys\uwp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\uwpenum.h">
       <Filter>sys\uwp</Filter>
     </ClInclude>
   </ItemGroup>

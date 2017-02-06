@@ -81,10 +81,7 @@
 #include <agile.h>
 #include <concrt.h>
 
-#include "uwpenum.h"
-#include "uwpmath.h"
 #include "uwputil.h"
-#include "uwpshaderstructures.h"
 #include "uwpasciitexture.h"
 #include "uwptextgrid.h"
 #include "uwpoption.h"
