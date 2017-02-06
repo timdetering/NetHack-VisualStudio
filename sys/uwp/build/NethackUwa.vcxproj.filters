@@ -23,6 +23,9 @@
     <Filter Include="sys\uwp\build">
       <UniqueIdentifier>{634ebabc-4671-47ba-a731-bf2d95ae667a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="win\uwp">
+      <UniqueIdentifier>{c7934a13-ae2a-48ef-9ef4-53d99e8f53a9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(SrcDir)allmain.c">
@@ -340,9 +343,6 @@
     <ClCompile Include="$(SrcDir)windows.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="$(WinTtyDir)wintty.c">
-      <Filter>win\tty</Filter>
-    </ClCompile>
     <ClCompile Include="$(SrcDir)wizard.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -405,6 +405,9 @@
     </ClCompile>
     <ClCompile Include="..\uwptextgrid.cpp">
       <Filter>sys\uwp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\win\uwp\winuwp.cpp">
+      <Filter>win\uwp</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

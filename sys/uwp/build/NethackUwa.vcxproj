@@ -279,6 +279,7 @@
     <ClCompile Include="$(SysDir)uwp\uwpdeviceresources.cpp" />
     <ClCompile Include="$(SysDir)uwp\uwpnethackmain.cpp" />
     <ClCompile Include="$(SysDir)uwp\uwp.cpp" />
+    <ClCompile Include="..\..\..\win\uwp\winuwp.cpp" />
     <ClCompile Include="..\..\share\nhlan.c">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsWinRT>
@@ -1075,9 +1076,6 @@
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <ClCompile Include="$(SrcDir)windows.c">
-      <CompileAsWinRT>false</CompileAsWinRT>
-    </ClCompile>
-    <ClCompile Include="$(WinTtyDir)wintty.c">
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <ClCompile Include="$(SrcDir)wizard.c">
