@@ -192,7 +192,11 @@ E NEARDATA char horsename[];
 E char preferred_pet;
 E const char *occtxt; /* defined when occupation != NULL */
 E const char *nomovemsg;
+#ifdef UWP
+E char lock[BUFSIZ];
+#else
 E char lock[];
+#endif
 
 E const schar xdir[], ydir[], zdir[];
 

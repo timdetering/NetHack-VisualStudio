@@ -78,7 +78,11 @@ char lock[PL_NSIZ + 17] = "1lock"; /* long enough for _uid+name+.99;1 */
 #endif
 #if defined(WIN32)
 char bones[] = "bonesnn.xxx";
+#ifdef UWP
+char lock[BUFSIZ];
+#else
 char lock[PL_NSIZ + 25]; /* long enough for username+-+name+.99 */
+#endif
 #endif
 #endif
 

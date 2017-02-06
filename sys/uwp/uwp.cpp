@@ -12,105 +12,83 @@ extern "C"  {
 #error HANGUPHANDLING must be defined
 #endif
 
-#ifdef PC_LOCKING
-    static int
-        eraseoldlocks()
-    {
-        register int i;
-
-        /* cannot use maxledgerno() here, because we need to find a lock name
-        * before starting everything (including the dungeon initialization
-        * that sets astral_level, needed for maxledgerno()) up
-        */
-        for (i = 1; i <= MAXDUNGEON * MAXLEVEL + 1; i++) {
-            /* try to remove all */
-            set_levelfile_name(lock, i);
-            (void)unlink(fqname(lock, LEVELPREFIX, 0));
-        }
-        set_levelfile_name(lock, 0);
 #ifdef HOLD_LOCKFILE_OPEN
-        really_close();
+#error HOLD_LOCKFILE_OPEN should not be defined
 #endif
-        if (unlink(fqname(lock, LEVELPREFIX, 0)))
-            return 0; /* cannot remove it */
-        return (1);   /* success! */
+
+
+static bool
+    erase_save_files()
+{
+    register int i;
+
+    for (i = 1; i <= MAXDUNGEON * MAXLEVEL + 1; i++) {
+        /* try to remove all */
+        set_levelfile_name(lock, i);
+        (void)unlink(fqname(lock, LEVELPREFIX, 0));
     }
 
-    void
-        getlock()
-    {
-        register int fd, ern;
-        int fcmask = FCMASK;
-        char tbuf[BUFSZ];
-        const char *fq_lock;
+    set_levelfile_name(lock, 0);
 
-        // Shoudl only be called when windowing system is initialized
-        assert(iflags.window_inited);
+    if (unlink(fqname(lock, LEVELPREFIX, 0)))
+        return false;
 
-        /* we ignore QUIT and INT at this point */
-        if (!lock_file(HLOCK, LOCKPREFIX, 10)) {
-            wait_synch();
-            uwp_error("Quitting.");
-        }
+    return true;
+}
 
-        /* regularize(lock); */ /* already done in uwpmains */
-        Sprintf(tbuf, "%s", fqname(lock, LEVELPREFIX, 0));
-        set_levelfile_name(lock, 0);
-        fq_lock = fqname(lock, LEVELPREFIX, 1);
+/* Check if there is a game in progress and recover  */
+void check_game_in_progress()
+{
+    register int fd;
+    int fcmask = FCMASK;
+    char tbuf[BUFSZ];
+    const char *fq_lock;
 
-        if ((fd = open(fq_lock, 0)) == -1) {
+    Sprintf(tbuf, "%s", fqname(lock, LEVELPREFIX, 0));
+    set_levelfile_name(lock, 0);
+    fq_lock = fqname(lock, LEVELPREFIX, 1);
 
-            if (errno == ENOENT)
-                goto gotlock; /* no such file */
+    if ((fd = open(fq_lock, 0)) == -1) {
 
-            unlock_file(HLOCK);
-            uwp_error("Unexpected failure.  Cannot open %s", fq_lock);
-        }
+        if (errno == ENOENT)
+            return; /* no such file */
 
-        (void)nhclose(fd);
+        uwp_error("Unexpected failure.  Cannot open %s", fq_lock);
+    }
 
-        if (yn("There are files from a game in progress under your name. Recover?")) {
-            if (recover_savefile()) {
-                goto gotlock;
-            }
-            else if (yn("Recovery failed.  Continue by removing corrupt saved files?")) {
-                if (!eraseoldlocks()) {
-                    unlock_file(HLOCK);
-                    uwp_error("Cound not remove corrupt saved files.  Exiting.");
+    (void)nhclose(fd);
+
+    if (yn("There are files from a game in progress under your name. Recover?")) {
+        if (!recover_savefile()) {
+            if (yn("Recovery failed.  Continue by removing corrupt saved files?")) {
+                if (!erase_save_files()) {
+                    uwp_error("Cound not remove corrupt saved files.");
                 }
-                goto gotlock;
-            }
-            else {
-                unlock_file(HLOCK);
-                uwp_error("Can not continue.  Exiting.");
+            } else {
+                uwp_error("Can not continue with a game in progress.");
             }
         }
-        else {
-            unlock_file(HLOCK);
-            uwp_error("Cannot start a new game.");
-        }
-
-    gotlock:
-        fd = creat(fq_lock, fcmask);
-
-        if (fd == -1)
-            ern = errno;
-
-        unlock_file(HLOCK);
-
-        if (fd == -1) {
-            uwp_error("Unexpected error creating file (%s).", fq_lock);
-        }
-        else {
-            if (write(fd, (char *)&hackpid, sizeof(hackpid)) != sizeof(hackpid)) {
-                uwp_error("Unexpected error writing to file (%s)", fq_lock);
-            }
-            if (nhclose(fd) == -1) {
-                uwp_error("Cannot close file (%s)", fq_lock);
-            }
-        }
+    } else {
+        uwp_error("Cannot start a new game with a game in progress.");
     }
-#endif /* PC_LOCKING */
+}
+
+void create_checkpoint_file()
+{
+    /* If checkpointing is turned on then the matching
+     * pid is expected to be stored in the file.
+     */
+
+    int fd = create_levelfile(0, (char *)0);
+
+    if (fd < 0) {
+        uwp_error("Unable to create level 0 save file.");
+    }
+
+    hackpid = GetCurrentProcessId();
+    write(fd, (genericptr_t)&hackpid, sizeof(hackpid));
+    nhclose(fd);
+}
 
 void verify_record_file()
 {
@@ -1073,6 +1051,12 @@ void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW)
     fqn_prefix[CONFIGPREFIX] = (char *)g_localDir.c_str();
     fqn_prefix[TROUBLEPREFIX] = (char *)g_localDir.c_str();
 
+    char failbuf[BUFSZ];
+    if (!validate_prefix_locations(failbuf)) {
+        uwp_error("Some invalid directory locations were specified:\n\t%s",
+            failbuf);
+    }
+
     copy_to_local(g_defaultsFileName, true);
     copy_to_local(g_guidebookFileName, true);
     copy_to_local(g_licenseFileName, true);
@@ -1144,82 +1128,27 @@ uwp_play_nethack(void)
 {
     sys_early_init();
 
-    char failbuf[BUFSZ];
-    if (!validate_prefix_locations(failbuf)) {
-        uwp_error("Some invalid directory locations were specified:\n\t%s",
-            failbuf);
-    }
-
     if (!dlb_init()) {
         uwp_error("dlb_init failure");
     }
-
-    assert(symset[PRIMARY].name);
-    assert(symset[ROGUESET].name);
-#if 0
-    /* Player didn't specify any symbol set so use IBM defaults */
-    if (!symset[PRIMARY].name) {
-        load_symset("IBMGraphics_2", PRIMARY);
-    }
-
-    if (!symset[ROGUESET].name) {
-        load_symset("RogueEpyx", ROGUESET);
-    }
-#endif
 
     init_nhwindows(NULL, NULL);
 
     display_gamewindows();
 
-    /* strip role,race,&c suffix; calls askname() if plname[] is empty
-    or holds a generic user name like "player" or "games" */
     plnamesuffix();
 
     set_playmode(); /* sets plname to "wizard" for wizard mode */
 
-                    /* unlike Unix where the game might be invoked with a script
-                    which forces a particular character name for each player
-                    using a shared account, we always allow player to rename
-                    the character during role/race/&c selection */
-    iflags.renameallowed = TRUE;
+   /* do not let player rename the character during role/race/&c selection */
+    iflags.renameallowed = FALSE;
 
-#if defined(PC_LOCKING)
-    /* 3.3.0 added this to support detection of multiple games
-    * under the same plname on the same machine in a windowed
-    * or multitasking environment.
-    *
-    * That allows user confirmation prior to overwriting the
-    * level files of a game in progress.
-    *
-    * Also prevents an aborted game's level files from being
-    * overwritten without confirmation when a user starts up
-    * another game with the same player name.
-    */
-    /* Obtain the name of the logged on user and incorporate
-    * it into the name. */
-    char fnamebuf[BUFSZ], encodedfnamebuf[BUFSZ];
-    Sprintf(fnamebuf, "%s", plname);
     (void)fname_encode(
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-.", '%',
-        fnamebuf, encodedfnamebuf, BUFSZ);
-    Sprintf(lock, "%s", encodedfnamebuf);
-    getlock();
-#endif /* PC_LOCKING */
+        plname, lock, sizeof(lock));
 
-    /* Set up level 0 file to keep the game state.
-    */
-    int fd = create_levelfile(0, (char *)0);
-    if (fd < 0) {
-        /* TODO(bhouse) do we need to pring anything here?
-        commenting out for now.  Either we have an error and
-        can't continue or we just forge ahead. */
-        /* raw_print("Cannot create lock file"); */
-    }
-    else {
-        hackpid = GetCurrentProcessId();
-        write(fd, (genericptr_t)&hackpid, sizeof(hackpid));
-        nhclose(fd);
-    }
+    check_game_in_progress();
+    create_checkpoint_file();
 
     /*
     *  Initialize the vision system.  This must be before mklev() on a
@@ -1227,13 +1156,8 @@ uwp_play_nethack(void)
     */
     vision_init();
 
-    /*
-    * First, try to find and restore a save file for specified character.
-    * We'll return here if new game player_selection() renames the hero.
-    */
     boolean resuming = FALSE; /* assume new game */
-
-attempt_restore:
+    int fd;
 
     if ((fd = restore_saved_game()) >= 0) {
         pline("Restoring save file...");
@@ -1254,21 +1178,7 @@ attempt_restore:
     }
 
     if (!resuming) {
-        /* new game:  start by choosing role, race, etc;
-        player might change the hero's name while doing that,
-        in which case we try to restore under the new name
-        and skip selection this time if that didn't succeed */
-        if (!iflags.renameinprogress) {
-            player_selection();
-            if (iflags.renameinprogress) {
-                /* player has renamed the hero while selecting role;
-                discard current lock file and create another for
-                the new character name */
-                delete_levelfile(0); /* remove empty lock file */
-                getlock();
-                goto attempt_restore;
-            }
-        }
+        player_selection();
         newgame();
         if (discover)
             You("are in non-scoring discovery mode.");

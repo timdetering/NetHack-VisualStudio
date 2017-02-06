@@ -389,7 +389,7 @@ tty_player_selection()
     char pick4u = 'n';
     char pbuf[QBUFSZ], plbuf[QBUFSZ];
     winid win;
-    anything any;
+    anything any = zeroany;
     menu_item *selected = 0;
 
     /* Used to avoid "Is this ok?" if player has already specified all
