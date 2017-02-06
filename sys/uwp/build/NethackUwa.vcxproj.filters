@@ -397,9 +397,6 @@
     <ClCompile Include="..\uwpgloabls.cpp">
       <Filter>sys\uwp</Filter>
     </ClCompile>
-    <ClCompile Include="..\uwplock.cpp">
-      <Filter>sys\uwp</Filter>
-    </ClCompile>
     <ClCompile Include="$(SysDir)uwp\uwpnethackmain.cpp">
       <Filter>sys\uwp</Filter>
     </ClCompile>
@@ -707,9 +704,6 @@
     <ClInclude Include="$(SysDir)uwp\uwpasciitexture.h">
       <Filter>sys\uwp</Filter>
     </ClInclude>
-    <ClInclude Include="$(SysDir)uwp\uwpconditionvariable.h">
-      <Filter>sys\uwp</Filter>
-    </ClInclude>
     <ClInclude Include="$(SysDir)uwp\uwpdeviceresources.h">
       <Filter>sys\uwp</Filter>
     </ClInclude>
@@ -723,9 +717,6 @@
       <Filter>sys\uwp</Filter>
     </ClInclude>
     <ClInclude Include="$(SysDir)uwp\uwpglobals.h">
-      <Filter>sys\uwp</Filter>
-    </ClInclude>
-    <ClInclude Include="$(SysDir)uwp\uwplock.h">
       <Filter>sys\uwp</Filter>
     </ClInclude>
     <ClInclude Include="$(SysDir)uwp\uwpmath.h">

@@ -187,12 +187,12 @@ sys/uwp:
 defaults.nh             Package.appxmanifest        porthelp
 uwp.cpp                 uwp.h                       uwpapp.cpp
 uwpapp.h                uwpasciitexture.cpp         uwpasciitexture.h
-uwpcolor.cpp            uwpconditionvariable.h      uwpdeviceresources.cpp
+uwpcolor.cpp            uwpdeviceresources.cpp
 uwpdeviceresources.h    uwpdxhelper.h               uwpenum.h
 uwpeventqueue.h         uwpfilehandler.cpp          uwpfilehandler.h
 uwpfont.cpp             uwpfont.h                   uwpgloabls.cpp
-uwpglobals.h            uwpkey.pfx                  uwplock.cpp
-uwplock.h               uwpmath.h                   uwpnethackmain.cpp
+uwpglobals.h            uwpkey.pfx                  
+uwpmath.h               uwpnethackmain.cpp
 uwpnethackmain.h        uwpoption.cpp               uwpoption.h
 uwppixelshader.hlsl     uwpscreen.h                 uwpshaderstructures.h
 uwpsolidpixelshader.hlsl

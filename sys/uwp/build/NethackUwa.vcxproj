@@ -250,10 +250,8 @@
     <ClInclude Include="$(SysDir)uwp\uwpshaderstructures.h" />
     <ClInclude Include="$(SysDir)uwp\uwp.h" />
     <ClInclude Include="..\..\..\include\uwpconf.h" />
-    <ClInclude Include="$(SysDir)uwp\uwpconditionvariable.h" />
     <ClInclude Include="$(SysDir)uwp\uwpeventqueue.h" />
     <ClInclude Include="$(SysDir)uwp\uwpglobals.h" />
-    <ClInclude Include="$(SysDir)uwp\uwplock.h" />
     <ClInclude Include="$(SysDir)uwp\uwptextgrid.h" />
     <ClInclude Include="$(SysDir)uwp\uwpoption.h" />
     <ClInclude Include="$(SysDir)uwp\uwpasciitexture.h" />
@@ -293,7 +291,6 @@
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</CompileAsWinRT>
     </ClCompile>
     <ClCompile Include="..\uwpgloabls.cpp" />
-    <ClCompile Include="..\uwplock.cpp" />
     <ClCompile Include="..\uwptextgrid.cpp" />
     <ClCompile Include="..\uwpoption.cpp" />
     <ClCompile Include="..\uwpasciitexture.cpp" />

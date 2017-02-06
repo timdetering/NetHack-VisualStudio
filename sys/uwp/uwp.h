@@ -83,9 +83,7 @@
 
 #include "uwpenum.h"
 #include "uwpmath.h"
-#include "uwplock.h"
 #include "uwputil.h"
-#include "uwpconditionvariable.h"
 #include "uwpshaderstructures.h"
 #include "uwpasciitexture.h"
 #include "uwptextgrid.h"
@@ -99,7 +97,6 @@
 #include "uwpfont.h"
 #include "uwpdxhelper.h"
 #include "uwpglobals.h"
-
 
 extern"C" {
 

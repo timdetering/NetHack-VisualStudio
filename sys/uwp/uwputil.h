@@ -87,5 +87,75 @@ namespace Nethack
 
     };
 
+    class ConditionVariable;
+
+    class Lock
+    {
+    public:
+
+        Lock(void)
+        {
+            InitializeSRWLock(&m_lock);
+            m_ownerThreadId = 0;
+        }
+        ~Lock(void)
+        {
+            // do nothing
+        }
+
+        void AcquireExclusive(void)
+        {
+            assert(m_ownerThreadId != GetCurrentThreadId());
+            AcquireSRWLockExclusive(&m_lock);
+            m_ownerThreadId = GetCurrentThreadId();
+        }
+
+        void ReleaseExclusive(void)
+        {
+            assert(m_ownerThreadId == GetCurrentThreadId());
+            m_ownerThreadId = 0;
+            ReleaseSRWLockExclusive(&m_lock);
+        }
+
+        bool HasExclusive(void)
+        {
+            return (m_ownerThreadId == GetCurrentThreadId());
+        }
+
+    private:
+
+        friend class ConditionVariable;
+
+        SRWLOCK m_lock;
+        DWORD m_ownerThreadId;
+    };
+
+    class ConditionVariable
+    {
+    public:
+
+        ConditionVariable()
+        {
+            InitializeConditionVariable(&m_conditionVariable);
+        }
+
+        void Sleep(Lock & inLock)
+        {
+            inLock.m_ownerThreadId = 0;
+            BOOL success = SleepConditionVariableSRW(&m_conditionVariable, &inLock.m_lock, INFINITE, 0);
+            inLock.m_ownerThreadId = GetCurrentThreadId();
+            assert(success);
+        }
+
+        void Wake()
+        {
+            WakeConditionVariable(&m_conditionVariable);
+        }
+
+    private:
+
+        CONDITION_VARIABLE m_conditionVariable;
+    };
+
 }
 
