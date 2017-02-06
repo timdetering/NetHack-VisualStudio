@@ -16,9 +16,10 @@ extern "C"  {
 #error HOLD_LOCKFILE_OPEN should not be defined
 #endif
 
-
-static bool
-    erase_save_files()
+/* erase all level files returning failure if we are
+ * unable to erase the level 0 file.
+ */
+static bool erase_save_files()
 {
     register int i;
 
@@ -91,6 +92,9 @@ void create_checkpoint_file()
     nhclose(fd);
 }
 
+/* verify we can open existing record file or create
+ * a new record file.
+ */
 void verify_record_file()
 {
     const char *fq_record;
@@ -213,8 +217,11 @@ void Delay(int ms)
     Sleep(ms);
 }
 
-// TODO(bhouse): Dangerous call ... string needs to have been allocated with enough space.
-//               Caller should pass in length of allocation.
+/* ensure the given string ends in a slash.  Note, this is a 
+ * dangerous call since the slash is added in place and the
+ * caller is responsible for ensuring there is sufficient
+ * storage for the slash.
+ */
 void append_slash(char * name)
 {
     char *ptr;
@@ -275,13 +282,6 @@ map_subkeyvalue(char * op)
     if (idx >= MAX_OVERRIDES || idx < 0 || val >= MAX_OVERRIDES || val < 1)
         return;
     key_overrides[idx] = val;
-}
-
-// TODO: we have no keyboard handlers -- we should remove need to define
-void
-load_keyboard_handler()
-{ 
-    return;
 }
 
 void
