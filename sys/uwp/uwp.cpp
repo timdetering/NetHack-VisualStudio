@@ -73,6 +73,7 @@ void check_game_in_progress()
     }
 }
 
+/* create the checkpoint file (aka level 0 file, lock file) */
 void create_checkpoint_file()
 {
     /* If checkpointing is turned on then the matching
@@ -489,15 +490,6 @@ setftty()
     start_screen();
 }
 
-#ifndef NO_MOUSE_ALLOWED
-void
-toggle_mouse_support()
-{
-    // TODO: toggle reporting mouse events
-    return;
-}
-#endif
-
 /* error needs to be provided due to a few spots in the engine which call it */
 void error(const char * s, ...)
 {
@@ -527,7 +519,6 @@ void uwp_error(const char * s, ...)
     nethack_exit(EXIT_FAILURE);
 }
 
-// TODO(bhouse) Do we already have a warn somewhere else called something else?
 void uwp_warn(const char * s, ...)
 {
     va_list the_args;
@@ -978,8 +969,6 @@ bool main_menu(void)
     return play;
 }
 
-extern void rename_file(const char * from, const char * to);
-
 /* to support previous releases, we rename save games to new save game format */
 void rename_save_files()
 {
@@ -1012,8 +1001,6 @@ void rename_save_files()
         }
     }
 }
-
-extern void decl_clean_up(void);
 
 /* one time initialization */
 void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW)
@@ -1070,6 +1057,10 @@ void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW)
     initialized = true;
 }
 
+/* Initialize options.  This can get called multiple times prior
+ * to game start.
+ */
+
 void uwp_init_options()
 {
     g_textGrid.SetDefaultPalette();
@@ -1087,7 +1078,7 @@ void uwp_init_options()
     }
 }
 
-void uwp_main_loop(std::wstring & localDirW, std::wstring & installDirW)
+void uwp_main(std::wstring & localDirW, std::wstring & installDirW)
 {
     /* we must treat early long jumps as fatal to avoid endless error loops */
     bool jumpIsFatal = true;
@@ -1143,6 +1134,10 @@ uwp_play_nethack(void)
    /* do not let player rename the character during role/race/&c selection */
     iflags.renameallowed = FALSE;
 
+    /* encode player name into a file name.  Store the result to lock.
+     * Lock is a global variable used to store the level files
+     */
+
     (void)fname_encode(
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-.", '%',
         plname, lock, sizeof(lock));
@@ -1156,7 +1151,7 @@ uwp_play_nethack(void)
     */
     vision_init();
 
-    boolean resuming = FALSE; /* assume new game */
+    boolean resuming = FALSE;
     int fd;
 
     if ((fd = restore_saved_game()) >= 0) {

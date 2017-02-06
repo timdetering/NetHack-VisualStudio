@@ -487,7 +487,7 @@ void NethackMain::RunNethackMainLoop(void)
     while (1)
     {
         NethackMainLoopHold();
-        uwp_main_loop(localDirW, installDirW);
+        uwp_main(localDirW, installDirW);
     }
 
 }
