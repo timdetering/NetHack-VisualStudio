@@ -14,6 +14,8 @@
 #error TEXTCOLOR must be defined
 #endif
 
+#define NEWAUTOCOMP
+
 using namespace Nethack;
 
 extern "C" {
@@ -162,12 +164,6 @@ STATIC_DCL void FDECL(setup_racemenu, (winid, BOOLEAN_P, int, int, int));
 STATIC_DCL void FDECL(setup_gendmenu, (winid, BOOLEAN_P, int, int, int));
 STATIC_DCL void FDECL(setup_algnmenu, (winid, BOOLEAN_P, int, int, int));
 STATIC_DCL boolean NDECL(reset_role_filtering);
-
-#define print_vt_code(i, c, d) ;
-#define print_vt_code1(i)     print_vt_code((i), -1, -1)
-#define print_vt_code2(i,c)   print_vt_code((i), (c), -1)
-#define print_vt_code3(i,c,d) print_vt_code((i), (c), (d))
-
 
 /* clean up and quit */
 STATIC_OVL void
@@ -575,8 +571,6 @@ tty_clear_nhwindow(winid window)
         panic(winpanicstr, window);
     g_uwpDisplay->lastwin = window;
 
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
-
     switch (cw->type) {
     case NHW_MESSAGE:
         if (g_uwpDisplay->toplin) {
@@ -628,8 +622,6 @@ tty_display_nhwindow(winid window, boolean blocking)
     g_uwpDisplay->lastwin = window;
     g_uwpDisplay->rawprint = 0;
 
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
-
     switch (cw->type) {
     case NHW_MESSAGE:
         if (g_uwpDisplay->toplin == 1) {
@@ -651,7 +643,7 @@ tty_display_nhwindow(winid window, boolean blocking)
             return;
         }
     case NHW_BASE:
-        (void) fflush(stdout);
+//        (void) fflush(stdout);
         break;
     case NHW_TEXT:
         cw->maxcol = g_uwpDisplay->cols; /* force full-screen mode */
@@ -713,8 +705,6 @@ tty_dismiss_nhwindow(winid window)
 
     if (window == WIN_ERR || (cw = g_wins[window]) == (struct WinDesc *) 0)
         panic(winpanicstr, window);
-
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
 
     switch (cw->type) {
     case NHW_MESSAGE:
@@ -780,8 +770,6 @@ tty_curs(winid window, int x, int y)
     if (window == WIN_ERR || (cw = g_wins[window]) == (struct WinDesc *) 0)
         panic(winpanicstr, window);
     g_uwpDisplay->lastwin = window;
-
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
 
 #if defined(USE_TILES) && defined(MSDOS)
     adjust_cursor_flags(cw);
@@ -868,8 +856,6 @@ tty_putsym(winid window, int x, int y, char ch)
     if (window == WIN_ERR || (cw = g_wins[window]) == (struct WinDesc *) 0)
         panic(winpanicstr, window);
 
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
-
     switch (cw->type) {
     case NHW_STATUS:
     case NHW_MAP:
@@ -940,8 +926,6 @@ tty_putstr(winid window, int attr, const char *str)
         str = compress_str(str);
 
     g_uwpDisplay->lastwin = window;
-
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
 
     switch (cw->type) {
     case NHW_MESSAGE:
@@ -1139,7 +1123,7 @@ tty_update_inventory()
 void
 tty_mark_synch()
 {
-    (void) fflush(stdout);
+//    (void) fflush(stdout);
 }
 
 void
@@ -1154,7 +1138,7 @@ tty_wait_synch()
         tty_display_nhwindow(WIN_MAP, FALSE);
         if (g_uwpDisplay->inmore) {
             addtopl("--More--");
-            (void) fflush(stdout);
+//            (void) fflush(stdout);
         } else if (g_uwpDisplay->inread > program_state.gameover) {
             /* this can only happen if we were reading and got interrupted */
             g_uwpDisplay->toplin = 3;
@@ -1162,7 +1146,7 @@ tty_wait_synch()
             (void) tty_doprev_message();
             (void) tty_doprev_message();
             g_uwpDisplay->intr++;
-            (void) fflush(stdout);
+//            (void) fflush(stdout);
         }
     }
 }
@@ -1282,12 +1266,8 @@ tty_print_glyph(
     /* map glyph to character and color */
     (void) mapglyph(glyph, &ch, &color, &special, x, y);
 
-    print_vt_code2(AVTC_SELECT_WINDOW, window);
-
     /* Move the cursor. */
     tty_curs(window, x, y);
-
-    print_vt_code3(AVTC_GLYPH_START, glyph2tile[glyph], special);
 
 #ifndef NO_TERMS
     if (ul_hack && ch == '_') { /* non-destructive underscore */
@@ -1330,8 +1310,6 @@ tty_print_glyph(
         }
     }
 
-    print_vt_code1(AVTC_GLYPH_END);
-
     g_wins[window]->curx++; /* one character over */
     g_uwpDisplay->curx++;   /* the real cursor moved too */
 }
@@ -1341,7 +1319,7 @@ tty_raw_print(const char *str)
 {
     if (g_uwpDisplay)
         g_uwpDisplay->rawprint++;
-    print_vt_code2(AVTC_SELECT_WINDOW, NHW_BASE);
+
 #if defined(MICRO) || defined(WIN32CON)
     msmsg("%s\n", str);
 #else
@@ -1355,7 +1333,7 @@ tty_raw_print_bold(const char *str)
 {
     if (g_uwpDisplay)
         g_uwpDisplay->rawprint++;
-    print_vt_code2(AVTC_SELECT_WINDOW, NHW_BASE);
+
     term_start_raw_bold();
 #if defined(MICRO) || defined(WIN32CON)
     msmsg("%s", str);
@@ -1402,8 +1380,7 @@ tty_nhgetch()
 {
     int i;
 
-    print_vt_code1(AVTC_INLINE_SYNC);
-    (void) fflush(stdout);
+//    (void) fflush(stdout);
     /* Note: if raw_print() and wait_synch() get called to report terminal
      * initialization problems, then g_wins[] and g_uwpDisplay might not be
      * available yet.  Such problems will probably be fatal before we get
@@ -1432,7 +1409,7 @@ tty_nh_poskey(int *x, int *y, int *mod)
 {
 #if defined(WIN32CON)
     int i;
-    (void) fflush(stdout);
+//    (void) fflush(stdout);
     /* Note: if raw_print() and wait_synch() get called to report terminal
      * initialization problems, then g_wins[] and g_uwpDisplay might not be
      * available yet.  Such problems will probably be fatal before we get
@@ -1454,29 +1431,6 @@ tty_nh_poskey(int *x, int *y, int *mod)
     return tty_nhgetch();
 #endif /* ?WIN32CON */
 }
-
-#if 0
-void
-win_tty_init(int dir)
-{
-    if (dir != WININIT)
-        return;
-
-    LI = g_textGrid.GetDimensions().m_y;
-    CO = g_textGrid.GetDimensions().m_x;
-}
-#endif
-
-/* gettty is called as part of wintty support */
-void
-gettty()
-{
-    erase_char = '\b';
-    kill_char = 21; /* cntl-U */
-    iflags.cbreak = TRUE;
-}
-
-#define NEWAUTOCOMP
 
 char morc = 0; /* tell the outside world what char you chose */
 STATIC_DCL boolean FDECL(ext_cmd_getlin_hook, (char *));
@@ -1522,7 +1476,7 @@ hooked_tty_getlin(
     pline("%s ", query);
     *obufp = 0;
     for (;;) {
-        (void)fflush(stdout);
+//        (void)fflush(stdout);
         Strcat(strcat(strcpy(toplines, query), " "), obufp);
         c = pgetchar();
         if (c == '\033' || c == EOF) {
