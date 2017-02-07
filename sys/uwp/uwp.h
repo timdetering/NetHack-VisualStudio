@@ -98,11 +98,7 @@
 extern"C" {
 
     #include "hack.h"
-
-    #ifdef TTY_GRAPHICS
-    #include "wintty.h"
-    #endif
-
+    #include "winuwp.h"
     #include "spell.h"
 
     #include "date.h"

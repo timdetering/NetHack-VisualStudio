@@ -10,17 +10,22 @@
 #error UWP is expected to be defined at this point
 #endif
 
-#ifndef TTY_GRAPHICS
-#error TTY_GRAPHICS is expected to be defined at this point
+#ifdef TTY_GRAPHICS
+#error TTY_GRAPHICS is not expected to be defined
 #endif
 
-#ifndef DEFAULT_WINDOW_SYS
-#error DEFAULT_WINDOW_SYS is expecte to be set and equal to "tty"
+#ifdef UWP_GRAPHICS
+#error UWP_GRAPHICS is not expected to be defined at this point
 #endif
 
 #ifdef MSWIN_GRAPHICS
 #error MSWIN_GRAPHICS is not expected to be defined
 #endif
+
+#define UWP_GRAPHICS
+
+#undef DEFAULT_WINDOW_SYS
+#define DEFAULT_WINDOW_SYS "uwp"
 
 #define RANDOM    /* have Berkeley random(3) */
 #define TEXTCOLOR /* Color text */

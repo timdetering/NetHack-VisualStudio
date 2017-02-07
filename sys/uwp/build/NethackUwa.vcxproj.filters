@@ -725,6 +725,9 @@
     <ClInclude Include="$(SysDir)uwp\uwputil.h">
       <Filter>sys\uwp</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\win\uwp\winuwp.h">
+      <Filter>win\uwp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="$(SysDir)uwp\Package.appxmanifest">

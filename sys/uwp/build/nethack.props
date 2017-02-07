@@ -21,6 +21,7 @@
     <SysWinntDir>$(RootDir)sys\winnt\</SysWinntDir>
     <SysUwpDir>$(RootDir)sys\uwp\</SysUwpDir>
     <WinTtyDir>$(RootDir)win\tty\</WinTtyDir>
+    <WinUwpDir>$(RootDir)win\uwp\</WinUwpDir>
   </PropertyGroup>
   <PropertyGroup>
     <OutDir>$(BinDir)</OutDir>
@@ -28,7 +29,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(IncDir);$(SysDir)winnt</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(IncDir);$(WinUwpDir);$(SysDir)winnt</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_MBCS;WIN32;DLB;WIN10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>

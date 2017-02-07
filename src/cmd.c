@@ -509,7 +509,7 @@ extcmd_via_menu()
     }
     return ret;
 }
-#endif /* TTY_GRAPHICS */
+#endif /* TTY_GRAPHICS || UWP_GRAPHICS */
 
 /* #monster command - use special monster ability while polymorphed */
 STATIC_PTR int

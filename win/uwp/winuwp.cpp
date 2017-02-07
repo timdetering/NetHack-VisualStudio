@@ -4,9 +4,10 @@
 /* NetHack may be freely redistributed.  See license for details. */
 
 #include "..\..\sys\uwp\uwp.h"
+#include "winuwp.h"
 
-#ifndef TTY_GRAPHICS
-#error TTY_GRAPHICS must be defined
+#ifndef UWP_GRAPHICS
+#error UWP_GRAPHICS must be defined
 #endif
 
 using namespace Nethack;
@@ -48,8 +49,8 @@ struct console_t {
 };
 
 /* Interface definition, for windows.c */
-struct window_procs tty_procs = {
-    "tty",
+struct window_procs uwp_procs = {
+    "uwp",
 #ifdef MSDOS
     WC_TILED_MAP | WC_ASCII_MAP |
 #endif
@@ -208,6 +209,9 @@ tty_init_nhwindows(int *, char **)
     wid = g_textGrid.GetDimensions().m_x;
     hgt = g_textGrid.GetDimensions().m_y;
 
+    LI = hgt;
+    CO = wid;
+
     set_option_mod_status("mouse_support", SET_IN_GAME);
 
     start_screen();
@@ -236,13 +240,6 @@ tty_init_nhwindows(int *, char **)
 #endif
 
     tty_clear_nhwindow(BASE_WINDOW);
-
-#ifndef UWP
-    tty_putstr(BASE_WINDOW, 0, "");
-    for (i = 1; i <= 4; ++i)
-        tty_putstr(BASE_WINDOW, 0, copyright_banner_line(i));
-    tty_putstr(BASE_WINDOW, 0, "");
-#endif /* UWP */
     tty_display_nhwindow(BASE_WINDOW, FALSE);
 }
 
@@ -3100,6 +3097,7 @@ tty_nh_poskey(int *x, int *y, int *mod)
 #endif /* ?WIN32CON */
 }
 
+#if 0
 void
 win_tty_init(int dir)
 {
@@ -3109,6 +3107,7 @@ win_tty_init(int dir)
     LI = g_textGrid.GetDimensions().m_y;
     CO = g_textGrid.GetDimensions().m_x;
 }
+#endif
 
 /* gettty is called as part of wintty support */
 void
@@ -4366,17 +4365,5 @@ backsp()
     console.cursor.Y = ttyDisplay->cury;
     xputc_core('\b');
 }
-
-void
-settty(const char *s)
-{
-    cmov(ttyDisplay->curx, ttyDisplay->cury);
-    end_screen();
-    if (s)
-        raw_print(s);
-}
-
-
-
 
 } /* extern "C" */
