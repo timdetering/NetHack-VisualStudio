@@ -6,6 +6,8 @@
 #include "..\..\sys\uwp\uwp.h"
 #include "winuwp.h"
 
+extern "C" {
+
 /* this player selection code was taken from wintty implementation.  this code is nearly independent
  * from the windowing implementation.  the plan is to make this code completely independent of the
  * windowing implementation.
@@ -786,3 +788,5 @@ give_up:
 
     /*NOTREACHED*/
 }
+
+} /* extern "C" */

@@ -78,6 +78,11 @@ struct DisplayDesc {
 #endif
 #define NHW_BASE 6
 
+/* It's still not clear I've caught all the cases for H2344.  #undef this
+* to back out the changes. */
+#define H2344_BROKEN
+
+
 extern struct window_procs uwp_procs;
 
 /* port specific variable declarations */
@@ -91,6 +96,10 @@ extern char morc;         /* last character typed to xwaitforspace */
 extern char defmorestr[]; /* default --more-- prompt */
 
 /* port specific external function references */
+
+void process_text_window(winid window, struct WinDesc * cw);
+void process_menu_window(winid window, struct WinDesc * cw);
+
 
 /* ### getline.c ### */
 E void FDECL(xwaitforspace, (const char *));
