@@ -124,17 +124,6 @@ static void verify_record_file()
         (void)nhclose(fd);
 }
 
-/* nttty_open is called during tty windowing system 
- * initialization.  this call must set the width and height of
- * the tty output device. 
- */
-void
-nttty_open(int mode)
-{
-    LI = g_textGrid.GetDimensions().m_y;
-    CO = g_textGrid.GetDimensions().m_x;
-}
-
 /* kbhit is called by the engine's moveloop to determine if
  * there is any available input
  */
@@ -393,25 +382,6 @@ int raw_getchar()
         assert(e.m_type == Event::Type::Char);
         return e.m_char;
     }
-}
-
-/* erase_char and kill_char are usd by getline.c and topl.c */
-char erase_char, kill_char;
-
-/* gettty is called as part of wintty support */
-void
-gettty()
-{
-    erase_char = '\b';
-    kill_char = 21; /* cntl-U */
-    iflags.cbreak = TRUE;
-}
-
-/* setftty is called as part of wintty support */
-void
-setftty()
-{
-    start_screen();
 }
 
 /* error needs to be provided due to a few spots in the engine which call it */

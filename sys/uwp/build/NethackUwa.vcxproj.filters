@@ -124,9 +124,6 @@
     <ClCompile Include="$(SrcDir)fountain.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="$(WinTtyDir)getline.c">
-      <Filter>win\tty</Filter>
-    </ClCompile>
     <ClCompile Include="$(SrcDir)hack.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -367,9 +364,6 @@
     <ClCompile Include="$(SysDir)uwp\uwp.cpp">
       <Filter>sys\uwp</Filter>
     </ClCompile>
-    <ClCompile Include="$(WinTtyDir)topl.c">
-      <Filter>win\tty</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\share\nhlan.c">
       <Filter>sys\share</Filter>
     </ClCompile>
@@ -380,9 +374,6 @@
       <Filter>sys\uwp</Filter>
     </ClCompile>
     <ClCompile Include="..\uwpasciitexture.cpp">
-      <Filter>sys\uwp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\uwptty.cpp">
       <Filter>sys\uwp</Filter>
     </ClCompile>
     <ClCompile Include="..\uwpcolor.cpp">
@@ -439,9 +430,6 @@
     </Filter>
     <Filter Include="win">
       <UniqueIdentifier>{72625bbe-2e42-4071-b190-db555406897c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="win\tty">
-      <UniqueIdentifier>{94ecd978-65db-409a-85ca-c9eb3f13adbd}</UniqueIdentifier>
     </Filter>
     <Filter Include="sys\share">
       <UniqueIdentifier>{4563a8fb-954b-43d9-844b-a2e52a15227d}</UniqueIdentifier>

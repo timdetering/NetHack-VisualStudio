@@ -108,7 +108,8 @@ extern"C" {
     #include "date.h"
     #include "patchlevel.h"
     #include "dlb.h"
-
+    #include "func_tab.h"
+    #include "tcap.h"
 
     extern char MapScanCode(const Nethack::Event & e);
     extern int raw_getchar();
