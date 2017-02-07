@@ -272,6 +272,7 @@
     <ClCompile Include="$(SysDir)uwp\uwpdeviceresources.cpp" />
     <ClCompile Include="$(SysDir)uwp\uwpnethackmain.cpp" />
     <ClCompile Include="$(SysDir)uwp\uwp.cpp" />
+    <ClCompile Include="..\..\..\win\uwp\uwp_player_selection.cpp" />
     <ClCompile Include="..\..\..\win\uwp\winuwp.cpp" />
     <ClCompile Include="..\..\share\nhlan.c">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsWinRT>

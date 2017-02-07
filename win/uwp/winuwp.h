@@ -57,9 +57,7 @@ struct WinDesc {
 struct DisplayDesc {
     short rows, cols; /* width and height of tty display */
     short curx, cury; /* current cursor position on the screen */
-#ifdef TEXTCOLOR
-    int color; /* current color */
-#endif
+    int color;         /* current color */
     int attrs;         /* attributes in effect */
     int toplin;        /* flag for topl stuff */
     int rawprint;      /* number of raw_printed lines since synch */
@@ -85,9 +83,9 @@ extern struct window_procs uwp_procs;
 /* port specific variable declarations */
 extern winid BASE_WINDOW;
 
-extern struct WinDesc *wins[MAXWIN];
+extern struct WinDesc *g_wins[MAXWIN];
 
-extern struct DisplayDesc *ttyDisplay; /* the tty display descriptor */
+extern struct DisplayDesc *g_uwpDisplay; /* the tty display descriptor */
 
 extern char morc;         /* last character typed to xwaitforspace */
 extern char defmorestr[]; /* default --more-- prompt */
@@ -145,11 +143,9 @@ E void FDECL(term_end_attr, (int attr));
 E void NDECL(term_start_raw_bold);
 E void NDECL(term_end_raw_bold);
 
-#ifdef TEXTCOLOR
 E void NDECL(term_end_color);
 E void FDECL(term_start_color, (int color));
 E int FDECL(has_color, (int color));
-#endif /* TEXTCOLOR */
 
 /* ### topl.c ### */
 
@@ -182,6 +178,7 @@ E void FDECL(tty_dismiss_nhwindow, (winid));
 E void FDECL(tty_destroy_nhwindow, (winid));
 E void FDECL(tty_curs, (winid, int, int));
 E void FDECL(tty_putstr, (winid, int, const char *));
+E void FDECL(tty_putsym, (winid, int, int, CHAR_P));
 E void FDECL(tty_display_file, (const char *, BOOLEAN_P));
 E void FDECL(tty_start_menu, (winid));
 E void FDECL(tty_add_menu, (winid, int, const ANY_P *, CHAR_P, CHAR_P, int,

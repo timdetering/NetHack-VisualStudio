@@ -400,6 +400,9 @@
     <ClCompile Include="..\..\..\win\uwp\winuwp.cpp">
       <Filter>win\uwp</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\win\uwp\uwp_player_selection.cpp">
+      <Filter>win\uwp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="$(SysDir)uwp\assets\StoreLogo.png">

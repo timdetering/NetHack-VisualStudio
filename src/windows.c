@@ -112,7 +112,7 @@ static struct win_choices {
     { &mswin_procs, 0 CHAINR(0) },
 #endif
 #ifdef UWP_GRAPHICS
-    { &uwp_procs, 0 CHAINR(0) },
+    { &uwp_procs, CHAINR(0) },
 #endif
 #ifdef WINCHAIN
     { &chainin_procs, chainin_procs_init, chainin_procs_chain },
