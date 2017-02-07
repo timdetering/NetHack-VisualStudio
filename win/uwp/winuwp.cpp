@@ -110,9 +110,6 @@ winid BASE_WINDOW;
 struct WinDesc *g_wins[MAXWIN];
 struct DisplayDesc *g_uwpDisplay; /* the tty display descriptor */
 
-extern void FDECL(cmov, (int, int));   /* from termcap.c */
-extern void FDECL(nocmov, (int, int)); /* from termcap.c */
-
 char winpanicstr[] = "Bad window id %d";
 char defmorestr[] = "--More--";
 
@@ -604,10 +601,6 @@ tty_clear_nhwindow(winid window)
     cw->curx = cw->cury = 0;
 }
 
-
-
-
-
 /*ARGSUSED*/
 void
 tty_display_nhwindow(winid window, boolean blocking)
@@ -750,8 +743,10 @@ tty_destroy_nhwindow(winid window)
 
     if (cw->active)
         tty_dismiss_nhwindow(window);
+
     if (cw->type == NHW_MESSAGE)
         iflags.window_inited = 0;
+
     if (cw->type == NHW_MAP)
         clear_screen();
 
@@ -769,41 +764,19 @@ tty_curs(winid window, int x, int y)
 
     if (window == WIN_ERR || (cw = g_wins[window]) == (struct WinDesc *) 0)
         panic(winpanicstr, window);
+
     g_uwpDisplay->lastwin = window;
 
 #if defined(USE_TILES) && defined(MSDOS)
     adjust_cursor_flags(cw);
 #endif
+
     cw->curx = --x; /* column 0 is never used */
     cw->cury = y;
-#ifdef DEBUG
-    if (x < 0 || y < 0 || y >= cw->rows || x > cw->cols) {
-        const char *s = "[unknown type]";
-        switch (cw->type) {
-        case NHW_MESSAGE:
-            s = "[topl window]";
-            break;
-        case NHW_STATUS:
-            s = "[status window]";
-            break;
-        case NHW_MAP:
-            s = "[map window]";
-            break;
-        case NHW_MENU:
-            s = "[corner window]";
-            break;
-        case NHW_TEXT:
-            s = "[text window]";
-            break;
-        case NHW_BASE:
-            s = "[base window]";
-            break;
-        }
-        debugpline4("bad curs positioning win %d %s (%d,%d)", window, s, x,
-                    y);
-        return;
-    }
-#endif
+
+    assert(x >= 0 && x <= cw->cols);
+    assert(y >= 0 && y < cw->rows);
+
     x += cw->offx;
     y += cw->offy;
 
@@ -820,29 +793,14 @@ tty_curs(winid window, int x, int y)
     if (cw->type == NHW_MAP)
         end_glyphout();
 
-#ifndef NO_TERMS
-    if (!nh_ND && (cx != x || x <= 3)) { /* Extremely primitive */
-        cmov(x, y);                      /* bunker!wtm */
-        return;
-    }
-#endif
-
     if ((cy -= y) < 0)
         cy = -cy;
+
     if ((cx -= x) < 0)
         cx = -cx;
-    if (cy <= 3 && cx <= 3) {
-        nocmov(x, y);
-#ifndef NO_TERMS
-    } else if ((x <= 3 && cy <= 3) || (!nh_CM && x < cx)) {
-        (void) putchar('\r');
-        g_uwpDisplay->curx = 0;
-        nocmov(x, y);
-    } else if (!nh_CM) {
-        nocmov(x, y);
-#endif
-    } else
-        cmov(x, y);
+
+    console.cursor.X = x;
+    console.cursor.Y = y;
 
     g_uwpDisplay->curx = x;
     g_uwpDisplay->cury = y;
@@ -1268,13 +1226,6 @@ tty_print_glyph(
 
     /* Move the cursor. */
     tty_curs(window, x, y);
-
-#ifndef NO_TERMS
-    if (ul_hack && ch == '_') { /* non-destructive underscore */
-        (void) putchar((char) ' ');
-        backsp();
-    }
-#endif
 
     if (color != g_uwpDisplay->color) {
         if (g_uwpDisplay->color != NO_COLOR)
@@ -2471,8 +2422,6 @@ ntposkey(int *x, int *y, int * mod)
 }
 
 
-
-
 void getreturn(const char * str)
 {
     msmsg("Hit <Enter> %s.", str);
@@ -2507,24 +2456,6 @@ home()
 {
     console.cursor.X = console.cursor.Y = 0;
     g_uwpDisplay->curx = g_uwpDisplay->cury = 0;
-}
-
-void
-cmov(int x, int y)
-{
-    g_uwpDisplay->cury = y;
-    g_uwpDisplay->curx = x;
-    console.cursor.X = x;
-    console.cursor.Y = y;
-}
-
-void
-nocmov(int x, int y)
-{
-    console.cursor.X = x;
-    console.cursor.Y = y;
-    g_uwpDisplay->curx = x;
-    g_uwpDisplay->cury = y;
 }
 
 void
