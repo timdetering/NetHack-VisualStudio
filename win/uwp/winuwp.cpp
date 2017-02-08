@@ -213,7 +213,6 @@ tty_init_nhwindows(int *, char **)
     tty_clear_nhwindow(BASE_WINDOW);
     tty_display_nhwindow(BASE_WINDOW, FALSE);
 
-    /* this will not hold since the console.cursor was not initialized  */
     assert(g_textGrid.GetCursor().m_x == console.cursor.X);
     assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
@@ -809,7 +808,7 @@ tty_curs(winid window, int x, int y)
     g_uwpDisplay->curx = x;
     g_uwpDisplay->cury = y;
 
-    g_textGrid.SetCursor(Int2D(console.cursor.X, console.cursor.Y));
+    g_textGrid.SetCursor(Int2D(x, y));
 
 }
 
@@ -1311,11 +1310,12 @@ void really_move_cursor()
 {
 
     if (g_uwpDisplay) {
+
         console.cursor.X = g_uwpDisplay->curx;
         console.cursor.Y = g_uwpDisplay->cury;
-    }
 
-    g_textGrid.SetCursor(Int2D(console.cursor.X, console.cursor.Y));
+        g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
+    }
 
     /* this will hold */
     assert(g_textGrid.GetCursor().m_x == console.cursor.X);
@@ -2455,8 +2455,11 @@ VA_DECL(const char *, fmt)
 
     xputs(buf);
 
+    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
+    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
+
     if (g_uwpDisplay)
-        curs(BASE_WINDOW, console.cursor.X + 1, console.cursor.Y);
+        curs(BASE_WINDOW, g_textGrid.GetCursor().m_x + 1, g_textGrid.GetCursor().m_y);
 
     VA_END();
     return;
@@ -2465,6 +2468,7 @@ VA_DECL(const char *, fmt)
 void
 home()
 {
+    g_textGrid.SetCursor(Int2D(0, 0));
     console.cursor.X = console.cursor.Y = 0;
     g_uwpDisplay->curx = g_uwpDisplay->cury = 0;
 }
@@ -2531,16 +2535,18 @@ void
 cl_end()
 {
     int cx;
+
     console.cursor.X = g_uwpDisplay->curx;
     console.cursor.Y = g_uwpDisplay->cury;
-    cx = g_textGrid.GetDimensions().m_x - console.cursor.X;
 
-    g_textGrid.Put(console.cursor.X, console.cursor.Y, TextCell(), cx);
-    g_textGrid.SetCursor(Int2D(console.cursor.X, console.cursor.Y));
+    cx = g_textGrid.GetDimensions().m_x - g_uwpDisplay->curx;
+
+    g_textGrid.Put(g_uwpDisplay->curx, g_uwpDisplay->cury, TextCell(), cx);
+    g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
 
     tty_curs(BASE_WINDOW, (int)g_uwpDisplay->curx + 1, (int)g_uwpDisplay->cury);
 
-    /* this does not hold ... text grid cursor will be at end */
+    /* this holds */
     assert(g_textGrid.GetCursor().m_x == console.cursor.X);
     assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
@@ -2574,8 +2580,8 @@ g_putch(int in_ch)
 
     TextCell textCell((TextColor)console.current_nhcolor, (TextAttribute)console.current_nhattr, in_ch);
 
-    g_textGrid.Put(console.cursor.X, console.cursor.Y, textCell, 1);
-    g_textGrid.SetCursor(Int2D(console.cursor.X, console.cursor.Y));
+    g_textGrid.Put(g_uwpDisplay->curx, g_uwpDisplay->cury, textCell, 1);
+    g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
 
     /* this assertion does not hold since console.cursor.X will be off by one */
     assert(g_textGrid.GetCursor().m_x == console.cursor.X);
@@ -2585,26 +2591,32 @@ g_putch(int in_ch)
 void
 xputc_core(char ch)
 {
-    /* verify console cursor is in range */
-    assert(console.cursor.X < g_textGrid.GetDimensions().m_x);
-    assert(console.cursor.Y < g_textGrid.GetDimensions().m_y);
+    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
+    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
+
+    Int2D cursor = g_textGrid.GetCursor();
 
     switch (ch) {
     case '\n':
-        if (console.cursor.Y < (g_textGrid.GetDimensions().m_y - 1))
-            console.cursor.Y++;
+        if (cursor.m_y < (g_textGrid.GetDimensions().m_y - 1))
+            cursor.m_y++;
         /* fall through */
     case '\r':
-        console.cursor.X = 0;
+        cursor.m_x = 0;
 
-        g_textGrid.SetCursor(Int2D(console.cursor.X, console.cursor.Y));
+        console.cursor.X = cursor.m_x;
+        console.cursor.Y = cursor.m_y;
+        g_textGrid.SetCursor(cursor);
         break;
 
     case '\b':
         /* should we perhaps support blanking out character at current position? */
-        if (console.cursor.X > 0) {
-            console.cursor.X--;
-            g_textGrid.SetCursor(Int2D(console.cursor.X, console.cursor.Y));
+        if (cursor.m_x > 0) {
+            cursor.m_x--;
+
+            console.cursor.X = cursor.m_x;
+            console.cursor.Y = cursor.m_y;
+            g_textGrid.SetCursor(cursor);
         }
         break;
 
@@ -2612,24 +2624,14 @@ xputc_core(char ch)
 
         TextCell textCell((TextColor)console.current_nhcolor, (TextAttribute)console.current_nhattr, ch);
 
-        g_textGrid.Put(console.cursor.X, console.cursor.Y, textCell, 1);
+        g_textGrid.Put(cursor.m_x, cursor.m_y, textCell, 1);
 
-        console.cursor.X++;
-
-        if (console.cursor.X >= g_textGrid.GetDimensions().m_x) {
-
-            console.cursor.X = 0;
-            console.cursor.Y++;
-
-            if (console.cursor.Y == g_textGrid.GetDimensions().m_y) {
-                console.cursor.X = g_textGrid.GetDimensions().m_x - 1;
-                console.cursor.Y = g_textGrid.GetDimensions().m_y - 1;
-            }
-        }
+        console.cursor.X = g_textGrid.GetCursor().m_x;
+        console.cursor.Y = g_textGrid.GetCursor().m_y;
 
     }
 
-    /* this will now hold -- till it runs off the end */
+    /* this will hold */
     assert(g_textGrid.GetCursor().m_x == console.cursor.X);
     assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 
@@ -2639,6 +2641,9 @@ void xputc(char ch)
 {
     console.cursor.X = g_uwpDisplay->curx;
     console.cursor.Y = g_uwpDisplay->cury;
+
+    g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
+
     xputc_core(ch);
     return;
 }
@@ -2649,9 +2654,14 @@ xputs(const char *s)
     int k;
     int slen = strlen(s);
 
+    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
+    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
+
     if (g_uwpDisplay) {
         console.cursor.X = g_uwpDisplay->curx;
         console.cursor.Y = g_uwpDisplay->cury;
+
+        g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
     }
 
     if (s) {
@@ -2665,6 +2675,9 @@ backsp()
 {
     console.cursor.X = g_uwpDisplay->curx;
     console.cursor.Y = g_uwpDisplay->cury;
+
+    g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
+
     xputc_core('\b');
 }
 
