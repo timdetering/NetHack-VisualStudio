@@ -817,7 +817,6 @@ static bool main_menu(void)
             "[ ]",
             "[ ]Pick an action",
             "[ ]",
-            "[ ]",
             "[a]Play",
             "[ ]",
             "[b]Save Guidebook.txt to file",

@@ -38,14 +38,12 @@ struct console_t {
     WORD attr;
     int current_nhcolor;
     WORD current_nhattr;
-    COORD cursor;
 } console = {
     0,
     (FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED),
     (FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED),
     NO_COLOR,
-    0,
-    { 0, 0 }
+    0
 };
 
 /* Interface definition, for windows.c */
@@ -212,9 +210,6 @@ tty_init_nhwindows(int *, char **)
 
     tty_clear_nhwindow(BASE_WINDOW);
     tty_display_nhwindow(BASE_WINDOW, FALSE);
-
-    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
-    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
 
 /*
@@ -802,9 +797,6 @@ tty_curs(winid window, int x, int y)
     if ((cx -= x) < 0)
         cx = -cx;
 
-    console.cursor.X = x;
-    console.cursor.Y = y;
-
     g_uwpDisplay->curx = x;
     g_uwpDisplay->cury = y;
 
@@ -1310,16 +1302,9 @@ void really_move_cursor()
 {
 
     if (g_uwpDisplay) {
-
-        console.cursor.X = g_uwpDisplay->curx;
-        console.cursor.Y = g_uwpDisplay->cury;
-
         g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
     }
 
-    /* this will hold */
-    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
-    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
 
 int
@@ -2455,9 +2440,6 @@ VA_DECL(const char *, fmt)
 
     xputs(buf);
 
-    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
-    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
-
     if (g_uwpDisplay)
         curs(BASE_WINDOW, g_textGrid.GetCursor().m_x + 1, g_textGrid.GetCursor().m_y);
 
@@ -2469,7 +2451,6 @@ void
 home()
 {
     g_textGrid.SetCursor(Int2D(0, 0));
-    console.cursor.X = console.cursor.Y = 0;
     g_uwpDisplay->curx = g_uwpDisplay->cury = 0;
 }
 
@@ -2525,19 +2506,12 @@ cl_eos()
     g_textGrid.SetCursor(Int2D(x, y));
 
     tty_curs(BASE_WINDOW, x + 1, y);
-
-    /* this will hold since we set the cursor */
-    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
-    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
 
 void
 cl_end()
 {
     int cx;
-
-    console.cursor.X = g_uwpDisplay->curx;
-    console.cursor.Y = g_uwpDisplay->cury;
 
     cx = g_textGrid.GetDimensions().m_x - g_uwpDisplay->curx;
 
@@ -2546,18 +2520,12 @@ cl_end()
 
     tty_curs(BASE_WINDOW, (int)g_uwpDisplay->curx + 1, (int)g_uwpDisplay->cury);
 
-    /* this holds */
-    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
-    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
 
 void clear_screen(void)
 {
     g_textGrid.Clear();
     home();
-
-    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
-    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
 
 void
@@ -2575,25 +2543,16 @@ standoutend()
 void
 g_putch(int in_ch)
 {
-    console.cursor.X = g_uwpDisplay->curx;
-    console.cursor.Y = g_uwpDisplay->cury;
-
     TextCell textCell((TextColor)console.current_nhcolor, (TextAttribute)console.current_nhattr, in_ch);
 
     g_textGrid.Put(g_uwpDisplay->curx, g_uwpDisplay->cury, textCell, 1);
     g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
 
-    /* this assertion does not hold since console.cursor.X will be off by one */
-    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
-    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
 
 void
 xputc_core(char ch)
 {
-    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
-    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
-
     Int2D cursor = g_textGrid.GetCursor();
 
     switch (ch) {
@@ -2604,8 +2563,6 @@ xputc_core(char ch)
     case '\r':
         cursor.m_x = 0;
 
-        console.cursor.X = cursor.m_x;
-        console.cursor.Y = cursor.m_y;
         g_textGrid.SetCursor(cursor);
         break;
 
@@ -2614,8 +2571,6 @@ xputc_core(char ch)
         if (cursor.m_x > 0) {
             cursor.m_x--;
 
-            console.cursor.X = cursor.m_x;
-            console.cursor.Y = cursor.m_y;
             g_textGrid.SetCursor(cursor);
         }
         break;
@@ -2625,23 +2580,11 @@ xputc_core(char ch)
         TextCell textCell((TextColor)console.current_nhcolor, (TextAttribute)console.current_nhattr, ch);
 
         g_textGrid.Put(cursor.m_x, cursor.m_y, textCell, 1);
-
-        console.cursor.X = g_textGrid.GetCursor().m_x;
-        console.cursor.Y = g_textGrid.GetCursor().m_y;
-
     }
-
-    /* this will hold */
-    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
-    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
-
 }
 
 void xputc(char ch)
 {
-    console.cursor.X = g_uwpDisplay->curx;
-    console.cursor.Y = g_uwpDisplay->cury;
-
     g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
 
     xputc_core(ch);
@@ -2654,13 +2597,7 @@ xputs(const char *s)
     int k;
     int slen = strlen(s);
 
-    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
-    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
-
     if (g_uwpDisplay) {
-        console.cursor.X = g_uwpDisplay->curx;
-        console.cursor.Y = g_uwpDisplay->cury;
-
         g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
     }
 
@@ -2673,9 +2610,6 @@ xputs(const char *s)
 void
 backsp()
 {
-    console.cursor.X = g_uwpDisplay->curx;
-    console.cursor.Y = g_uwpDisplay->cury;
-
     g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
 
     xputc_core('\b');
