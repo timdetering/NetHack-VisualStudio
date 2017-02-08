@@ -1058,6 +1058,15 @@ void uwp_main(std::wstring & localDirW, std::wstring & installDirW)
          */
         choose_windows(DEFAULT_WINDOW_SYS);
 
+#if 0
+        for(int i = 0; i < 25; i++)
+            msmsg("%d\n", i);
+        msmsg("abcf");
+        msmsg("\b");
+        msmsg("d");
+        while (pgetchar() != '\n') ;
+#endif
+
         uwp_one_time_init(localDirW, installDirW);
 
         /* set engine initialization state */

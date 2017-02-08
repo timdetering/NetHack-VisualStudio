@@ -65,6 +65,9 @@ namespace Nethack
 
     void TextGrid::SetCursor(Int2D & cursor)
     {
+        assert(cursor.m_x < m_gridDimensions.m_x);
+        assert(cursor.m_y < m_gridDimensions.m_y);
+
         m_cellsLock.AcquireExclusive();
 
         m_cursor = cursor;

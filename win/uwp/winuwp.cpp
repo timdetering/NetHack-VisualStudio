@@ -212,6 +212,10 @@ tty_init_nhwindows(int *, char **)
 
     tty_clear_nhwindow(BASE_WINDOW);
     tty_display_nhwindow(BASE_WINDOW, FALSE);
+
+    /* this will not hold since the console.cursor was not initialized  */
+    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
+    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
 
 /*
@@ -804,6 +808,9 @@ tty_curs(winid window, int x, int y)
 
     g_uwpDisplay->curx = x;
     g_uwpDisplay->cury = y;
+
+    g_textGrid.SetCursor(Int2D(console.cursor.X, console.cursor.Y));
+
 }
 
 void
@@ -1309,6 +1316,10 @@ void really_move_cursor()
     }
 
     g_textGrid.SetCursor(Int2D(console.cursor.X, console.cursor.Y));
+
+    /* this will hold */
+    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
+    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
 
 int
@@ -2507,8 +2518,13 @@ cl_eos()
     int cy = (g_textGrid.GetDimensions().m_y - (y + 1)) * g_textGrid.GetDimensions().m_x;
 
     g_textGrid.Put(x, y, TextCell(), cx + cy);
+    g_textGrid.SetCursor(Int2D(x, y));
 
     tty_curs(BASE_WINDOW, x + 1, y);
+
+    /* this will hold since we set the cursor */
+    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
+    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
 
 void
@@ -2520,14 +2536,22 @@ cl_end()
     cx = g_textGrid.GetDimensions().m_x - console.cursor.X;
 
     g_textGrid.Put(console.cursor.X, console.cursor.Y, TextCell(), cx);
+    g_textGrid.SetCursor(Int2D(console.cursor.X, console.cursor.Y));
 
     tty_curs(BASE_WINDOW, (int)g_uwpDisplay->curx + 1, (int)g_uwpDisplay->cury);
+
+    /* this does not hold ... text grid cursor will be at end */
+    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
+    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
 
 void clear_screen(void)
 {
     g_textGrid.Clear();
     home();
+
+    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
+    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
 
 void
@@ -2551,21 +2575,39 @@ g_putch(int in_ch)
     TextCell textCell((TextColor)console.current_nhcolor, (TextAttribute)console.current_nhattr, in_ch);
 
     g_textGrid.Put(console.cursor.X, console.cursor.Y, textCell, 1);
+    g_textGrid.SetCursor(Int2D(console.cursor.X, console.cursor.Y));
+
+    /* this assertion does not hold since console.cursor.X will be off by one */
+    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
+    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
 }
 
 void
 xputc_core(char ch)
 {
+    /* verify console cursor is in range */
+    assert(console.cursor.X < g_textGrid.GetDimensions().m_x);
+    assert(console.cursor.Y < g_textGrid.GetDimensions().m_y);
+
     switch (ch) {
     case '\n':
-        console.cursor.Y++;
+        if (console.cursor.Y < (g_textGrid.GetDimensions().m_y - 1))
+            console.cursor.Y++;
         /* fall through */
     case '\r':
         console.cursor.X = 0;
+
+        g_textGrid.SetCursor(Int2D(console.cursor.X, console.cursor.Y));
         break;
+
     case '\b':
-        console.cursor.X--;
+        /* should we perhaps support blanking out character at current position? */
+        if (console.cursor.X > 0) {
+            console.cursor.X--;
+            g_textGrid.SetCursor(Int2D(console.cursor.X, console.cursor.Y));
+        }
         break;
+
     default:
 
         TextCell textCell((TextColor)console.current_nhcolor, (TextAttribute)console.current_nhattr, ch);
@@ -2573,7 +2615,24 @@ xputc_core(char ch)
         g_textGrid.Put(console.cursor.X, console.cursor.Y, textCell, 1);
 
         console.cursor.X++;
+
+        if (console.cursor.X >= g_textGrid.GetDimensions().m_x) {
+
+            console.cursor.X = 0;
+            console.cursor.Y++;
+
+            if (console.cursor.Y == g_textGrid.GetDimensions().m_y) {
+                console.cursor.X = g_textGrid.GetDimensions().m_x - 1;
+                console.cursor.Y = g_textGrid.GetDimensions().m_y - 1;
+            }
+        }
+
     }
+
+    /* this will now hold -- till it runs off the end */
+    assert(g_textGrid.GetCursor().m_x == console.cursor.X);
+    assert(g_textGrid.GetCursor().m_y == console.cursor.Y);
+
 }
 
 void xputc(char ch)

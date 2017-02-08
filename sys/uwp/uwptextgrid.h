@@ -128,6 +128,7 @@ namespace Nethack
         void ScaleAndCenter(void);
 
         void SetCursor(Int2D & cursor);
+        const Int2D & GetCursor() { return m_cursor; }
 
         void SetFontFamilyName(std::string & fontFamilyName);
 

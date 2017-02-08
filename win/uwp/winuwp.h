@@ -242,25 +242,11 @@ E char *FDECL(tty_getmsghistory, (BOOLEAN_P));
 E void FDECL(tty_putmsghistory, (const char *, BOOLEAN_P));
 
 #ifdef NO_TERMS
-#ifdef MAC
-#ifdef putchar
-#undef putchar
-#undef putc
-#endif
-#define putchar term_putc
-#define fflush term_flush
-#define puts term_puts
-E int FDECL(term_putc, (int c));
-E int FDECL(term_flush, (void *desc));
-E int FDECL(term_puts, (const char *str));
-#endif /* MAC */
 #if defined(MSDOS) || defined(WIN32)
 #if defined(SCREEN_BIOS) || defined(SCREEN_DJGPPFAST) || defined(WIN32)
 #undef putchar
-#undef putc
 #undef puts
 #define putchar(x) xputc(x) /* these are in video.c, nttty.c */
-#define putc(x) xputc(x)
 #define puts(x) xputs(x)
 #endif /*SCREEN_BIOS || SCREEN_DJGPPFAST || WIN32 */
 #ifdef POSITIONBAR
