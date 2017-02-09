@@ -11,19 +11,19 @@ namespace Nethack
         RGB_TO_XMFLOAT3(0x55, 0x55, 0x55), // black
         RGB_TO_XMFLOAT3(0xFF, 0x00, 0x00), // red
         RGB_TO_XMFLOAT3(0x00, 0x80, 0x00), // green
-        RGB_TO_XMFLOAT3(205, 133, 63), // brown
+        RGB_TO_XMFLOAT3(205, 133, 63),     // brown
         RGB_TO_XMFLOAT3(0x00, 0x00, 0xFF), // blue
         RGB_TO_XMFLOAT3(0xFF, 0x00, 0xFF), // magenta
         RGB_TO_XMFLOAT3(0x00, 0xFF, 0xFF), // cyan
         RGB_TO_XMFLOAT3(0x80, 0x80, 0x80), // gray
-        RGB_TO_XMFLOAT3(0xFF, 0xFF, 0xFF), // bright
+        RGB_TO_XMFLOAT3(0xD0, 0xD0, 0xD0), // no color
         RGB_TO_XMFLOAT3(0xFF, 0xA5, 0x00), // orange
         RGB_TO_XMFLOAT3(0x00, 0xFF, 0x00), // bright green
         RGB_TO_XMFLOAT3(0xFF, 0xFF, 0x00), // yellow
         RGB_TO_XMFLOAT3(0x00, 0xC0, 0xFF), // bright blue
         RGB_TO_XMFLOAT3(0xFF, 0x80, 0xFF), // bright magenta
         RGB_TO_XMFLOAT3(0x80, 0xFF, 0xFF), // bright cyan
-        RGB_TO_XMFLOAT3(0xFF, 0xFF, 0xFF) // white
+        RGB_TO_XMFLOAT3(0xFF, 0xFF, 0xFF)  // white
     };
 
 

@@ -96,7 +96,6 @@
 #include "uwpglobals.h"
 
 extern"C" {
-
     #include "hack.h"
     #include "winuwp.h"
     #include "spell.h"

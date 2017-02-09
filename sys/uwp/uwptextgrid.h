@@ -36,7 +36,7 @@ namespace Nethack
         Magenta,
         Cyan,
         Gray,
-        Bright,
+        NoColor,
         Orange,
         BrightGreen,
         Yellow,
@@ -51,7 +51,7 @@ namespace Nethack
     {
     public:
 
-        TextCell() : m_char(' '), m_attribute(TextAttribute::None), m_color(TextColor::Gray) {}
+        TextCell() : m_char(' '), m_attribute(TextAttribute::None), m_color(TextColor::NoColor) {}
         TextCell(TextColor color, TextAttribute attribute, unsigned char c) :
             m_color(color), m_attribute(attribute), m_char(c) 
         {

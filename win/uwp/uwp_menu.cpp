@@ -6,6 +6,8 @@
 #include "..\..\sys\uwp\uwp.h"
 #include "winuwp.h"
 
+using namespace Nethack;
+
 extern "C" {
 
 extern char winpanicstr[];
@@ -34,7 +36,7 @@ dmore(
         (int)g_uwpDisplay->cury);
     if (flags.standout)
         standoutbeg();
-    xputs(prompt);
+    xputs(prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
     g_uwpDisplay->curx += strlen(prompt);
     if (flags.standout)
         standoutend();
@@ -52,7 +54,7 @@ set_item_state(
 
     tty_curs(window, 4, lineno);
     term_start_attr(item->attr);
-    (void)putchar(ch);
+    (void)xputc(ch, TextColor::NoColor, (TextAttribute) item->attr);
     g_uwpDisplay->curx++;
     term_end_attr(item->attr);
 }
@@ -293,7 +295,10 @@ process_menu_window(winid window, struct WinDesc * cw)
                     if (cw->offx)
                         cl_end();
 
-                    (void)putchar(' ');
+                    TextColor useColor = TextColor::NoColor;
+                    TextAttribute useAttribute = TextAttribute::None;
+
+                    (void)xputc(' ', useColor, useAttribute);
                     ++g_uwpDisplay->curx;
 
                     if (!iflags.use_menu_color
@@ -328,19 +333,24 @@ process_menu_window(winid window, struct WinDesc * cw)
                         g_uwpDisplay->curx++,
 #endif
                         cp++, n++) {
+
                         if (n == attr_n && (color != NO_COLOR
-                            || attr != ATR_NONE))
+                            || attr != ATR_NONE)) {
                             toggle_menu_attr(TRUE, color, attr);
+                            useColor = (TextColor)color;
+                            useAttribute = (TextAttribute)attr;
+                        }
+
                         if (n == 2
                             && curr->identifier.a_void != 0
                             && curr->selected) {
                             if (curr->count == -1L)
-                                (void) putchar('+'); /* all selected */
+                                (void) xputc('+', useColor, useAttribute); /* all selected */
                             else
-                                (void)putchar('#'); /* count selected */
+                                (void)xputc('#', useColor, useAttribute); /* count selected */
                         }
                         else
-                            (void)putchar(*cp);
+                            (void)xputc(*cp, useColor, useAttribute);
                     } /* for *cp */
                     if (n > attr_n && (color != NO_COLOR || attr != ATR_NONE))
                         toggle_menu_attr(FALSE, color, attr);
@@ -614,7 +624,7 @@ process_text_window(winid window, struct WinDesc *cw)
         if (cw->data[i]) {
             attr = cw->data[i][0] - 1;
             if (cw->offx) {
-                (void)putchar(' ');
+                (void)xputc(' ', TextColor::NoColor, TextAttribute::None);
                 ++g_uwpDisplay->curx;
             }
             term_start_attr(attr);
@@ -626,7 +636,7 @@ process_text_window(winid window, struct WinDesc *cw)
                 *cp && (int)g_uwpDisplay->curx < (int)g_uwpDisplay->cols;
             cp++, g_uwpDisplay->curx++)
 #endif
-                (void)putchar(*cp);
+                (void)xputc(*cp, TextColor::NoColor, (TextAttribute) attr);
             term_end_attr(attr);
         }
     }

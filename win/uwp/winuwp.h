@@ -118,9 +118,9 @@ E void NDECL(tty_shutdown);
  * actually would be expanded.	So here, we have to make an exception. */
 E void FDECL(xputc, (int));
 #else
-E void FDECL(xputc, (CHAR_P));
+void xputc(char ch, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
 #endif
-E void FDECL(xputs, (const char *));
+void xputs(const char *s, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
 #if defined(SCREEN_VGA) || defined(SCREEN_8514)
 E void FDECL(xputg, (int, int, unsigned));
 #endif
@@ -169,7 +169,7 @@ E void NDECL(setclipped);
 #endif
 E void FDECL(docorner, (int, int));
 E void NDECL(end_glyphout);
-E void FDECL(g_putch, (int));
+void g_putch( int in_ch , Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
 E void FDECL(win_tty_init, (int));
 
 /* external declarations */
@@ -241,18 +241,6 @@ E void FDECL(genl_outrip, (winid, int, time_t));
 E char *FDECL(tty_getmsghistory, (BOOLEAN_P));
 E void FDECL(tty_putmsghistory, (const char *, BOOLEAN_P));
 
-#ifdef NO_TERMS
-#if defined(MSDOS) || defined(WIN32)
-#if defined(SCREEN_BIOS) || defined(SCREEN_DJGPPFAST) || defined(WIN32)
-#undef putchar
-#undef puts
-#define putchar(x) xputc(x) /* these are in video.c, nttty.c */
-#define puts(x) xputs(x)
-#endif /*SCREEN_BIOS || SCREEN_DJGPPFAST || WIN32 */
-#ifdef POSITIONBAR
-E void FDECL(video_update_positionbar, (char *));
-#endif
-#endif /*MSDOS*/
-#endif /*NO_TERMS*/
+void msmsg_bold(const char *, ...);
 
 #undef E

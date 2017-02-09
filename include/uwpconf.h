@@ -232,6 +232,10 @@ extern int FDECL(alternative_palette, (char *));
 extern char * uwp_getenv(const char * env);
 #define getenv(x) uwp_getenv(x)
 
+/* windows.c calls puts() which conflicts with stdlib */
+extern void uwp_puts(const char *);
+#define puts(x) uwp_puts(x)
+
 /* No SYSCF support */
 #undef SYSCF
 #undef SYSCF_FILE
