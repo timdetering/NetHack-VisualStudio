@@ -34,12 +34,8 @@ dmore(
 
     tty_curs(BASE_WINDOW, (int)g_uwpDisplay->curx + offset,
         (int)g_uwpDisplay->cury);
-    if (flags.standout)
-        standoutbeg();
     xputs(prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
     g_uwpDisplay->curx += strlen(prompt);
-    if (flags.standout)
-        standoutend();
 
     xwaitforspace(s);
 }
@@ -53,10 +49,8 @@ set_item_state(
     char ch = item->selected ? (item->count == -1L ? '+' : '#') : '-';
 
     tty_curs(window, 4, lineno);
-    term_start_attr(item->attr);
-    (void)xputc(ch, TextColor::NoColor, (TextAttribute) item->attr);
+    (void)xputc(ch, TextColor::NoColor, (TextAttribute) (item->attr != 0 ? 1 << item->attr : 0));
     g_uwpDisplay->curx++;
-    term_end_attr(item->attr);
 }
 
 
@@ -188,26 +182,6 @@ invert_all(winid window, tty_menu_item *page_start, tty_menu_item *page_end, cha
     }
 }
 
-/* support menucolor in addition to caller-supplied attribute */
-STATIC_OVL void
-toggle_menu_attr(boolean on, int color, int attr)
-{
-    if (on) {
-        term_start_attr(attr);
-
-        if (color != NO_COLOR)
-            term_start_color(color);
-
-    }
-    else {
-
-        if (color != NO_COLOR)
-            term_end_color();
-
-        term_end_attr(attr);
-    }
-}
-
 void
 process_menu_window(winid window, struct WinDesc * cw)
 {
@@ -336,9 +310,8 @@ process_menu_window(winid window, struct WinDesc * cw)
 
                         if (n == attr_n && (color != NO_COLOR
                             || attr != ATR_NONE)) {
-                            toggle_menu_attr(TRUE, color, attr);
                             useColor = (TextColor)color;
-                            useAttribute = (TextAttribute)attr;
+                            useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
                         }
 
                         if (n == 2
@@ -352,8 +325,6 @@ process_menu_window(winid window, struct WinDesc * cw)
                         else
                             (void)xputc(*cp, useColor, useAttribute);
                     } /* for *cp */
-                    if (n > attr_n && (color != NO_COLOR || attr != ATR_NONE))
-                        toggle_menu_attr(FALSE, color, attr);
                 } /* if npages > 0 */
             }
             else {
@@ -627,7 +598,7 @@ process_text_window(winid window, struct WinDesc *cw)
                 (void)xputc(' ', TextColor::NoColor, TextAttribute::None);
                 ++g_uwpDisplay->curx;
             }
-            term_start_attr(attr);
+            TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
             for (cp = &cw->data[i][1];
 #ifndef WIN32CON
                 *cp && (int) ++g_uwpDisplay->curx < (int)g_uwpDisplay->cols;
@@ -636,8 +607,7 @@ process_text_window(winid window, struct WinDesc *cw)
                 *cp && (int)g_uwpDisplay->curx < (int)g_uwpDisplay->cols;
             cp++, g_uwpDisplay->curx++)
 #endif
-                (void)xputc(*cp, TextColor::NoColor, (TextAttribute) attr);
-            term_end_attr(attr);
+                (void)xputc(*cp, TextColor::NoColor, useAttribute);
         }
     }
     if (i == cw->maxrow) {

@@ -867,6 +867,8 @@ tty_putstr(winid window, int attr, const char *str)
     register const char *nb;
     register long i, j, n0;
 
+    TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
+
     /* Assume there's a real problem if the window is missing --
      * probably a panic message
      */
@@ -931,32 +933,28 @@ tty_putstr(winid window, int attr, const char *str)
         break;
     case NHW_MAP:
         tty_curs(window, cw->curx + 1, cw->cury);
-        term_start_attr(attr);
         while (*str && (int) g_uwpDisplay->curx < (int) g_uwpDisplay->cols - 1) {
-            (void) xputc(*str, TextColor::NoColor, (TextAttribute) attr);
+            (void) xputc(*str, TextColor::NoColor, useAttribute);
             str++;
             g_uwpDisplay->curx++;
         }
         cw->curx = 0;
         cw->cury++;
-        term_end_attr(attr);
         break;
     case NHW_BASE:
         tty_curs(window, cw->curx + 1, cw->cury);
-        term_start_attr(attr);
         while (*str) {
             if ((int) g_uwpDisplay->curx >= (int) g_uwpDisplay->cols - 1) {
                 cw->curx = 0;
                 cw->cury++;
                 tty_curs(window, cw->curx + 1, cw->cury);
             }
-            (void) xputc(*str, TextColor::NoColor, (TextAttribute) attr);
+            (void) xputc(*str, TextColor::NoColor, useAttribute);
             str++;
             g_uwpDisplay->curx++;
         }
         cw->curx = 0;
         cw->cury++;
-        term_end_attr(attr);
         break;
     case NHW_MENU:
     case NHW_TEXT:
@@ -1148,7 +1146,6 @@ void
 end_glyphout()
 {
     if (g_uwpDisplay->color != NO_COLOR) {
-        term_end_color();
         g_uwpDisplay->color = NO_COLOR;
     }
 }
@@ -1226,11 +1223,7 @@ tty_print_glyph(
     tty_curs(window, x, y);
 
     if (color != g_uwpDisplay->color) {
-        if (g_uwpDisplay->color != NO_COLOR)
-            term_end_color();
         g_uwpDisplay->color = color;
-        if (color != NO_COLOR)
-            term_start_color(color);
     }
 
     /* must be after color check; term_end_color may turn off inverse too */
@@ -1238,7 +1231,6 @@ tty_print_glyph(
         || ((special & MG_OBJPILE) && iflags.hilite_pile)
         || ((special & MG_DETECT) && iflags.use_inverse)
         || ((special & MG_BW_LAVA) && iflags.use_inverse)) {
-        term_start_attr(ATR_INVERSE);
         reverse_on = TRUE;
     }
 
@@ -1252,11 +1244,9 @@ tty_print_glyph(
             reverse_on ? TextAttribute::Inverse : TextAttribute::None); /* print the character */
 
     if (reverse_on) {
-        term_end_attr(ATR_INVERSE);
 
         /* turn off color as well, ATR_INVERSE may have done this already */
         if (g_uwpDisplay->color != NO_COLOR) {
-            term_end_color();
             g_uwpDisplay->color = NO_COLOR;
         }
     }
@@ -1285,13 +1275,11 @@ tty_raw_print_bold(const char *str)
     if (g_uwpDisplay)
         g_uwpDisplay->rawprint++;
 
-    term_start_raw_bold();
 #if defined(MICRO) || defined(WIN32CON)
     msmsg_bold("%s", str);
 #else
     (void) fputs(str, stdout);
 #endif
-    term_end_raw_bold();
 #if defined(MICRO) || defined(WIN32CON)
     msmsg("\n");
 #else
@@ -1486,13 +1474,13 @@ hooked_tty_getlin(
 #endif /* NEWAUTOCOMP */
                 bufp--;
 #ifndef NEWAUTOCOMP
-                putsyms("\b \b"); /* putsym converts \b */
+                putsyms("\b \b", TextColor::NoColor, TextAttribute::None); /* putsym converts \b */
 #else                             /* NEWAUTOCOMP */
-                putsyms("\b");
+                putsyms("\b", TextColor::NoColor, TextAttribute::None);
                 for (i = bufp; *i; ++i)
-                    putsyms(" ");
+                    putsyms(" ", TextColor::NoColor, TextAttribute::None);
                 for (; i > bufp; --i)
-                    putsyms("\b");
+                    putsyms("\b", TextColor::NoColor, TextAttribute::None);
                 *bufp = 0;
 #endif                            /* NEWAUTOCOMP */
             }
@@ -1520,25 +1508,25 @@ hooked_tty_getlin(
 #endif /* NEWAUTOCOMP */
             *bufp = c;
             bufp[1] = 0;
-            putsyms(bufp);
+            putsyms(bufp, TextColor::NoColor, TextAttribute::None);
             bufp++;
             if (hook && (*hook)(obufp)) {
-                putsyms(bufp);
+                putsyms(bufp, TextColor::NoColor, TextAttribute::None);
 #ifndef NEWAUTOCOMP
                 bufp = eos(bufp);
 #else  /* NEWAUTOCOMP */
                 /* pointer and cursor left where they were */
                 for (i = bufp; *i; ++i)
-                    putsyms("\b");
+                    putsyms("\b", TextColor::NoColor, TextAttribute::None);
             }
             else if (i > bufp) {
                 char *s = i;
 
                 /* erase rest of prior guess */
                 for (; i > bufp; --i)
-                    putsyms(" ");
+                    putsyms(" ", TextColor::NoColor, TextAttribute::None);
                 for (; s > bufp; --s)
-                    putsyms("\b");
+                    putsyms("\b", TextColor::NoColor, TextAttribute::None);
 #endif /* NEWAUTOCOMP */
             }
         }
@@ -1551,9 +1539,9 @@ hooked_tty_getlin(
             }
 #else  /* NEWAUTOCOMP */
             for (; *bufp; ++bufp)
-                putsyms(" ");
+                putsyms(" ", TextColor::NoColor, TextAttribute::None);
             for (; bufp != obufp; --bufp)
-                putsyms("\b \b");
+                putsyms("\b \b", TextColor::NoColor, TextAttribute::None);
             *bufp = 0;
 #endif /* NEWAUTOCOMP */
         }
@@ -1678,7 +1666,7 @@ tty_get_ext_cmd()
 #endif
 
 STATIC_DCL void FDECL(redotoplin, (const char *));
-STATIC_DCL void FDECL(topl_putsym, (CHAR_P));
+static void topl_putsym(char c, TextColor color, TextAttribute attribute);
 STATIC_DCL void NDECL(remember_topl);
 STATIC_DCL void FDECL(removetopl, (int));
 STATIC_DCL void FDECL(msghistory_snapshot, (BOOLEAN_P));
@@ -1805,7 +1793,7 @@ redotoplin(
         g_uwpDisplay->curx++;
     }
     end_glyphout(); /* in case message printed during graphics output */
-    putsyms(str);
+    putsyms(str, TextColor::NoColor, TextAttribute::None);
     cl_end();
     g_uwpDisplay->toplin = 1;
     if (g_uwpDisplay->cury && otoplin != 3)
@@ -1841,7 +1829,7 @@ const char *s)
     register struct WinDesc *cw = g_wins[WIN_MESSAGE];
 
     tty_curs(BASE_WINDOW, cw->curx + 1, cw->cury);
-    putsyms(s);
+    putsyms(s, TextColor::NoColor, TextAttribute::None);
     cl_end();
     g_uwpDisplay->toplin = 1;
 }
@@ -1858,14 +1846,10 @@ more()
     if (g_uwpDisplay->toplin) {
         tty_curs(BASE_WINDOW, cw->curx + 1, cw->cury);
         if (cw->curx >= CO - 8)
-            topl_putsym('\n');
+            topl_putsym('\n', TextColor::NoColor, TextAttribute::None);
     }
 
-    if (flags.standout)
-        standoutbeg();
-    putsyms(defmorestr);
-    if (flags.standout)
-        standoutend();
+    putsyms(defmorestr, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
 
     xwaitforspace("\033 ");
 
@@ -1943,7 +1927,7 @@ update_topl(
 
 STATIC_OVL
 void
-topl_putsym(char c)
+topl_putsym(char c, TextColor color, TextAttribute attribute)
 {
     register struct WinDesc *cw = g_wins[WIN_MESSAGE];
 
@@ -1969,7 +1953,7 @@ topl_putsym(char c)
         break;
     default:
         if (g_uwpDisplay->curx == CO - 1)
-            topl_putsym('\n'); /* 1 <= curx < CO; avoid CO */
+            topl_putsym('\n', TextColor::NoColor, TextAttribute::None); /* 1 <= curx < CO; avoid CO */
 #ifdef WIN32CON
         (void) xputc(c, TextColor::NoColor, TextAttribute::None);
 #endif
@@ -1984,11 +1968,10 @@ topl_putsym(char c)
 }
 
 void
-putsyms(
-    const char *str)
+putsyms(const char *str, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute)
 {
     while (*str)
-        topl_putsym(*str++);
+        topl_putsym(*str++, textColor, textAttribute);
 }
 
 STATIC_OVL void
@@ -1997,7 +1980,7 @@ removetopl(
 {
     /* assume addtopl() has been done, so g_uwpDisplay->toplin is already set */
     while (n-- > 0)
-        putsyms("\b \b");
+        putsyms("\b \b", TextColor::NoColor, TextAttribute::None);
 }
 
 extern char erase_char; /* from xxxtty.c; don't need kill_char */
@@ -2487,33 +2470,6 @@ term_end_color(void)
 }
 
 void
-term_end_raw_bold(void)
-{
-    term_end_attr(ATR_BOLD);
-}
-
-void
-term_start_raw_bold(void)
-{
-    term_start_attr(ATR_BOLD);
-}
-
-void
-term_start_attr(int attrib)
-{
-    assert(console.current_nhattr == 0);
-    if (attrib != ATR_NONE && console.current_nhattr == 0)
-        console.current_nhattr |= 1 << attrib;
-}
-
-void
-term_end_attr(int attrib)
-{
-    console.current_nhattr &= ~(1 << attrib);
-    assert(console.current_nhattr == 0);
-}
-
-void
 cl_eos()
 {
     int x = g_uwpDisplay->curx;
@@ -2539,7 +2495,6 @@ cl_end()
     g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
 
     tty_curs(BASE_WINDOW, (int)g_uwpDisplay->curx + 1, (int)g_uwpDisplay->cury);
-
 }
 
 void clear_screen(void)
@@ -2549,36 +2504,17 @@ void clear_screen(void)
 }
 
 void
-standoutbeg()
-{
-    term_start_attr(ATR_BOLD);
-}
-
-void
-standoutend()
-{
-    term_end_attr(ATR_BOLD);
-}
-
-void
 g_putch(int in_ch, TextColor textColor, TextAttribute textAttribute)
 {
-    assert(textColor == (TextColor)console.current_nhcolor);
-    assert(textAttribute == (TextAttribute)console.current_nhattr);
-
     TextCell textCell(textColor, textAttribute, in_ch);
 
     g_textGrid.Put(g_uwpDisplay->curx, g_uwpDisplay->cury, textCell, 1);
     g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
-
 }
 
 void
 xputc_core(char ch, TextColor textColor, TextAttribute textAttribute)
 {
-    assert(textColor == (TextColor) console.current_nhcolor);
-    assert(textAttribute == (TextAttribute) console.current_nhattr);
-
     Int2D cursor = g_textGrid.GetCursor();
 
     switch (ch) {
@@ -2642,10 +2578,6 @@ void
 backsp()
 {
     g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
-
-    assert(TextColor::NoColor == (TextColor)console.current_nhcolor);
-    assert(TextAttribute::None == (TextAttribute)console.current_nhattr);
-
     xputc_core('\b', TextColor::NoColor, TextAttribute::None);
 }
 

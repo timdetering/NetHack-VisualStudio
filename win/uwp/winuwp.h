@@ -127,8 +127,6 @@ E void FDECL(xputg, (int, int, unsigned));
 E void NDECL(cl_end);
 E void NDECL(clear_screen);
 E void NDECL(home);
-E void NDECL(standoutbeg);
-E void NDECL(standoutend);
 #if 0
 E void NDECL(revbeg);
 E void NDECL(boldbeg);
@@ -141,27 +139,12 @@ E void NDECL(graph_on);
 E void NDECL(graph_off);
 E void NDECL(cl_eos);
 
-/*
- * termcap.c (or facsimiles in other ports) is the right place for doing
- * strange and arcane things such as outputting escape sequences to select
- * a color or whatever.  wintty.c should concern itself with WHERE to put
- * stuff in a window.
- */
-E void FDECL(term_start_attr, (int attr));
-E void FDECL(term_end_attr, (int attr));
-E void NDECL(term_start_raw_bold);
-E void NDECL(term_end_raw_bold);
-
-E void NDECL(term_end_color);
-E void FDECL(term_start_color, (int color));
-E int FDECL(has_color, (int color));
-
 /* ### topl.c ### */
 
 E void FDECL(addtopl, (const char *));
 E void NDECL(more);
 E void FDECL(update_topl, (const char *));
-E void FDECL(putsyms, (const char *));
+void putsyms(const char * str, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
 
 /* ### wintty.c ### */
 #ifdef CLIPPING
