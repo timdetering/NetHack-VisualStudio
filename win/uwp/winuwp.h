@@ -57,8 +57,6 @@ struct WinDesc {
 struct DisplayDesc {
     short rows, cols; /* width and height of tty display */
     short curx, cury; /* current cursor position on the screen */
-    int color;         /* current color */
-    int attrs;         /* attributes in effect */
     int toplin;        /* flag for topl stuff */
     int rawprint;      /* number of raw_printed lines since synch */
     int inmore;        /* non-zero if more() is active */
@@ -151,7 +149,6 @@ void putsyms(const char * str, Nethack::TextColor textColor, Nethack::TextAttrib
 E void NDECL(setclipped);
 #endif
 E void FDECL(docorner, (int, int));
-E void NDECL(end_glyphout);
 void g_putch( int in_ch , Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
 E void FDECL(win_tty_init, (int));
 

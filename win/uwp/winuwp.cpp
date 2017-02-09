@@ -32,20 +32,6 @@ extern NEARDATA winid WIN_STATUS;
 /* erase_char and kill_char are usd by getline.c and topl.c */
 char erase_char, kill_char;
 
-struct console_t {
-    WORD background;
-    WORD foreground;
-    WORD attr;
-    int current_nhcolor;
-    WORD current_nhattr;
-} console = {
-    0,
-    (FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED),
-    (FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED),
-    NO_COLOR,
-    0
-};
-
 /* Interface definition, for windows.c */
 struct window_procs uwp_procs = {
     "uwp",
@@ -199,8 +185,6 @@ tty_init_nhwindows(int *, char **)
     g_uwpDisplay->curx = g_uwpDisplay->cury = 0;
     g_uwpDisplay->inmore = g_uwpDisplay->inread = g_uwpDisplay->intr = 0;
     g_uwpDisplay->dismiss_more = 0;
-    g_uwpDisplay->color = NO_COLOR;
-    g_uwpDisplay->attrs = 0;
 
     /* set up the default windows */
     BASE_WINDOW = tty_create_nhwindow(NHW_BASE);
@@ -626,7 +610,6 @@ tty_display_nhwindow(winid window, boolean blocking)
             iflags.window_inited = TRUE;
         break;
     case NHW_MAP:
-        end_glyphout();
         if (blocking) {
             if (!g_uwpDisplay->toplin)
                 g_uwpDisplay->toplin = 1;
@@ -634,7 +617,6 @@ tty_display_nhwindow(winid window, boolean blocking)
             return;
         }
     case NHW_BASE:
-//        (void) fflush(stdout);
         break;
     case NHW_TEXT:
         cw->maxcol = g_uwpDisplay->cols; /* force full-screen mode */
@@ -787,9 +769,6 @@ tty_curs(winid window, int x, int y)
 
     if (y == cy && x == cx)
         return;
-
-    if (cw->type == NHW_MAP)
-        end_glyphout();
 
     if ((cy -= y) < 0)
         cy = -cy;
@@ -1077,7 +1056,7 @@ tty_update_inventory()
 void
 tty_mark_synch()
 {
-//    (void) fflush(stdout);
+    // do nothing
 }
 
 void
@@ -1092,7 +1071,6 @@ tty_wait_synch()
         tty_display_nhwindow(WIN_MAP, FALSE);
         if (g_uwpDisplay->inmore) {
             addtopl("--More--");
-//            (void) fflush(stdout);
         } else if (g_uwpDisplay->inread > program_state.gameover) {
             /* this can only happen if we were reading and got interrupted */
             g_uwpDisplay->toplin = 3;
@@ -1100,7 +1078,6 @@ tty_wait_synch()
             (void) tty_doprev_message();
             (void) tty_doprev_message();
             g_uwpDisplay->intr++;
-//            (void) fflush(stdout);
         }
     }
 }
@@ -1134,19 +1111,10 @@ docorner(
 #endif
     }
 
-    end_glyphout();
     if (ymax >= (int) g_wins[WIN_STATUS]->offy) {
         /* we have wrecked the bottom line */
         context.botlx = 1;
         bot();
-    }
-}
-
-void
-end_glyphout()
-{
-    if (g_uwpDisplay->color != NO_COLOR) {
-        g_uwpDisplay->color = NO_COLOR;
     }
 }
 
@@ -1222,10 +1190,6 @@ tty_print_glyph(
     /* Move the cursor. */
     tty_curs(window, x, y);
 
-    if (color != g_uwpDisplay->color) {
-        g_uwpDisplay->color = color;
-    }
-
     /* must be after color check; term_end_color may turn off inverse too */
     if (((special & MG_PET) && iflags.hilite_pet)
         || ((special & MG_OBJPILE) && iflags.hilite_pile)
@@ -1243,14 +1207,6 @@ tty_print_glyph(
             (TextColor) color,
             reverse_on ? TextAttribute::Inverse : TextAttribute::None); /* print the character */
 
-    if (reverse_on) {
-
-        /* turn off color as well, ATR_INVERSE may have done this already */
-        if (g_uwpDisplay->color != NO_COLOR) {
-            g_uwpDisplay->color = NO_COLOR;
-        }
-    }
-
     g_wins[window]->curx++; /* one character over */
     g_uwpDisplay->curx++;   /* the real cursor moved too */
 }
@@ -1265,7 +1221,6 @@ tty_raw_print(const char *str)
     msmsg("%s\n", str);
 #else
     xputs(str);
-    (void) fflush(stdout);
 #endif
 }
 
@@ -1284,7 +1239,6 @@ tty_raw_print_bold(const char *str)
     msmsg("\n");
 #else
     xputs("");
-    (void) fflush(stdout);
 #endif
 }
 
@@ -1317,7 +1271,6 @@ tty_nhgetch()
 {
     int i;
 
-//    (void) fflush(stdout);
     /* Note: if raw_print() and wait_synch() get called to report terminal
      * initialization problems, then g_wins[] and g_uwpDisplay might not be
      * available yet.  Such problems will probably be fatal before we get
@@ -1346,7 +1299,6 @@ tty_nh_poskey(int *x, int *y, int *mod)
 {
 #if defined(WIN32CON)
     int i;
-//    (void) fflush(stdout);
     /* Note: if raw_print() and wait_synch() get called to report terminal
      * initialization problems, then g_wins[] and g_uwpDisplay might not be
      * available yet.  Such problems will probably be fatal before we get
@@ -1413,7 +1365,6 @@ hooked_tty_getlin(
     pline("%s ", query);
     *obufp = 0;
     for (;;) {
-//        (void)fflush(stdout);
         Strcat(strcat(strcpy(toplines, query), " "), obufp);
         c = pgetchar();
         if (c == '\033' || c == EOF) {
@@ -1792,7 +1743,7 @@ redotoplin(
         g_putch((int)*str++, TextColor::NoColor, TextAttribute::None);
         g_uwpDisplay->curx++;
     }
-    end_glyphout(); /* in case message printed during graphics output */
+
     putsyms(str, TextColor::NoColor, TextAttribute::None);
     cl_end();
     g_uwpDisplay->toplin = 1;
@@ -2455,18 +2406,6 @@ home()
 {
     g_textGrid.SetCursor(Int2D(0, 0));
     g_uwpDisplay->curx = g_uwpDisplay->cury = 0;
-}
-
-void
-term_start_color(int color)
-{
-    console.current_nhcolor = color;
-}
-
-void
-term_end_color(void)
-{
-    console.current_nhcolor = NO_COLOR;
 }
 
 void
