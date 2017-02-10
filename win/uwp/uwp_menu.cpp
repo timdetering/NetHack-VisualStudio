@@ -563,7 +563,7 @@ process_text_window(winid window, struct WinDesc *cw)
     register char *cp;
 
     for (n = 0, i = 0; i < cw->maxrow; i++) {
-        if (!cw->offx && (n + cw->offy == g_uwpDisplay->rows - 1)) {
+        if (!cw->offx && (n + cw->offy == g_textGrid.GetDimensions().m_y - 1)) {
             tty_curs(window, 1, n);
             cl_end();
             dmore(cw, quitchars);
@@ -589,19 +589,13 @@ process_text_window(winid window, struct WinDesc *cw)
         if (cw->data[i]) {
             attr = cw->data[i][0] - 1;
             if (cw->offx) {
-                xputc(' ');
-                ++g_uwpDisplay->curx;
+                win_putc(window, ' ');
             }
             TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
             for (cp = &cw->data[i][1];
-#ifndef WIN32CON
-                *cp && (int) ++g_uwpDisplay->curx < (int)g_uwpDisplay->cols;
+                *cp && g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
                 cp++)
-#else
-                *cp && (int)g_uwpDisplay->curx < (int)g_uwpDisplay->cols;
-            cp++, g_uwpDisplay->curx++)
-#endif
-                xputc(*cp, TextColor::NoColor, useAttribute);
+                win_putc(window, *cp, TextColor::NoColor, useAttribute);
         }
     }
     if (i == cw->maxrow) {
