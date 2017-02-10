@@ -14,6 +14,10 @@
 #error TTY_GRAPHICS is not expected to be defined
 #endif
 
+#ifdef CLIPPING
+#error CLIPPING is not supported
+#endif
+
 #ifdef UWP_GRAPHICS
 #error UWP_GRAPHICS is not expected to be defined at this point
 #endif

@@ -442,7 +442,7 @@ typedef unsigned char uchar;
 #endif
 #endif
 
-#if !defined(MAC)
+#if !defined(MAC) && !defined(UWP)
 #if !defined(NOCLIPPING)
 #define CLIPPING /* allow smaller screens -- ERS */
 #endif

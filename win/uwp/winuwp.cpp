@@ -182,7 +182,6 @@ tty_init_nhwindows(int *, char **)
     g_uwpDisplay->toplin = 0;
     g_uwpDisplay->rows = hgt;
     g_uwpDisplay->cols = wid;
-    g_uwpDisplay->curx = g_uwpDisplay->cury = 0;
     g_uwpDisplay->inmore = g_uwpDisplay->inread = g_uwpDisplay->intr = 0;
     g_uwpDisplay->dismiss_more = 0;
 
@@ -703,9 +702,6 @@ void
 tty_curs(winid window, int x, int y)
 {
     struct WinDesc *cw = 0;
-    int cx = g_uwpDisplay->curx;
-    int cy = g_uwpDisplay->cury;
-
     if (window == WIN_ERR || (cw = g_wins[window]) == (struct WinDesc *) 0)
         panic(winpanicstr, window);
 
@@ -723,25 +719,6 @@ tty_curs(winid window, int x, int y)
 
     x += cw->offx;
     y += cw->offy;
-
-#ifdef CLIPPING
-    if (clipping && window == WIN_MAP) {
-        x -= clipx;
-        y -= clipy;
-    }
-#endif
-
-    if (y == cy && x == cx)
-        return;
-
-    if ((cy -= y) < 0)
-        cy = -cy;
-
-    if ((cx -= x) < 0)
-        cx = -cx;
-
-    g_uwpDisplay->curx = x;
-    g_uwpDisplay->cury = y;
 
     g_textGrid.SetCursor(Int2D(x, y));
 
@@ -874,11 +851,7 @@ tty_putstr(winid window, int attr, const char *str)
         break;
     case NHW_MAP:
         tty_curs(window, cw->curx + 1, cw->cury);
-        while (*str && (int) g_uwpDisplay->curx < (int) g_uwpDisplay->cols - 1) {
-            xputc(*str, TextColor::NoColor, useAttribute);
-            str++;
-            g_uwpDisplay->curx++;
-        }
+        win_puts(window, str, TextColor::NoColor, useAttribute);
         cw->curx = 0;
         cw->cury++;
         break;
@@ -1184,11 +1157,7 @@ tty_raw_print_bold(const char *str)
 
 void really_move_cursor()
 {
-
-    if (g_uwpDisplay) {
-        g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
-    }
-
+    // do nothing
 }
 
 int
@@ -1688,7 +1657,7 @@ redotoplin(
     putsyms(str, TextColor::NoColor, TextAttribute::None);
     cl_end();
     g_uwpDisplay->toplin = 1;
-    if (g_uwpDisplay->cury && otoplin != 3)
+    if (cw->cury != 0 && otoplin != 3)
         more();
 }
 
@@ -1835,7 +1804,7 @@ topl_putsym(char c, TextColor color, TextAttribute attribute)
         win_putc(WIN_MESSAGE, '\n');
         break;
     default:
-        if (g_uwpDisplay->curx == CO - 1)
+        if (cw->curx + cw->offx == CO - 1)
             topl_putsym('\n', TextColor::NoColor, TextAttribute::None); /* 1 <= curx < CO; avoid CO */
         win_putc(WIN_MESSAGE, c);
     }
@@ -2300,7 +2269,10 @@ VA_DECL(const char *, fmt)
     VA_INIT(fmt, const char *);
     Vsprintf(buf, fmt, VA_ARGS);
 
-    xputs(buf);
+    if (g_wins[BASE_WINDOW])
+        win_puts(BASE_WINDOW, buf);
+    else
+        g_textGrid.Putstr(TextColor::NoColor, TextAttribute::None, buf);
 
     if (g_uwpDisplay)
         curs(BASE_WINDOW, g_textGrid.GetCursor().m_x + 1, g_textGrid.GetCursor().m_y);
@@ -2318,7 +2290,10 @@ VA_DECL(const char *, fmt)
     VA_INIT(fmt, const char *);
     Vsprintf(buf, fmt, VA_ARGS);
 
-    xputs(buf, TextColor::NoColor, TextAttribute::Bold);
+    if (g_wins[BASE_WINDOW])
+        win_puts(BASE_WINDOW, buf, TextColor::NoColor, TextAttribute::Bold);
+    else
+        g_textGrid.Putstr(TextColor::NoColor, TextAttribute::Bold, buf);
 
     if (g_uwpDisplay)
         curs(BASE_WINDOW, g_textGrid.GetCursor().m_x + 1, g_textGrid.GetCursor().m_y);
@@ -2331,14 +2306,13 @@ void
 home()
 {
     g_textGrid.SetCursor(Int2D(0, 0));
-    g_uwpDisplay->curx = g_uwpDisplay->cury = 0;
 }
 
 void
 cl_eos()
 {
-    int x = g_uwpDisplay->curx;
-    int y = g_uwpDisplay->cury;
+    int x = g_textGrid.GetCursor().m_x;
+    int y = g_textGrid.GetCursor().m_y;
 
     int cx = g_textGrid.GetDimensions().m_x - x;
     int cy = (g_textGrid.GetDimensions().m_y - (y + 1)) * g_textGrid.GetDimensions().m_x;
@@ -2361,15 +2335,6 @@ void clear_screen(void)
 {
     g_textGrid.Clear();
     home();
-}
-
-void
-g_putch(int in_ch, TextColor textColor, TextAttribute textAttribute)
-{
-    TextCell textCell(textColor, textAttribute, in_ch);
-
-    g_textGrid.Put(g_uwpDisplay->curx, g_uwpDisplay->cury, textCell, 1);
-    g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
 }
 
 void
@@ -2408,46 +2373,9 @@ xputc_core(
     }
 }
 
-void xputc(
-    char ch, 
-    TextColor textColor, 
-    TextAttribute textAttribute)
-{
-    g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
-
-    xputc_core(ch, textColor, textAttribute);
-    return;
-}
-
 void uwp_puts(const char *s)
 {
-    xputs(s);
-}
-
-void
-xputs(
-    const char *s, 
-    TextColor textColor, 
-    TextAttribute textAttribute)
-{
-    int k;
-    int slen = strlen(s);
-
-    if (g_uwpDisplay) {
-        g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
-    }
-
-    if (s) {
-        for (k = 0; k < slen && s[k]; ++k)
-            xputc_core(s[k], textColor, textAttribute);
-    }
-}
-
-void
-backsp()
-{
-    g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
-    xputc_core('\b');
+    win_puts(BASE_WINDOW, s);
 }
 
 void win_putc(
@@ -2463,23 +2391,10 @@ void win_putc(
     int x = cw->curx + cw->offx;
     int y = cw->cury + cw->offy;
 
-#ifdef CLIPPING
-    x -= clipx;
-    y -= clipy;
-#endif
-
     g_textGrid.Put(x, y, TextCell(textColor, textAttribute, ch));
-
-    g_uwpDisplay->curx = g_textGrid.GetCursor().m_x;
-    g_uwpDisplay->cury = g_textGrid.GetCursor().m_y;
 
     cw->curx = g_textGrid.GetCursor().m_x - cw->offx;
     cw->cury = g_textGrid.GetCursor().m_y - cw->offy;
-
-#ifdef CLIPPING
-    cw->curx += clipx;
-    cw->cury += clipy;
-#endif
 
 }
 
@@ -2496,23 +2411,10 @@ void win_puts(
     int x = cw->curx + cw->offx;
     int y = cw->cury + cw->offy;
 
-#ifdef CLIPPING
-    x -= clipx;
-    y -= clipy;
-#endif
-
     g_textGrid.Putstr(textColor, textAttribute, s);
-
-    g_uwpDisplay->curx = g_textGrid.GetCursor().m_x;
-    g_uwpDisplay->cury = g_textGrid.GetCursor().m_y;
 
     cw->curx = g_textGrid.GetCursor().m_x - cw->offx;
     cw->cury = g_textGrid.GetCursor().m_y - cw->offy;
-
-#ifdef CLIPPING
-    cw->curx += clipx;
-    cw->cury += clipy;
-#endif
 }
 
 

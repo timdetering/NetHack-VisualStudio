@@ -56,7 +56,6 @@ struct WinDesc {
 /* descriptor for tty-based displays -- all the per-display data */
 struct DisplayDesc {
     short rows, cols; /* width and height of tty display */
-    short curx, cury; /* current cursor position on the screen */
     int toplin;        /* flag for topl stuff */
     int rawprint;      /* number of raw_printed lines since synch */
     int inmore;        /* non-zero if more() is active */

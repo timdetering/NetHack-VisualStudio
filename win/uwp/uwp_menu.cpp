@@ -32,8 +32,7 @@ dmore(
     const char *prompt = cw->morestr ? cw->morestr : defmorestr;
     int offset = (cw->type == NHW_TEXT) ? 1 : 2;
 
-    tty_curs(BASE_WINDOW, (int)g_uwpDisplay->curx + offset,
-        (int)g_uwpDisplay->cury);
+    tty_curs(BASE_WINDOW, (int)cw->curx + cw->offx + offset, (int)cw->cury + cw->offy);
 
     win_puts(BASE_WINDOW, prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
 
@@ -601,13 +600,15 @@ process_text_window(winid window, struct WinDesc *cw)
     if (i == cw->maxrow) {
 #ifdef H2344_BROKEN
         if (cw->type == NHW_TEXT) {
-            tty_curs(BASE_WINDOW, 1, (int)g_uwpDisplay->cury + 1);
+            tty_curs(BASE_WINDOW, 1, cw->cury + cw->offy + 1);
             cl_eos();
         }
 #endif
         tty_curs(BASE_WINDOW, (int)cw->offx + 1,
-            (cw->type == NHW_TEXT) ? (int)g_uwpDisplay->rows - 1 : n);
+            (cw->type == NHW_TEXT) ? g_textGrid.GetDimensions().m_y - 1 : n);
         cl_end();
+        cw->curx = 0;
+        cw->cury = (cw->type == NHW_TEXT) ? g_textGrid.GetDimensions().m_y - 1 : n;
         dmore(cw, quitchars);
         if (morc == '\033')
             cw->flags |= WIN_CANCELLED;
