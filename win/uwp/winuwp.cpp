@@ -221,20 +221,20 @@ tty_askname()
         }
 #endif /* SELECTSAVED */
 
-    tty_putstr(BASE_WINDOW, 0, "");
+    int startLine = g_wins[BASE_WINDOW]->cury;
+
     do {
         if (++tryct > 1) {
             if (tryct > 10)
                 bail("Giving up after 10 tries.\n");
-            tty_curs(BASE_WINDOW, 1, g_wins[BASE_WINDOW]->cury - 1);
-            tty_putstr(BASE_WINDOW, 0, "Enter a name for your character...");
-            /* erase previous prompt (in case of ESC after partial response)
-             */
-            tty_curs(BASE_WINDOW, 1, g_wins[BASE_WINDOW]->cury), cl_end();
+            tty_curs(BASE_WINDOW, 1, startLine);
+            win_puts(BASE_WINDOW, "Enter a name for your character...");
         }
-        tty_putstr(BASE_WINDOW, 0, who_are_you);
-        tty_curs(BASE_WINDOW, (int) (sizeof who_are_you),
-                 g_wins[BASE_WINDOW]->cury - 1);
+
+        tty_curs(BASE_WINDOW, 1, startLine + 1), cl_end();
+
+        win_puts(BASE_WINDOW, who_are_you);
+
         ct = 0;
         while ((c = tty_nhgetch()) != '\n') {
             if (c == EOF)
@@ -251,49 +251,13 @@ tty_askname()
             if (c == '\b' || c == '\177') {
                 if (ct) {
                     ct--;
-#ifdef WIN32CON
-                    g_uwpDisplay->curx--;
-#endif
-#if defined(MICRO) || defined(WIN32CON)
-#if defined(WIN32CON) || defined(MSDOS)
-                    backsp(); /* \b is visible on NT */
-                    xputc(' ');
-                    backsp();
-#else
-                    msmsg("\b \b");
-#endif
-#else
-                    (void) xputc('\b');
-                    (void) xputc(' ');
-                    (void) xputc('\b');
-#endif
+                    win_puts(BASE_WINDOW, "\b \b");
                 }
                 continue;
             }
-#if defined(UNIX) || defined(VMS)
-            if (c != '-' && c != '@')
-                if (!(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z') &&
-                    /* reject leading digit but allow digits elsewhere
-                       (avoids ambiguity when character name gets
-                       appended to uid to construct save file name) */
-                    !(c >= '0' && c <= '9' && ct > 0))
-                    c = '_';
-#endif
             if (ct < (int) (sizeof plname) - 1) {
-#if defined(MICRO)
-#if defined(MSDOS)
-                if (iflags.grmode) {
-                    (void) xputc(c);
-                } else
-#endif
-                    msmsg("%c", c);
-#else
-                xputc(c);
-#endif
+                win_putc(BASE_WINDOW, c);
                 plname[ct++] = c;
-#ifdef WIN32CON
-                g_uwpDisplay->curx++;
-#endif
             }
         }
         plname[ct] = 0;
