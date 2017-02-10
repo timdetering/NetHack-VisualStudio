@@ -34,8 +34,8 @@ dmore(
 
     tty_curs(BASE_WINDOW, (int)g_uwpDisplay->curx + offset,
         (int)g_uwpDisplay->cury);
-    xputs(prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
-    g_uwpDisplay->curx += strlen(prompt);
+
+    win_puts(BASE_WINDOW, prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
 
     xwaitforspace(s);
 }
@@ -49,8 +49,8 @@ set_item_state(
     char ch = item->selected ? (item->count == -1L ? '+' : '#') : '-';
 
     tty_curs(window, 4, lineno);
-    (void)xputc(ch, TextColor::NoColor, (TextAttribute) (item->attr != 0 ? 1 << item->attr : 0));
-    g_uwpDisplay->curx++;
+    win_putc(window, ch, TextColor::NoColor, (TextAttribute)(item->attr != 0 ? 1 << item->attr : 0));
+
 }
 
 
@@ -272,8 +272,7 @@ process_menu_window(winid window, struct WinDesc * cw)
                     TextColor useColor = TextColor::NoColor;
                     TextAttribute useAttribute = TextAttribute::None;
 
-                    (void)xputc(' ', useColor, useAttribute);
-                    ++g_uwpDisplay->curx;
+                    win_putc(window, ' ', useColor, useAttribute);
 
                     if (!iflags.use_menu_color
                         || !get_menu_coloring(curr->str, &color, &attr))
@@ -300,12 +299,7 @@ process_menu_window(winid window, struct WinDesc * cw)
                                     */
                     for (n = 0, cp = curr->str;
                         *cp &&
-#ifndef WIN32CON
-                        (int) ++g_uwpDisplay->curx < (int)g_uwpDisplay->cols;
-#else
-                        (int)g_uwpDisplay->curx < (int)g_uwpDisplay->cols;
-                        g_uwpDisplay->curx++,
-#endif
+                        g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
                         cp++, n++) {
 
                         if (n == attr_n && (color != NO_COLOR
@@ -318,12 +312,12 @@ process_menu_window(winid window, struct WinDesc * cw)
                             && curr->identifier.a_void != 0
                             && curr->selected) {
                             if (curr->count == -1L)
-                                (void) xputc('+', useColor, useAttribute); /* all selected */
+                                win_putc(window, '+', useColor, useAttribute);
                             else
-                                (void)xputc('#', useColor, useAttribute); /* count selected */
+                                win_putc(window, '#', useColor, useAttribute);
                         }
                         else
-                            (void)xputc(*cp, useColor, useAttribute);
+                            win_putc(window, *cp, useColor, useAttribute);
                     } /* for *cp */
                 } /* if npages > 0 */
             }

@@ -229,4 +229,22 @@ E void FDECL(tty_putmsghistory, (const char *, BOOLEAN_P));
 
 void msmsg_bold(const char *, ...);
 
+/* New window output functions.
+ * These window based output functions use the window cursor position
+ * for output and update all three cursor positions (window, g_uwpDisplay
+ * and g_textGrid) appropriately.
+ */
+void win_putc(
+    winid window,
+    char ch,
+    Nethack::TextColor textColor = Nethack::TextColor::NoColor,
+    Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
+
+void win_puts(
+    winid window,
+    const char *s,
+    Nethack::TextColor textColor = Nethack::TextColor::NoColor,
+    Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
+
+
 #undef E

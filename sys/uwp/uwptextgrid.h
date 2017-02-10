@@ -116,8 +116,17 @@ namespace Nethack
         void Clear(void);
         void Scroll(int amount);
 
+        void Put(char c, TextColor color = TextColor::NoColor, TextAttribute attribute = TextAttribute::None)
+        {
+            Put(color, attribute, c);
+        }
         void Put(TextColor color, TextAttribute attribute, char c);
+
         void Put(int x, int y, const TextCell & textCell, int len = 1);
+        void Put(const TextCell & textCell, int len = 1)
+        {
+            Put(m_cursor.m_x, m_cursor.m_y, textCell, len);
+        }
 
         void Putstr(TextColor color, TextAttribute attribute, const char * text);
         void Putstr(int x, int y, TextColor color, TextAttribute attribute, const char * text);

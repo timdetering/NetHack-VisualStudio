@@ -2426,14 +2426,9 @@ cl_eos()
 void
 cl_end()
 {
-    int cx;
-
-    cx = g_textGrid.GetDimensions().m_x - g_uwpDisplay->curx;
-
-    g_textGrid.Put(g_uwpDisplay->curx, g_uwpDisplay->cury, TextCell(), cx);
-    g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
-
-    tty_curs(BASE_WINDOW, (int)g_uwpDisplay->curx + 1, (int)g_uwpDisplay->cury);
+    Int2D cursor = g_textGrid.GetCursor();
+    g_textGrid.Put(TextCell(), g_textGrid.GetDimensions().m_x - cursor.m_x);
+    g_textGrid.SetCursor(cursor);
 }
 
 void clear_screen(void)
@@ -2528,5 +2523,72 @@ backsp()
     g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
     xputc_core('\b');
 }
+
+void win_putc(
+    winid window,
+    char ch,
+    Nethack::TextColor textColor,
+    Nethack::TextAttribute textAttribute)
+{
+    struct WinDesc *cw = g_wins[window];
+
+    assert(cw != NULL);
+
+    int x = cw->curx + cw->offx;
+    int y = cw->cury + cw->offy;
+
+#ifdef CLIPPING
+    x -= clipx;
+    y -= clipy;
+#endif
+
+    g_textGrid.Put(x, y, TextCell(textColor, textAttribute, ch));
+
+    g_uwpDisplay->curx = g_textGrid.GetCursor().m_x;
+    g_uwpDisplay->cury = g_textGrid.GetCursor().m_y;
+
+    cw->curx = g_textGrid.GetCursor().m_x - cw->offx;
+    cw->cury = g_textGrid.GetCursor().m_y - cw->offy;
+
+#ifdef CLIPPING
+    cw->curx += clipx;
+    cw->cury += clipy;
+#endif
+
+}
+
+void win_puts(
+    winid window,
+    const char *s,
+    TextColor textColor,
+    TextAttribute textAttribute)
+{
+    struct WinDesc *cw = g_wins[window];
+
+    assert(cw != NULL);
+
+    int x = cw->curx + cw->offx;
+    int y = cw->cury + cw->offy;
+
+#ifdef CLIPPING
+    x -= clipx;
+    y -= clipy;
+#endif
+
+    g_textGrid.Putstr(textColor, textAttribute, s);
+
+    g_uwpDisplay->curx = g_textGrid.GetCursor().m_x;
+    g_uwpDisplay->cury = g_textGrid.GetCursor().m_y;
+
+    cw->curx = g_textGrid.GetCursor().m_x - cw->offx;
+    cw->cury = g_textGrid.GetCursor().m_y - cw->offy;
+
+#ifdef CLIPPING
+    cw->curx += clipx;
+    cw->cury += clipy;
+#endif
+}
+
+
 
 } /* extern "C" */
