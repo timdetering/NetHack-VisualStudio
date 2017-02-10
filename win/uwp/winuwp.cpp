@@ -760,9 +760,7 @@ tty_putsym(winid window, int x, int y, char ch)
     case NHW_MAP:
     case NHW_BASE:
         tty_curs(window, x, y);
-        xputc(ch);
-        g_uwpDisplay->curx++;
-        cw->curx++;
+        win_putc(window, ch);
         break;
     case NHW_MESSAGE:
     case NHW_MENU:
@@ -886,16 +884,7 @@ tty_putstr(winid window, int attr, const char *str)
         break;
     case NHW_BASE:
         tty_curs(window, cw->curx + 1, cw->cury);
-        while (*str) {
-            if ((int) g_uwpDisplay->curx >= (int) g_uwpDisplay->cols - 1) {
-                cw->curx = 0;
-                cw->cury++;
-                tty_curs(window, cw->curx + 1, cw->cury);
-            }
-            xputc(*str, TextColor::NoColor, useAttribute);
-            str++;
-            g_uwpDisplay->curx++;
-        }
+        win_puts(window, str, TextColor::NoColor, useAttribute);
         cw->curx = 0;
         cw->cury++;
         break;
@@ -903,13 +892,13 @@ tty_putstr(winid window, int attr, const char *str)
     case NHW_TEXT:
 #ifdef H2344_BROKEN
         if (cw->type == NHW_TEXT
-            && (cw->cury + cw->offy) == g_uwpDisplay->rows - 1)
+            && (cw->cury + cw->offy) == g_textGrid.GetDimensions().m_y - 1)
 #else
         if (cw->type == NHW_TEXT && cw->cury == g_uwpDisplay->rows - 1)
 #endif
         {
             /* not a menu, so save memory and output 1 page at a time */
-            cw->maxcol = g_uwpDisplay->cols; /* force full-screen mode */
+            cw->maxcol = g_textGrid.GetDimensions().m_x; /* force full-screen mode */
             tty_display_nhwindow(window, TRUE);
             for (i = 0; i < cw->maxrow; i++)
                 if (cw->data[i]) {
@@ -987,16 +976,12 @@ tty_display_file(const char *fname, boolean complain)
             ) {
             /* attempt to scroll text below map window if there's room */
             g_wins[datawin]->offy = g_wins[WIN_STATUS]->offy + 3;
-            if ((int) g_wins[datawin]->offy + 12 > (int) g_uwpDisplay->rows)
-                g_wins[datawin]->offy = 0;
+            if ((int)g_wins[datawin]->offy + 12 > g_textGrid.GetDimensions().m_y)
+                    g_wins[datawin]->offy = 0;
         }
         while (dlb_fgets(buf, BUFSZ, f)) {
             if ((cr = index(buf, '\n')) != 0)
                 *cr = 0;
-#ifdef MSDOS
-            if ((cr = index(buf, '\r')) != 0)
-                *cr = 0;
-#endif
             if (index(buf, '\t') != 0)
                 (void) tabexpand(buf);
             empty = FALSE;
@@ -1162,17 +1147,8 @@ tty_print_glyph(
         reverse_on = TRUE;
     }
 
-#if defined(USE_TILES) && defined(MSDOS)
-    if (iflags.grmode && iflags.tile_view)
-        xputg(glyph, ch, special);
-    else
-#endif
-        g_putch(ch,
-            (TextColor) color,
-            reverse_on ? TextAttribute::Inverse : TextAttribute::None); /* print the character */
+    win_putc(window, ch, (TextColor)color, reverse_on ? TextAttribute::Inverse : TextAttribute::None);
 
-    g_wins[window]->curx++; /* one character over */
-    g_uwpDisplay->curx++;   /* the real cursor moved too */
 }
 
 void
@@ -1698,15 +1674,16 @@ STATIC_OVL void
 redotoplin(
     const char *str)
 {
+    register struct WinDesc *cw = g_wins[WIN_MESSAGE];
+
+    assert(cw != NULL);
+
     int otoplin = g_uwpDisplay->toplin;
 
     home();
-    if (*str & 0x80) {
-        /* kludge for the / command, the only time we ever want a */
-        /* graphics character on the top line */
-        g_putch((int)*str++, TextColor::NoColor, TextAttribute::None);
-        g_uwpDisplay->curx++;
-    }
+
+    cw->curx = 0;
+    cw->cury = 0;
 
     putsyms(str, TextColor::NoColor, TextAttribute::None);
     cl_end();
@@ -1739,7 +1716,7 @@ remember_topl()
 
 void
 addtopl(
-const char *s)
+    const char *s)
 {
     register struct WinDesc *cw = g_wins[WIN_MESSAGE];
 
@@ -1851,35 +1828,20 @@ topl_putsym(char c, TextColor color, TextAttribute attribute)
 
     switch (c) {
     case '\b':
-        if (g_uwpDisplay->curx == 0 && g_uwpDisplay->cury > 0)
-            tty_curs(BASE_WINDOW, CO, (int)g_uwpDisplay->cury - 1);
-        backsp();
-        g_uwpDisplay->curx--;
-        cw->curx = g_uwpDisplay->curx;
+        win_putc(WIN_MESSAGE, '\b');
         return;
     case '\n':
         cl_end();
-        g_uwpDisplay->curx = 0;
-        g_uwpDisplay->cury++;
-        cw->cury = g_uwpDisplay->cury;
-#ifdef WIN32CON
-        xputc(c);
-#endif
+        win_putc(WIN_MESSAGE, '\n');
         break;
     default:
         if (g_uwpDisplay->curx == CO - 1)
             topl_putsym('\n', TextColor::NoColor, TextAttribute::None); /* 1 <= curx < CO; avoid CO */
-#ifdef WIN32CON
-        xputc(c);
-#endif
-        g_uwpDisplay->curx++;
+        win_putc(WIN_MESSAGE, c);
     }
-    cw->curx = g_uwpDisplay->curx;
+
     if (cw->curx == 0)
         cl_end();
-#ifndef WIN32CON
-    (void) xputc(c);
-#endif
 }
 
 void
