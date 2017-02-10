@@ -257,7 +257,7 @@ tty_askname()
 #if defined(MICRO) || defined(WIN32CON)
 #if defined(WIN32CON) || defined(MSDOS)
                     backsp(); /* \b is visible on NT */
-                    (void) xputc(' ', TextColor::NoColor, TextAttribute::None);
+                    xputc(' ');
                     backsp();
 #else
                     msmsg("\b \b");
@@ -288,7 +288,7 @@ tty_askname()
 #endif
                     msmsg("%c", c);
 #else
-                (void) xputc(c, TextColor::NoColor, TextAttribute::None);
+                xputc(c);
 #endif
                 plname[ct++] = c;
 #ifdef WIN32CON
@@ -796,7 +796,7 @@ tty_putsym(winid window, int x, int y, char ch)
     case NHW_MAP:
     case NHW_BASE:
         tty_curs(window, x, y);
-        (void) xputc(ch, TextColor::NoColor, TextAttribute::None);
+        xputc(ch);
         g_uwpDisplay->curx++;
         cw->curx++;
         break;
@@ -913,7 +913,7 @@ tty_putstr(winid window, int attr, const char *str)
     case NHW_MAP:
         tty_curs(window, cw->curx + 1, cw->cury);
         while (*str && (int) g_uwpDisplay->curx < (int) g_uwpDisplay->cols - 1) {
-            (void) xputc(*str, TextColor::NoColor, useAttribute);
+            xputc(*str, TextColor::NoColor, useAttribute);
             str++;
             g_uwpDisplay->curx++;
         }
@@ -928,7 +928,7 @@ tty_putstr(winid window, int attr, const char *str)
                 cw->cury++;
                 tty_curs(window, cw->curx + 1, cw->cury);
             }
-            (void) xputc(*str, TextColor::NoColor, useAttribute);
+            xputc(*str, TextColor::NoColor, useAttribute);
             str++;
             g_uwpDisplay->curx++;
         }
@@ -1899,14 +1899,14 @@ topl_putsym(char c, TextColor color, TextAttribute attribute)
         g_uwpDisplay->cury++;
         cw->cury = g_uwpDisplay->cury;
 #ifdef WIN32CON
-        (void) xputc(c, TextColor::NoColor, TextAttribute::None);
+        xputc(c);
 #endif
         break;
     default:
         if (g_uwpDisplay->curx == CO - 1)
             topl_putsym('\n', TextColor::NoColor, TextAttribute::None); /* 1 <= curx < CO; avoid CO */
 #ifdef WIN32CON
-        (void) xputc(c, TextColor::NoColor, TextAttribute::None);
+        xputc(c);
 #endif
         g_uwpDisplay->curx++;
     }
@@ -2374,7 +2374,7 @@ VA_DECL(const char *, fmt)
     VA_INIT(fmt, const char *);
     Vsprintf(buf, fmt, VA_ARGS);
 
-    xputs(buf, TextColor::NoColor, TextAttribute::None);
+    xputs(buf);
 
     if (g_uwpDisplay)
         curs(BASE_WINDOW, g_textGrid.GetCursor().m_x + 1, g_textGrid.GetCursor().m_y);
@@ -2452,7 +2452,10 @@ g_putch(int in_ch, TextColor textColor, TextAttribute textAttribute)
 }
 
 void
-xputc_core(char ch, TextColor textColor, TextAttribute textAttribute)
+xputc_core(
+    char ch,
+    TextColor textColor = TextColor::NoColor, 
+    TextAttribute textAttribute = TextAttribute::None)
 {
     Int2D cursor = g_textGrid.GetCursor();
 
@@ -2484,7 +2487,10 @@ xputc_core(char ch, TextColor textColor, TextAttribute textAttribute)
     }
 }
 
-void xputc(char ch, TextColor textColor, TextAttribute textAttribute)
+void xputc(
+    char ch, 
+    TextColor textColor, 
+    TextAttribute textAttribute)
 {
     g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
 
@@ -2494,11 +2500,14 @@ void xputc(char ch, TextColor textColor, TextAttribute textAttribute)
 
 void uwp_puts(const char *s)
 {
-    xputs(s, TextColor::NoColor, TextAttribute::None);
+    xputs(s);
 }
 
 void
-xputs(const char *s, TextColor textColor, TextAttribute textAttribute)
+xputs(
+    const char *s, 
+    TextColor textColor, 
+    TextAttribute textAttribute)
 {
     int k;
     int slen = strlen(s);
@@ -2517,7 +2526,7 @@ void
 backsp()
 {
     g_textGrid.SetCursor(Int2D(g_uwpDisplay->curx, g_uwpDisplay->cury));
-    xputc_core('\b', TextColor::NoColor, TextAttribute::None);
+    xputc_core('\b');
 }
 
 } /* extern "C" */

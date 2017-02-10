@@ -595,7 +595,7 @@ process_text_window(winid window, struct WinDesc *cw)
         if (cw->data[i]) {
             attr = cw->data[i][0] - 1;
             if (cw->offx) {
-                (void)xputc(' ', TextColor::NoColor, TextAttribute::None);
+                xputc(' ');
                 ++g_uwpDisplay->curx;
             }
             TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
@@ -607,7 +607,7 @@ process_text_window(winid window, struct WinDesc *cw)
                 *cp && (int)g_uwpDisplay->curx < (int)g_uwpDisplay->cols;
             cp++, g_uwpDisplay->curx++)
 #endif
-                (void)xputc(*cp, TextColor::NoColor, useAttribute);
+                xputc(*cp, TextColor::NoColor, useAttribute);
         }
     }
     if (i == cw->maxrow) {

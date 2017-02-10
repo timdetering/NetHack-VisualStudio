@@ -116,9 +116,15 @@ E void NDECL(tty_shutdown);
  * actually would be expanded.	So here, we have to make an exception. */
 E void FDECL(xputc, (int));
 #else
-void xputc(char ch, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
+void xputc(
+    char ch,
+    Nethack::TextColor textColor = Nethack::TextColor::NoColor,
+    Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
 #endif
-void xputs(const char *s, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
+void xputs(
+    const char *s,
+    Nethack::TextColor textColor = Nethack::TextColor::NoColor,
+    Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
 #if defined(SCREEN_VGA) || defined(SCREEN_8514)
 E void FDECL(xputg, (int, int, unsigned));
 #endif
