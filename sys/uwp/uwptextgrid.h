@@ -120,9 +120,17 @@ namespace Nethack
         {
             Put(color, attribute, c);
         }
+
         void Put(TextColor color, TextAttribute attribute, char c);
+        void Put(int x, int y, char c, TextColor color, TextAttribute attribute)
+        {
+            m_cursor.m_x = x;
+            m_cursor.m_y = y;
+            Put(color, attribute, c);
+        }
 
         void Put(int x, int y, const TextCell & textCell, int len = 1);
+
         void Put(const TextCell & textCell, int len = 1)
         {
             Put(m_cursor.m_x, m_cursor.m_y, textCell, len);

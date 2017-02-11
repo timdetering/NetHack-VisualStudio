@@ -58,8 +58,6 @@ struct DisplayDesc {
     short rows, cols; /* width and height of tty display */
     int toplin;        /* flag for topl stuff */
     int rawprint;      /* number of raw_printed lines since synch */
-    int inread;        /* non-zero if reading a character */
-    int intr;          /* non-zero if inread was interrupted */
     winid lastwin;     /* last window used for I/O */
     char dismiss_more; /* extra character accepted at --More-- */
 };

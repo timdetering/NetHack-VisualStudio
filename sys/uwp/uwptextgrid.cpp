@@ -748,7 +748,7 @@ namespace Nethack
         bool takeLock = !m_cellsLock.HasExclusive();
         if (takeLock) m_cellsLock.AcquireExclusive();
 
-        TextCell textCell(color, attribute, ' ');
+        TextCell textCell(color, attribute, c);
         int offset = (m_cursor.m_y * m_gridDimensions.m_x) + m_cursor.m_x;
 
         assert(offset < m_cellCount);
@@ -758,19 +758,16 @@ namespace Nethack
             if (offset > 0)
             {
                 offset--;
-                textCell.m_char = ' ';
-                m_cells[offset] = textCell;
             }
         }
         else
         {
-            textCell.m_char = c;
-            m_cells[offset++] = textCell;
-        }
+            m_cells[offset++] = TextCell(color, attribute, c);
 
-        if (offset == m_cellCount)
-        {
-            offset--;
+            if (offset == m_cellCount)
+            {
+                offset--;
+            }
         }
 
         m_cursor.m_y = offset / m_gridDimensions.m_x;

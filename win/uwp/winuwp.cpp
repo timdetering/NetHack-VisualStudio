@@ -182,8 +182,6 @@ tty_init_nhwindows(int *, char **)
     g_uwpDisplay->toplin = 0;
     g_uwpDisplay->rows = hgt;
     g_uwpDisplay->cols = wid;
-    g_uwpDisplay->inread = 0;
-    g_uwpDisplay->intr = 0;
     g_uwpDisplay->dismiss_more = 0;
 
     /* set up the default windows */
@@ -992,15 +990,6 @@ tty_wait_synch()
             g_uwpDisplay->rawprint = 0;
     } else {
         tty_display_nhwindow(WIN_MAP, FALSE);
-        
-        if (g_uwpDisplay->inread > program_state.gameover) {
-            /* this can only happen if we were reading and got interrupted */
-            g_uwpDisplay->toplin = 3;
-            /* do this twice; 1st time gets the Quit? message again */
-            (void) tty_doprev_message();
-            (void) tty_doprev_message();
-            g_uwpDisplay->intr++;
-        }
     }
 }
 
@@ -1270,7 +1259,6 @@ hooked_tty_getlin(
         more();
     cw->flags &= ~WIN_STOP;
     g_uwpDisplay->toplin = 3; /* special prompt state */
-    g_uwpDisplay->inread++;
     pline("%s ", query);
     *obufp = 0;
     for (;;) {
@@ -1292,16 +1280,9 @@ hooked_tty_getlin(
                 break;
             }
         }
-        if (g_uwpDisplay->intr) {
-            g_uwpDisplay->intr--;
-            *bufp = 0;
-        }
         if (c == '\020') { /* ctrl-P */
             if (iflags.prevmsg_window != 's') {
-                int sav = g_uwpDisplay->inread;
-                g_uwpDisplay->inread = 0;
                 (void)tty_doprev_message();
-                g_uwpDisplay->inread = sav;
                 tty_clear_nhwindow(WIN_MESSAGE);
                 cw->maxcol = cw->maxrow;
                 addtopl(query);
@@ -1409,7 +1390,6 @@ hooked_tty_getlin(
             tty_nhbell();
     }
     g_uwpDisplay->toplin = 2; /* nonempty, no --More-- required */
-    g_uwpDisplay->inread--;
     clear_nhwindow(WIN_MESSAGE); /* clean up after ourselves */
 }
 
@@ -1539,8 +1519,7 @@ tty_doprev_message()
 
     winid prevmsg_win;
     int i;
-    if ((iflags.prevmsg_window != 's')
-        && !g_uwpDisplay->inread) {           /* not single */
+    if (iflags.prevmsg_window != 's') {           /* not single */
         if (iflags.prevmsg_window == 'f') { /* full */
             prevmsg_win = create_nhwindow(NHW_MENU);
             putstr(prevmsg_win, 0, "Message History");
@@ -1854,7 +1833,6 @@ tty_yn_function(
         more();
     cw->flags &= ~WIN_STOP;
     g_uwpDisplay->toplin = 3; /* special prompt state */
-    g_uwpDisplay->inread++;
     if (resp) {
         char *rb, respbuf[QBUFSZ];
 
@@ -1895,10 +1873,7 @@ tty_yn_function(
             q = lowc(q);
         if (q == '\020') { /* ctrl-P */
             if (iflags.prevmsg_window != 's') {
-                int sav = g_uwpDisplay->inread;
-                g_uwpDisplay->inread = 0;
                 (void)tty_doprev_message();
-                g_uwpDisplay->inread = sav;
                 tty_clear_nhwindow(WIN_MESSAGE);
                 cw->maxcol = cw->maxrow;
                 addtopl(prompt);
@@ -2001,10 +1976,7 @@ tty_yn_function(
         addtopl(rtmp);
     }
 clean_up:
-    g_uwpDisplay->inread--;
     g_uwpDisplay->toplin = 2;
-    if (g_uwpDisplay->intr)
-        g_uwpDisplay->intr--;
     if (g_wins[WIN_MESSAGE]->cury)
         tty_clear_nhwindow(WIN_MESSAGE);
 
@@ -2386,7 +2358,7 @@ void win_putc(
     int x = cw->curx + cw->offx;
     int y = cw->cury + cw->offy;
 
-    g_textGrid.Put(x, y, TextCell(textColor, textAttribute, ch));
+    g_textGrid.Put(x, y, ch, textColor, textAttribute);
 
     cw->curx = g_textGrid.GetCursor().m_x - cw->offx;
     cw->cury = g_textGrid.GetCursor().m_y - cw->offy;
