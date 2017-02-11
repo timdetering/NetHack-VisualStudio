@@ -215,18 +215,6 @@ void append_slash(char * name)
     }
 }
 
-/* has_color() is used by mapglyph.c to determine whether tty graphics support color text */
-#if 0
-int
-has_color(int color)
-{
-    if ((color >= 0) && (color < (int) TextColor::Count))
-        return 1;
-
-    return 0;
-}
-#endif
-
 #define MAX_OVERRIDES 256
 static unsigned char key_overrides[MAX_OVERRIDES];
 

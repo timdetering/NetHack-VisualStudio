@@ -86,6 +86,7 @@ dosave()
     } else {
         clear_nhwindow(WIN_MESSAGE);
         pline("Saving...");
+        display_nhwindow(WIN_MESSAGE, TRUE);
 #if defined(UNIX) || defined(VMS) || defined(__EMX__)
         program_state.done_hup = 0;
 #endif

@@ -856,6 +856,10 @@ tty_message_menu(
     int how,
     const char *mesg)
 {
+    struct WinDesc *cw = g_wins[WIN_MESSAGE];
+
+    assert(cw != NULL);
+
     /* "menu" without selection; use ordinary pline, no more() */
     if (how == PICK_NONE) {
         pline("%s", mesg);
@@ -868,10 +872,13 @@ tty_message_menu(
     response to a prompt, we'll assume that the display is up to date */
     tty_putstr(WIN_MESSAGE, 0, mesg);
     /* if `mesg' didn't wrap (triggering --More--), force --More-- now */
-    if (g_uwpDisplay->toplin == 1) {
+
+    if (cw->mustBeSeen) {
         more();
-        g_uwpDisplay->toplin = 1; /* more resets this */
-        tty_clear_nhwindow(WIN_MESSAGE);
+        assert(!cw->mustBeSeen);
+
+        if (cw->mustBeErased)
+            tty_clear_nhwindow(WIN_MESSAGE);
     }
     /* normally <ESC> means skip further messages, but in this case
     it means cancel the current prompt; any other messages should

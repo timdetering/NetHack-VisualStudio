@@ -179,7 +179,6 @@ tty_init_nhwindows(int *, char **)
 
     /* set up tty descriptor */
     g_uwpDisplay = (struct DisplayDesc *) alloc(sizeof(struct DisplayDesc));
-    g_uwpDisplay->toplin = 0;
     g_uwpDisplay->rows = hgt;
     g_uwpDisplay->cols = wid;
     g_uwpDisplay->dismiss_more = 0;
@@ -347,6 +346,9 @@ tty_create_nhwindow(int type)
     newwin->mlist = (tty_menu_item *) 0;
     newwin->plist = (tty_menu_item **) 0;
     newwin->npages = newwin->plist_size = newwin->nitems = newwin->how = 0;
+    newwin->mustBeSeen = false;
+    newwin->mustBeErased = false;
+    newwin->nextIsPrompt = false;
     switch (type) {
     case NHW_BASE:
         /* base window, used for absolute movement on the screen */
@@ -514,12 +516,12 @@ tty_clear_nhwindow(winid window)
 
     switch (cw->type) {
     case NHW_MESSAGE:
-        if (g_uwpDisplay->toplin) {
+        if (cw->mustBeErased) {
             home();
             cl_end();
             if (cw->cury)
                 docorner(1, cw->cury + 1);
-            g_uwpDisplay->toplin = 0;
+            cw->mustBeErased = false;
         }
         break;
     case NHW_STATUS:
@@ -554,27 +556,42 @@ tty_display_nhwindow(winid window, boolean blocking)
 
     if (window == WIN_ERR || (cw = g_wins[window]) == (struct WinDesc *) 0)
         panic(winpanicstr, window);
+
     if (cw->flags & WIN_CANCELLED)
         return;
+
     g_uwpDisplay->lastwin = window;
     g_uwpDisplay->rawprint = 0;
 
+    if (WIN_MESSAGE == WIN_ERR || g_wins[WIN_MESSAGE] == NULL)
+        panic(winpanicstr, WIN_MESSAGE);
+
+    struct WinDesc *msgWin = g_wins[WIN_MESSAGE];
+
     switch (cw->type) {
     case NHW_MESSAGE:
-        if (g_uwpDisplay->toplin == 1) {
+        if (cw->mustBeSeen) {
             more();
-            g_uwpDisplay->toplin = 1; /* more resets this */
-            tty_clear_nhwindow(window);
-        } else
-            g_uwpDisplay->toplin = 0;
+            assert(!cw->mustBeSeen);
+
+            if (cw->mustBeErased)
+                tty_clear_nhwindow(window);
+        }
+
         cw->curx = cw->cury = 0;
         if (!cw->active)
             iflags.window_inited = TRUE;
         break;
     case NHW_MAP:
         if (blocking) {
-            if (!g_uwpDisplay->toplin)
-                g_uwpDisplay->toplin = 1;
+
+            /* blocking map (i.e. ask user to acknowledge it as seen) */
+            if (!msgWin->mustBeSeen)
+            {
+                msgWin->mustBeSeen = true;
+                msgWin->mustBeErased = true;
+            }
+
             tty_display_nhwindow(WIN_MESSAGE, TRUE);
             return;
         }
@@ -600,10 +617,13 @@ tty_display_nhwindow(winid window, boolean blocking)
 #endif
         if (cw->offx < 0)
             cw->offx = 0;
+
         if (cw->type == NHW_MENU)
             cw->offy = 0;
-        if (g_uwpDisplay->toplin == 1)
+
+        if (msgWin->mustBeSeen)
             tty_display_nhwindow(WIN_MESSAGE, TRUE);
+
 #ifdef H2344_BROKEN
         if (cw->maxrow >= (int) g_uwpDisplay->rows
             || !iflags.menu_overlay)
@@ -618,8 +638,13 @@ tty_display_nhwindow(winid window, boolean blocking)
                 cl_eos();
             } else
                 clear_screen();
-            g_uwpDisplay->toplin = 0;
+
+            /* we just cleared the message area so we no longer need to erase */
+            msgWin->mustBeErased = false;
         } else {
+            /* TODO(bhouse) why do we have this complexity ... why not just
+             * always clear?
+             */
             if (WIN_MESSAGE != WIN_ERR)
                 tty_clear_nhwindow(WIN_MESSAGE);
         }
@@ -643,7 +668,7 @@ tty_dismiss_nhwindow(winid window)
 
     switch (cw->type) {
     case NHW_MESSAGE:
-        if (g_uwpDisplay->toplin)
+        if (cw->mustBeSeen)
             tty_display_nhwindow(WIN_MESSAGE, TRUE);
     /*FALLTHRU*/
     case NHW_STATUS:
@@ -1169,20 +1194,28 @@ tty_nhgetch()
 {
     int i;
 
+    WinDesc *msgWin = NULL;
+    
+    if (WIN_MESSAGE != WIN_ERR)
+        msgWin = g_wins[WIN_MESSAGE];
+
     /* Note: if raw_print() and wait_synch() get called to report terminal
      * initialization problems, then g_wins[] and g_uwpDisplay might not be
      * available yet.  Such problems will probably be fatal before we get
      * here, but validate those pointers just in case...
      */
-    if (WIN_MESSAGE != WIN_ERR && g_wins[WIN_MESSAGE])
-        g_wins[WIN_MESSAGE]->flags &= ~WIN_STOP;
+    if (msgWin != NULL)
+        msgWin->flags &= ~WIN_STOP;
+
     i = tgetch();
     if (!i)
         i = '\033'; /* map NUL to ESC since nethack doesn't expect NUL */
     else if (i == EOF)
         i = '\033'; /* same for EOF */
-    if (g_uwpDisplay && g_uwpDisplay->toplin == 1)
-        g_uwpDisplay->toplin = 2;
+
+    if (msgWin != NULL)
+        msgWin->mustBeSeen = false;
+
     return i;
 }
 
@@ -1197,18 +1230,27 @@ tty_nh_poskey(int *x, int *y, int *mod)
 {
 #if defined(WIN32CON)
     int i;
+
+    WinDesc *msgWin = NULL;
+
+    if (WIN_MESSAGE != WIN_ERR)
+        msgWin = g_wins[WIN_MESSAGE];
+
     /* Note: if raw_print() and wait_synch() get called to report terminal
      * initialization problems, then g_wins[] and g_uwpDisplay might not be
      * available yet.  Such problems will probably be fatal before we get
      * here, but validate those pointers just in case...
      */
-    if (WIN_MESSAGE != WIN_ERR && g_wins[WIN_MESSAGE])
-        g_wins[WIN_MESSAGE]->flags &= ~WIN_STOP;
+    if (msgWin != NULL)
+        msgWin->flags &= ~WIN_STOP;
+
     i = ntposkey(x, y, mod);
     if (!i && mod && (*mod == 0 || *mod == EOF))
         i = '\033'; /* map NUL or EOF to ESC, nethack doesn't expect either */
-    if (g_uwpDisplay && g_uwpDisplay->toplin == 1)
-        g_uwpDisplay->toplin = 2;
+
+    if (msgWin != NULL)
+        msgWin->mustBeSeen = false;
+
     return i;
 #else /* !WIN32CON */
     nhUse(x);
@@ -1255,11 +1297,13 @@ hooked_tty_getlin(
     struct WinDesc *cw = g_wins[WIN_MESSAGE];
     boolean doprev = 0;
 
-    if (g_uwpDisplay->toplin == 1 && !(cw->flags & WIN_STOP))
+    if (cw->mustBeSeen && !(cw->flags & WIN_STOP))
         more();
     cw->flags &= ~WIN_STOP;
-    g_uwpDisplay->toplin = 3; /* special prompt state */
+
+    cw->nextIsPrompt = true;
     pline("%s ", query);
+    assert(!cw->nextIsPrompt);
     *obufp = 0;
     for (;;) {
         Strcat(strcat(strcpy(toplines, query), " "), obufp);
@@ -1389,7 +1433,7 @@ hooked_tty_getlin(
         else
             tty_nhbell();
     }
-    g_uwpDisplay->toplin = 2; /* nonempty, no --More-- required */
+    cw->mustBeSeen = false;
     clear_nhwindow(WIN_MESSAGE); /* clean up after ourselves */
 }
 
@@ -1626,8 +1670,6 @@ redotoplin(
 
     assert(cw != NULL);
 
-    int otoplin = g_uwpDisplay->toplin;
-
     home();
 
     cw->curx = 0;
@@ -1635,9 +1677,14 @@ redotoplin(
 
     putsyms(str, TextColor::NoColor, TextAttribute::None);
     cl_end();
-    g_uwpDisplay->toplin = 1;
-    if (cw->cury != 0 && otoplin != 3)
+    cw->mustBeSeen = true;
+    cw->mustBeErased = true;
+
+    if (cw->nextIsPrompt) {
+        cw->nextIsPrompt = false;
+    } else if (cw->cury != 0)
         more();
+
 }
 
 STATIC_OVL void
@@ -1671,7 +1718,8 @@ addtopl(
     tty_curs(BASE_WINDOW, cw->curx + 1, cw->cury);
     putsyms(s, TextColor::NoColor, TextAttribute::None);
     cl_end();
-    g_uwpDisplay->toplin = 1;
+    cw->mustBeSeen = true;
+    cw->mustBeErased = true;
 }
 
 void
@@ -1679,7 +1727,9 @@ more()
 {
     struct WinDesc *cw = g_wins[WIN_MESSAGE];
 
-    if (g_uwpDisplay->toplin) {
+    assert(!cw->nextIsPrompt);
+
+    if (cw->mustBeErased) {
         tty_curs(BASE_WINDOW, cw->curx + 1, cw->cury);
         if (cw->curx >= CO - 8)
             topl_putsym('\n', TextColor::NoColor, TextAttribute::None);
@@ -1692,19 +1742,26 @@ more()
     if (morc == '\033')
         cw->flags |= WIN_STOP;
 
-    if (g_uwpDisplay->toplin && cw->cury) {
+    /* if the message is more then one line then erase the entire message */
+    if (cw->mustBeErased && cw->cury) {
         docorner(1, cw->cury + 1);
         cw->curx = cw->cury = 0;
         home();
+        cw->mustBeErased = false;
     }
+    /* if the single line message was cancelled then erase the message */
     else if (morc == '\033') {
         cw->curx = cw->cury = 0;
         home();
         cl_end();
+        cw->mustBeErased = false;
     }
-    g_uwpDisplay->toplin = 0;
+    /* otherwise we have left the message visible */
+
+    cw->mustBeSeen = false;
 }
 
+/* add to the top line */
 void
 update_topl(
     const char *bp)
@@ -1717,7 +1774,7 @@ update_topl(
     /* If there is room on the line, print message on same line */
     /* But messages like "You die..." deserve their own line */
     n0 = strlen(bp);
-    if ((g_uwpDisplay->toplin == 1 || (cw->flags & WIN_STOP)) && cw->cury == 0
+    if ((cw->mustBeSeen || (cw->flags & WIN_STOP)) && cw->cury == 0
         && n0 + (int)strlen(toplines) + 3 < CO - 8 /* room for --More-- */
         && (notdied = strncmp(bp, "You die", 7)) != 0) {
         Strcat(toplines, "  ");
@@ -1728,7 +1785,7 @@ update_topl(
         return;
     }
     else if (!(cw->flags & WIN_STOP)) {
-        if (g_uwpDisplay->toplin == 1) {
+        if (cw->mustBeSeen) {
             more();
         }
         else if (cw->cury) { /* for when flags.toplin == 2 && cury > 1 */
@@ -1798,7 +1855,6 @@ STATIC_OVL void
 removetopl(
     int n)
 {
-    /* assume addtopl() has been done, so g_uwpDisplay->toplin is already set */
     while (n-- > 0)
         putsyms("\b \b", TextColor::NoColor, TextAttribute::None);
 }
@@ -1829,10 +1885,11 @@ tty_yn_function(
     boolean doprev = 0;
     char prompt[BUFSZ];
 
-    if (g_uwpDisplay->toplin == 1 && !(cw->flags & WIN_STOP))
+    if (cw->mustBeSeen && !(cw->flags & WIN_STOP))
         more();
+
     cw->flags &= ~WIN_STOP;
-    g_uwpDisplay->toplin = 3; /* special prompt state */
+    cw->nextIsPrompt = true;
     if (resp) {
         char *rb, respbuf[QBUFSZ];
 
@@ -1858,11 +1915,14 @@ tty_yn_function(
         trailing space is wanted here in case of reprompt */
         Strcat(prompt, " ");
         pline("%s", prompt);
+        assert(!cw->nextIsPrompt);
     }
     else {
         /* no restriction on allowed response, so always preserve case */
         /* preserve_case = TRUE; -- moot since we're jumping to the end */
         pline("%s ", query);
+        assert(!cw->nextIsPrompt);
+
         q = readchar();
         goto clean_up;
     }
@@ -1976,7 +2036,8 @@ tty_yn_function(
         addtopl(rtmp);
     }
 clean_up:
-    g_uwpDisplay->toplin = 2;
+    cw->mustBeSeen = false;
+
     if (g_wins[WIN_MESSAGE]->cury)
         tty_clear_nhwindow(WIN_MESSAGE);
 
@@ -2304,42 +2365,6 @@ void clear_screen(void)
     home();
 }
 
-void
-xputc_core(
-    char ch,
-    TextColor textColor = TextColor::NoColor, 
-    TextAttribute textAttribute = TextAttribute::None)
-{
-    Int2D cursor = g_textGrid.GetCursor();
-
-    switch (ch) {
-    case '\n':
-        if (cursor.m_y < (g_textGrid.GetDimensions().m_y - 1))
-            cursor.m_y++;
-        /* fall through */
-    case '\r':
-        cursor.m_x = 0;
-
-        g_textGrid.SetCursor(cursor);
-        break;
-
-    case '\b':
-        /* should we perhaps support blanking out character at current position? */
-        if (cursor.m_x > 0) {
-            cursor.m_x--;
-
-            g_textGrid.SetCursor(cursor);
-        }
-        break;
-
-    default:
-
-        TextCell textCell(textColor, textAttribute, ch);
-
-        g_textGrid.Put(cursor.m_x, cursor.m_y, textCell, 1);
-    }
-}
-
 void uwp_puts(const char *s)
 {
     win_puts(BASE_WINDOW, s);
@@ -2383,7 +2408,5 @@ void win_puts(
     cw->curx = g_textGrid.GetCursor().m_x - cw->offx;
     cw->cury = g_textGrid.GetCursor().m_y - cw->offy;
 }
-
-
 
 } /* extern "C" */

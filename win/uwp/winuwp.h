@@ -46,6 +46,9 @@ struct WinDesc {
     long nitems;           /* total number of items (MENU) */
     short how;             /* menu mode - pick 1 or N (MENU) */
     char menu_ch;          /* menu char (MENU) */
+    bool mustBeSeen;       /* message must be seen (MESSAGE) */
+    bool mustBeErased;     /* message must be erased (MESSAGE) */
+    bool nextIsPrompt;     /* next output message is a prompt (MESSAGE) */
 };
 
 /* window flags */
@@ -56,7 +59,6 @@ struct WinDesc {
 /* descriptor for tty-based displays -- all the per-display data */
 struct DisplayDesc {
     short rows, cols; /* width and height of tty display */
-    int toplin;        /* flag for topl stuff */
     int rawprint;      /* number of raw_printed lines since synch */
     winid lastwin;     /* last window used for I/O */
     char dismiss_more; /* extra character accepted at --More-- */
@@ -127,13 +129,6 @@ E void FDECL(xputg, (int, int, unsigned));
 E void NDECL(cl_end);
 E void NDECL(clear_screen);
 E void NDECL(home);
-#if 0
-E void NDECL(revbeg);
-E void NDECL(boldbeg);
-E void NDECL(blinkbeg);
-E void NDECL(dimbeg);
-E void NDECL(m_end);
-#endif
 E void NDECL(backsp);
 E void NDECL(graph_on);
 E void NDECL(graph_off);
@@ -241,6 +236,5 @@ void win_puts(
     const char *s,
     Nethack::TextColor textColor = Nethack::TextColor::NoColor,
     Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
-
 
 #undef E
