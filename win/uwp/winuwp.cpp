@@ -182,7 +182,8 @@ tty_init_nhwindows(int *, char **)
     g_uwpDisplay->toplin = 0;
     g_uwpDisplay->rows = hgt;
     g_uwpDisplay->cols = wid;
-    g_uwpDisplay->inmore = g_uwpDisplay->inread = g_uwpDisplay->intr = 0;
+    g_uwpDisplay->inread = 0;
+    g_uwpDisplay->intr = 0;
     g_uwpDisplay->dismiss_more = 0;
 
     /* set up the default windows */
@@ -991,9 +992,8 @@ tty_wait_synch()
             g_uwpDisplay->rawprint = 0;
     } else {
         tty_display_nhwindow(WIN_MAP, FALSE);
-        if (g_uwpDisplay->inmore) {
-            addtopl("--More--");
-        } else if (g_uwpDisplay->inread > program_state.gameover) {
+        
+        if (g_uwpDisplay->inread > program_state.gameover) {
             /* this can only happen if we were reading and got interrupted */
             g_uwpDisplay->toplin = 3;
             /* do this twice; 1st time gets the Quit? message again */
@@ -1700,10 +1700,6 @@ more()
 {
     struct WinDesc *cw = g_wins[WIN_MESSAGE];
 
-    /* avoid recursion -- only happens from interrupts */
-    if (g_uwpDisplay->inmore++)
-        return;
-
     if (g_uwpDisplay->toplin) {
         tty_curs(BASE_WINDOW, cw->curx + 1, cw->cury);
         if (cw->curx >= CO - 8)
@@ -1728,7 +1724,6 @@ more()
         cl_end();
     }
     g_uwpDisplay->toplin = 0;
-    g_uwpDisplay->inmore = 0;
 }
 
 void
