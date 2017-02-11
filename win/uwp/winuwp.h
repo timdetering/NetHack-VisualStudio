@@ -10,8 +10,7 @@
 
 #define E extern
 
-#ifndef WINDOW_STRUCTS
-#define WINDOW_STRUCTS
+extern "C" {
 
 /* menu structure */
 typedef struct tty_mi {
@@ -64,8 +63,6 @@ struct DisplayDesc {
     char dismiss_more; /* extra character accepted at --More-- */
 };
 
-#endif /* WINDOW_STRUCTS */
-
 #define MAXWIN 20 /* maximum number of windows, cop-out */
 
 /* tty dependent window types */
@@ -82,7 +79,6 @@ struct DisplayDesc {
 extern struct window_procs uwp_procs;
 
 /* port specific variable declarations */
-extern winid BASE_WINDOW;
 
 extern struct WinDesc *g_wins[MAXWIN];
 
@@ -236,5 +232,7 @@ void win_puts(
     const char *s,
     Nethack::TextColor textColor = Nethack::TextColor::NoColor,
     Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
+
+}
 
 #undef E

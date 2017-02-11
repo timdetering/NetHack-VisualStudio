@@ -90,7 +90,6 @@ struct window_procs uwp_procs = {
 };
 
 static int maxwin = 0; /* number of windows in use */
-winid BASE_WINDOW;
 struct WinDesc *g_wins[MAXWIN];
 struct DisplayDesc *g_uwpDisplay; /* the tty display descriptor */
 
@@ -184,7 +183,9 @@ tty_init_nhwindows(int *, char **)
     g_uwpDisplay->dismiss_more = 0;
 
     /* set up the default windows */
-    BASE_WINDOW = tty_create_nhwindow(NHW_BASE);
+    winid base_window = tty_create_nhwindow(NHW_BASE);
+    assert(base_window == BASE_WINDOW);
+
     g_wins[BASE_WINDOW]->active = 1;
 
     g_uwpDisplay->lastwin = WIN_ERR;
@@ -318,7 +319,6 @@ tty_exit_nhwindows(const char *str)
         free_window_info(g_wins[BASE_WINDOW], TRUE);
         free((genericptr_t) g_wins[BASE_WINDOW]);
         g_wins[BASE_WINDOW] = (struct WinDesc *) 0;
-        BASE_WINDOW = WIN_ERR;
     }
     free((genericptr_t) g_uwpDisplay);
     g_uwpDisplay = (struct DisplayDesc *) 0;
@@ -351,6 +351,9 @@ tty_create_nhwindow(int type)
     newwin->nextIsPrompt = false;
     switch (type) {
     case NHW_BASE:
+
+        if (g_wins[BASE_WINDOW] != NULL) return WIN_ERR;
+
         /* base window, used for absolute movement on the screen */
         newwin->offx = newwin->offy = 0;
         newwin->rows = g_uwpDisplay->rows;
@@ -563,10 +566,10 @@ tty_display_nhwindow(winid window, boolean blocking)
     g_uwpDisplay->lastwin = window;
     g_uwpDisplay->rawprint = 0;
 
-    if (WIN_MESSAGE == WIN_ERR || g_wins[WIN_MESSAGE] == NULL)
-        panic(winpanicstr, WIN_MESSAGE);
+    struct WinDesc *msgWin = NULL;
 
-    struct WinDesc *msgWin = g_wins[WIN_MESSAGE];
+    if (WIN_MESSAGE != WIN_ERR);
+        msgWin = g_wins[WIN_MESSAGE];
 
     switch (cw->type) {
     case NHW_MESSAGE:
@@ -586,7 +589,7 @@ tty_display_nhwindow(winid window, boolean blocking)
         if (blocking) {
 
             /* blocking map (i.e. ask user to acknowledge it as seen) */
-            if (!msgWin->mustBeSeen)
+            if (msgWin != NULL && !msgWin->mustBeSeen)
             {
                 msgWin->mustBeSeen = true;
                 msgWin->mustBeErased = true;
@@ -621,7 +624,7 @@ tty_display_nhwindow(winid window, boolean blocking)
         if (cw->type == NHW_MENU)
             cw->offy = 0;
 
-        if (msgWin->mustBeSeen)
+        if (msgWin != NULL && msgWin->mustBeSeen)
             tty_display_nhwindow(WIN_MESSAGE, TRUE);
 
 #ifdef H2344_BROKEN
@@ -640,7 +643,8 @@ tty_display_nhwindow(winid window, boolean blocking)
                 clear_screen();
 
             /* we just cleared the message area so we no longer need to erase */
-            msgWin->mustBeErased = false;
+            if (msgWin != NULL)
+                msgWin->mustBeErased = false;
         } else {
             /* TODO(bhouse) why do we have this complexity ... why not just
              * always clear?

@@ -97,7 +97,6 @@
 
 extern"C" {
     #include "hack.h"
-    #include "winuwp.h"
     #include "spell.h"
 
     #include "date.h"
@@ -115,5 +114,7 @@ extern"C" {
     void uwp_init_options();
     void uwp_warn(const char * s, ...);
     void uwp_error(const char * s, ...);
+
+    static const winid BASE_WINDOW = 0;
 
 }
