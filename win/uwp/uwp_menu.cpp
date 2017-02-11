@@ -856,7 +856,7 @@ tty_message_menu(
     int how,
     const char *mesg)
 {
-    struct WinDesc *cw = g_wins[WIN_MESSAGE];
+    MessageWindow *cw = (MessageWindow *) g_wins[WIN_MESSAGE];
 
     assert(cw != NULL);
 

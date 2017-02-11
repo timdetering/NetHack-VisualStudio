@@ -330,14 +330,22 @@ tty_exit_nhwindows(const char *str)
 winid
 tty_create_nhwindow(int type)
 {
-    struct WinDesc *newwin;
     int i;
     int newid;
 
     if (maxwin == MAXWIN)
         return WIN_ERR;
 
-    newwin = (struct WinDesc *) alloc(sizeof(struct WinDesc));
+    WinDesc *newwin = NULL;
+    MessageWindow * msgWin = NULL;
+
+    if (type == NHW_MESSAGE) {
+        msgWin = (MessageWindow *)alloc(sizeof(MessageWindow));
+        newwin = msgWin;
+    } else {
+        newwin = (WinDesc *)alloc(sizeof(WinDesc));
+    }
+
     newwin->type = type;
     newwin->flags = 0;
     newwin->active = FALSE;
@@ -346,9 +354,6 @@ tty_create_nhwindow(int type)
     newwin->mlist = (tty_menu_item *) 0;
     newwin->plist = (tty_menu_item **) 0;
     newwin->npages = newwin->plist_size = newwin->nitems = newwin->how = 0;
-    newwin->mustBeSeen = false;
-    newwin->mustBeErased = false;
-    newwin->nextIsPrompt = false;
     switch (type) {
     case NHW_BASE:
 
@@ -361,6 +366,11 @@ tty_create_nhwindow(int type)
         newwin->maxrow = newwin->maxcol = 0;
         break;
     case NHW_MESSAGE:
+
+        msgWin->mustBeSeen = false;
+        msgWin->mustBeErased = false;
+        msgWin->nextIsPrompt = false;
+
         /* message window, 1 line long, very wide, top of screen */
         newwin->offx = newwin->offy = 0;
         /* sanity check */
@@ -519,14 +529,17 @@ tty_clear_nhwindow(winid window)
 
     switch (cw->type) {
     case NHW_MESSAGE:
-        if (cw->mustBeErased) {
+    {
+        MessageWindow * msgWin = (MessageWindow *)cw;
+        if (msgWin->mustBeErased) {
             home();
             cl_end();
             if (cw->cury)
                 docorner(1, cw->cury + 1);
-            cw->mustBeErased = false;
+            msgWin->mustBeErased = false;
         }
         break;
+    }
     case NHW_STATUS:
         tty_curs(window, 1, 0);
         cl_end();
@@ -566,18 +579,21 @@ tty_display_nhwindow(winid window, boolean blocking)
     g_uwpDisplay->lastwin = window;
     g_uwpDisplay->rawprint = 0;
 
-    struct WinDesc *msgWin = NULL;
+    MessageWindow *msgWin = NULL;
 
-    if (WIN_MESSAGE != WIN_ERR);
-        msgWin = g_wins[WIN_MESSAGE];
+    if (WIN_MESSAGE != WIN_ERR)
+        msgWin = (MessageWindow *) g_wins[WIN_MESSAGE];
 
     switch (cw->type) {
     case NHW_MESSAGE:
-        if (cw->mustBeSeen) {
-            more();
-            assert(!cw->mustBeSeen);
+    {
+        assert(cw == (WinDesc *)msgWin);
 
-            if (cw->mustBeErased)
+        if (msgWin->mustBeSeen) {
+            more();
+            assert(!msgWin->mustBeSeen);
+
+            if (msgWin->mustBeErased)
                 tty_clear_nhwindow(window);
         }
 
@@ -585,6 +601,7 @@ tty_display_nhwindow(winid window, boolean blocking)
         if (!cw->active)
             iflags.window_inited = TRUE;
         break;
+    }
     case NHW_MAP:
         if (blocking) {
 
@@ -672,8 +689,11 @@ tty_dismiss_nhwindow(winid window)
 
     switch (cw->type) {
     case NHW_MESSAGE:
-        if (cw->mustBeSeen)
+    {
+        MessageWindow * msgWin = (MessageWindow *)cw;
+        if (msgWin->mustBeSeen)
             tty_display_nhwindow(WIN_MESSAGE, TRUE);
+    }
     /*FALLTHRU*/
     case NHW_STATUS:
     case NHW_BASE:
@@ -1198,10 +1218,10 @@ tty_nhgetch()
 {
     int i;
 
-    WinDesc *msgWin = NULL;
+    MessageWindow *msgWin = NULL;
     
     if (WIN_MESSAGE != WIN_ERR)
-        msgWin = g_wins[WIN_MESSAGE];
+        msgWin = (MessageWindow *) g_wins[WIN_MESSAGE];
 
     /* Note: if raw_print() and wait_synch() get called to report terminal
      * initialization problems, then g_wins[] and g_uwpDisplay might not be
@@ -1235,10 +1255,10 @@ tty_nh_poskey(int *x, int *y, int *mod)
 #if defined(WIN32CON)
     int i;
 
-    WinDesc *msgWin = NULL;
+    MessageWindow *msgWin = NULL;
 
     if (WIN_MESSAGE != WIN_ERR)
-        msgWin = g_wins[WIN_MESSAGE];
+        msgWin = (MessageWindow *) g_wins[WIN_MESSAGE];
 
     /* Note: if raw_print() and wait_synch() get called to report terminal
      * initialization problems, then g_wins[] and g_uwpDisplay might not be
@@ -1298,7 +1318,7 @@ hooked_tty_getlin(
 {
     register char *obufp = bufp;
     register int c;
-    struct WinDesc *cw = g_wins[WIN_MESSAGE];
+    MessageWindow *cw = (MessageWindow *) g_wins[WIN_MESSAGE];
     boolean doprev = 0;
 
     if (cw->mustBeSeen && !(cw->flags & WIN_STOP))
@@ -1563,7 +1583,7 @@ STATIC_DCL void FDECL(free_msghistory_snapshot, (BOOLEAN_P));
 int
 tty_doprev_message()
 {
-    register struct WinDesc *cw = g_wins[WIN_MESSAGE];
+    MessageWindow *cw = (MessageWindow *) g_wins[WIN_MESSAGE];
 
     winid prevmsg_win;
     int i;
@@ -1670,7 +1690,7 @@ STATIC_OVL void
 redotoplin(
     const char *str)
 {
-    register struct WinDesc *cw = g_wins[WIN_MESSAGE];
+    MessageWindow *cw = (MessageWindow *) g_wins[WIN_MESSAGE];
 
     assert(cw != NULL);
 
@@ -1694,7 +1714,7 @@ redotoplin(
 STATIC_OVL void
 remember_topl()
 {
-    register struct WinDesc *cw = g_wins[WIN_MESSAGE];
+    MessageWindow *cw = (MessageWindow *) g_wins[WIN_MESSAGE];
     int idx = cw->maxrow;
     unsigned len = strlen(toplines) + 1;
 
@@ -1717,7 +1737,7 @@ void
 addtopl(
     const char *s)
 {
-    register struct WinDesc *cw = g_wins[WIN_MESSAGE];
+    MessageWindow *cw = (MessageWindow *)g_wins[WIN_MESSAGE];
 
     tty_curs(BASE_WINDOW, cw->curx + 1, cw->cury);
     putsyms(s, TextColor::NoColor, TextAttribute::None);
@@ -1729,7 +1749,7 @@ addtopl(
 void
 more()
 {
-    struct WinDesc *cw = g_wins[WIN_MESSAGE];
+    MessageWindow *cw = (MessageWindow *)g_wins[WIN_MESSAGE];
 
     assert(!cw->nextIsPrompt);
 
@@ -1773,7 +1793,7 @@ update_topl(
     register char *tl, *otl;
     register int n0;
     int notdied = 1;
-    struct WinDesc *cw = g_wins[WIN_MESSAGE];
+    MessageWindow *cw = (MessageWindow *)g_wins[WIN_MESSAGE];
 
     /* If there is room on the line, print message on same line */
     /* But messages like "You die..." deserve their own line */
@@ -1825,7 +1845,7 @@ STATIC_OVL
 void
 topl_putsym(char c, TextColor color, TextAttribute attribute)
 {
-    register struct WinDesc *cw = g_wins[WIN_MESSAGE];
+    MessageWindow *cw = (MessageWindow *)g_wins[WIN_MESSAGE];
 
     if (cw == (struct WinDesc *) 0)
         panic("Putsym window MESSAGE nonexistant");
@@ -1885,7 +1905,7 @@ tty_yn_function(
     register char q;
     char rtmp[40];
     boolean digit_ok, allow_num, preserve_case = FALSE;
-    struct WinDesc *cw = g_wins[WIN_MESSAGE];
+    MessageWindow *cw = (MessageWindow *)g_wins[WIN_MESSAGE];
     boolean doprev = 0;
     char prompt[BUFSZ];
 
@@ -2042,7 +2062,7 @@ tty_yn_function(
 clean_up:
     cw->mustBeSeen = false;
 
-    if (g_wins[WIN_MESSAGE]->cury)
+    if (cw->cury)
         tty_clear_nhwindow(WIN_MESSAGE);
 
     return q;
@@ -2059,12 +2079,12 @@ msghistory_snapshot(
 {
     char *mesg;
     int i, inidx, outidx;
-    struct WinDesc *cw;
+    MessageWindow *cw;
 
     /* paranoia (too early or too late panic save attempt?) */
     if (WIN_MESSAGE == WIN_ERR || !g_wins[WIN_MESSAGE])
         return;
-    cw = g_wins[WIN_MESSAGE];
+    cw = (MessageWindow *) g_wins[WIN_MESSAGE];
 
     /* flush toplines[], moving most recent message to history */
     remember_topl();
