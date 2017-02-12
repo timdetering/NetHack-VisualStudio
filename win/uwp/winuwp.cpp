@@ -371,8 +371,10 @@ tty_create_nhwindow(int type)
             iflags.msg_history = 20;
         else if (iflags.msg_history > 60)
             iflags.msg_history = 60;
-        msgWin->msgmaxrow = baseWin->rows = iflags.msg_history;
-        msgWin->msgmaxcol = baseWin->cols = 0;
+        baseWin->rows = iflags.msg_history;
+        baseWin->cols = 0;
+        msgWin->tailmsg = 0;
+        msgWin->curmsg = 0;
         break;
 
     case NHW_STATUS:
@@ -424,16 +426,14 @@ tty_create_nhwindow(int type)
 
     if (msgWin != NULL) {
         baseWin->data =
-            (char **)alloc(sizeof(char *) * (unsigned)msgWin->msgmaxrow);
+            (char **)alloc(sizeof(char *) * (unsigned)msgWin->rows);
         baseWin->datlen =
-            (short *)alloc(sizeof(short) * (unsigned)msgWin->msgmaxrow);
+            (short *)alloc(sizeof(short) * (unsigned)msgWin->rows);
 
-        for (i = 0; i < msgWin->msgmaxrow; i++) {
-            baseWin->data[i] = (char *)0;
+        for (i = 0; i < msgWin->rows; i++) {
+            baseWin->data[i] = NULL;
             baseWin->datlen[i] = 0;
         }
-
-        msgWin->msgmaxrow = 0;
     } else {
         if (genWin->maxrow) {
             baseWin->data =
@@ -529,28 +529,27 @@ free_window_info(
     GenericWindow * genWin = ToGenericWindow(baseWin);
 
     if (msgWin != NULL) {
-        if (baseWin->data) {
-            if (baseWin->rows > msgWin->msgmaxrow)
-                msgWin->msgmaxrow = baseWin->rows; /* topl data */
+        assert(baseWin->data != NULL);
+        assert(baseWin->datlen != NULL);
 
-            for (i = 0; i < msgWin->msgmaxrow; i++)
-                if (baseWin->data[i]) {
-                    free((genericptr_t)baseWin->data[i]);
-                    baseWin->data[i] = (char *)0;
-                    if (baseWin->datlen)
-                        baseWin->datlen[i] = 0;
-                }
-
-            if (free_data) {
-                free((genericptr_t)baseWin->data);
-                baseWin->data = (char **)0;
-                if (baseWin->datlen)
-                    free((genericptr_t)baseWin->datlen);
-                baseWin->datlen = (short *)0;
-                baseWin->rows = 0;
+        for (i = 0; i < msgWin->rows; i++) {
+            if (baseWin->data[i]) {
+                free((genericptr_t)baseWin->data[i]);
+                baseWin->data[i] = NULL;
+                baseWin->datlen[i] = 0;
             }
         }
-        msgWin->msgmaxrow = msgWin->msgmaxcol = 0;
+
+        if (free_data) {
+            free((genericptr_t)baseWin->data);
+            baseWin->data = (char **)0;
+            free((genericptr_t)baseWin->datlen);
+            baseWin->datlen = (short *)0;
+            baseWin->rows = 0;
+        }
+
+        msgWin->tailmsg = 0;
+        msgWin->curmsg = 0;
     } else {
         if (baseWin->data) {
             for (i = 0; i < genWin->maxrow; i++)
@@ -1344,14 +1343,16 @@ hooked_tty_getlin(
     assert(!msgWin->nextIsPrompt);
     *obufp = 0;
     for (;;) {
-        Strcat(strcat(strcpy(toplines, query), " "), obufp);
+        strncpy(toplines, query, sizeof(toplines) - 1);
+        strncat(toplines, " ", sizeof(toplines) - strlen(toplines) - 1);
+        strncat(toplines, obufp, sizeof(toplines) - strlen(toplines) - 1);
         c = pgetchar();
         if (c == '\033' || c == EOF) {
             if (c == '\033' && obufp[0] != '\0') {
                 obufp[0] = '\0';
                 bufp = obufp;
                 tty_clear_nhwindow(WIN_MESSAGE);
-                msgWin->msgmaxcol = msgWin->msgmaxrow;
+                msgWin->curmsg = msgWin->tailmsg;
                 addtopl(query);
                 addtopl(" ");
                 addtopl(obufp);
@@ -1366,7 +1367,7 @@ hooked_tty_getlin(
             if (iflags.prevmsg_window != 's') {
                 (void)tty_doprev_message();
                 tty_clear_nhwindow(WIN_MESSAGE);
-                msgWin->msgmaxcol = msgWin->msgmaxrow;
+                msgWin->curmsg = msgWin->tailmsg;
                 addtopl(query);
                 addtopl(" ");
                 *bufp = 0;
@@ -1382,7 +1383,7 @@ hooked_tty_getlin(
         }
         else if (doprev && iflags.prevmsg_window == 's') {
             tty_clear_nhwindow(WIN_MESSAGE);
-            msgWin->msgmaxcol = msgWin->msgmaxrow;
+            msgWin->curmsg = msgWin->tailmsg;
             doprev = 0;
             addtopl(query);
             addtopl(" ");
@@ -1607,13 +1608,13 @@ tty_doprev_message()
             prevmsg_win = create_nhwindow(NHW_MENU);
             putstr(prevmsg_win, 0, "Message History");
             putstr(prevmsg_win, 0, "");
-            msgWin->msgmaxcol = msgWin->msgmaxrow;
-            i = msgWin->msgmaxcol;
+            msgWin->curmsg = msgWin->tailmsg;
+            i = msgWin->curmsg;
             do {
                 if (baseWin->data[i] && strcmp(baseWin->data[i], ""))
                     putstr(prevmsg_win, 0, baseWin->data[i]);
                 i = (i + 1) % baseWin->rows;
-            } while (i != msgWin->msgmaxcol);
+            } while (i != msgWin->curmsg);
             putstr(prevmsg_win, 0, toplines);
             display_nhwindow(prevmsg_win, TRUE);
             destroy_nhwindow(prevmsg_win);
@@ -1621,35 +1622,35 @@ tty_doprev_message()
         else if (iflags.prevmsg_window == 'c') { /* combination */
             do {
                 morc = 0;
-                if (msgWin->msgmaxcol == msgWin->msgmaxrow) {
+                if (msgWin->curmsg == msgWin->tailmsg) {
                     g_uwpDisplay->dismiss_more = C('p'); /* ^P ok at --More-- */
                     redotoplin(toplines);
-                    msgWin->msgmaxcol--;
-                    if (msgWin->msgmaxcol < 0)
-                        msgWin->msgmaxcol = baseWin->rows - 1;
-                    if (!baseWin->data[msgWin->msgmaxcol])
-                        msgWin->msgmaxcol = msgWin->msgmaxrow;
+                    msgWin->curmsg--;
+                    if (msgWin->curmsg < 0)
+                        msgWin->curmsg = baseWin->rows - 1;
+                    if (!baseWin->data[msgWin->curmsg])
+                        msgWin->curmsg = msgWin->tailmsg;
                 }
-                else if (msgWin->msgmaxcol == (msgWin->msgmaxrow - 1)) {
+                else if (msgWin->curmsg == (msgWin->tailmsg - 1)) {
                     g_uwpDisplay->dismiss_more = C('p'); /* ^P ok at --More-- */
-                    redotoplin(baseWin->data[msgWin->msgmaxcol]);
-                    msgWin->msgmaxcol--;
-                    if (msgWin->msgmaxcol < 0)
-                        msgWin->msgmaxcol = baseWin->rows - 1;
-                    if (!baseWin->data[msgWin->msgmaxcol])
-                        msgWin->msgmaxcol = msgWin->msgmaxrow;
+                    redotoplin(baseWin->data[msgWin->curmsg]);
+                    msgWin->curmsg--;
+                    if (msgWin->curmsg < 0)
+                        msgWin->curmsg = baseWin->rows - 1;
+                    if (!baseWin->data[msgWin->curmsg])
+                        msgWin->curmsg = msgWin->tailmsg;
                 }
                 else {
                     prevmsg_win = create_nhwindow(NHW_MENU);
                     putstr(prevmsg_win, 0, "Message History");
                     putstr(prevmsg_win, 0, "");
-                    msgWin->msgmaxcol = msgWin->msgmaxrow;
-                    i = msgWin->msgmaxcol;
+                    msgWin->curmsg = msgWin->tailmsg;
+                    i = msgWin->curmsg;
                     do {
                         if (baseWin->data[i] && strcmp(baseWin->data[i], ""))
                             putstr(prevmsg_win, 0, baseWin->data[i]);
                         i = (i + 1) % baseWin->rows;
-                    } while (i != msgWin->msgmaxcol);
+                    } while (i != msgWin->curmsg);
                     putstr(prevmsg_win, 0, toplines);
                     display_nhwindow(prevmsg_win, TRUE);
                     destroy_nhwindow(prevmsg_win);
@@ -1664,21 +1665,21 @@ tty_doprev_message()
             putstr(prevmsg_win, 0, "Message History");
             putstr(prevmsg_win, 0, "");
             putstr(prevmsg_win, 0, toplines);
-            msgWin->msgmaxcol = msgWin->msgmaxrow - 1;
-            if (msgWin->msgmaxcol < 0)
-                msgWin->msgmaxcol = baseWin->rows - 1;
+            msgWin->curmsg = msgWin->tailmsg - 1;
+            if (msgWin->curmsg < 0)
+                msgWin->curmsg = baseWin->rows - 1;
             do {
-                putstr(prevmsg_win, 0, baseWin->data[msgWin->msgmaxcol]);
-                msgWin->msgmaxcol--;
-                if (msgWin->msgmaxcol < 0)
-                    msgWin->msgmaxcol = baseWin->rows - 1;
-                if (!baseWin->data[msgWin->msgmaxcol])
-                    msgWin->msgmaxcol = msgWin->msgmaxrow;
-            } while (msgWin->msgmaxcol != msgWin->msgmaxrow);
+                putstr(prevmsg_win, 0, baseWin->data[msgWin->curmsg]);
+                msgWin->curmsg--;
+                if (msgWin->curmsg < 0)
+                    msgWin->curmsg = baseWin->rows - 1;
+                if (!baseWin->data[msgWin->curmsg])
+                    msgWin->curmsg = msgWin->tailmsg;
+            } while (msgWin->curmsg != msgWin->tailmsg);
 
             display_nhwindow(prevmsg_win, TRUE);
             destroy_nhwindow(prevmsg_win);
-            msgWin->msgmaxcol = msgWin->msgmaxrow;
+            msgWin->curmsg = msgWin->tailmsg;
             g_uwpDisplay->dismiss_more = 0;
         }
     }
@@ -1686,15 +1687,15 @@ tty_doprev_message()
         g_uwpDisplay->dismiss_more = C('p'); /* <ctrl/P> allowed at --More-- */
         do {
             morc = 0;
-            if (msgWin->msgmaxcol == msgWin->msgmaxrow)
+            if (msgWin->curmsg == msgWin->tailmsg)
                 redotoplin(toplines);
-            else if (baseWin->data[msgWin->msgmaxcol])
-                redotoplin(baseWin->data[msgWin->msgmaxcol]);
-            msgWin->msgmaxcol--;
-            if (msgWin->msgmaxcol < 0)
-                msgWin->msgmaxcol = baseWin->rows - 1;
-            if (!baseWin->data[msgWin->msgmaxcol])
-                msgWin->msgmaxcol = msgWin->msgmaxrow;
+            else if (baseWin->data[msgWin->curmsg])
+                redotoplin(baseWin->data[msgWin->curmsg]);
+            msgWin->curmsg--;
+            if (msgWin->curmsg < 0)
+                msgWin->curmsg = baseWin->rows - 1;
+            if (!baseWin->data[msgWin->curmsg])
+                msgWin->curmsg = msgWin->tailmsg;
         } while (morc == C('p'));
         g_uwpDisplay->dismiss_more = 0;
     }
@@ -1733,7 +1734,7 @@ remember_topl()
     MessageWindow *msgWin = GetMessageWindow();
     BaseWindow *baseWin = msgWin;
 
-    int idx = msgWin->msgmaxrow;
+    int idx = msgWin->tailmsg;
     unsigned len = strlen(toplines) + 1;
 
     if ((baseWin->flags & WIN_LOCKHISTORY) || !*toplines)
@@ -1748,7 +1749,8 @@ remember_topl()
     }
     Strcpy(baseWin->data[idx], toplines);
     *toplines = '\0';
-    msgWin->msgmaxcol = msgWin->msgmaxrow = (idx + 1) % baseWin->rows;
+    msgWin->tailmsg = (idx + 1) % baseWin->rows;
+    msgWin->curmsg = msgWin->tailmsg;
 }
 
 void
@@ -1822,8 +1824,8 @@ update_topl(
     if ((msgWin->mustBeSeen || (baseWin->flags & WIN_STOP)) && baseWin->cury == 0
         && n0 + (int)strlen(toplines) + 3 < CO - 8 /* room for --More-- */
         && (notdied = strncmp(bp, "You die", 7)) != 0) {
-        Strcat(toplines, "  ");
-        Strcat(toplines, bp);
+        strncat(toplines, "  ", sizeof(toplines) - strlen(toplines) - 1);
+        strncat(toplines, bp, sizeof(toplines) - strlen(toplines) - 1);
         baseWin->curx += 2;
         if (!(baseWin->flags & WIN_STOP))
             addtopl(bp);
@@ -1982,7 +1984,7 @@ tty_yn_function(
             if (iflags.prevmsg_window != 's') {
                 (void)tty_doprev_message();
                 tty_clear_nhwindow(WIN_MESSAGE);
-                msgWin->msgmaxcol = msgWin->msgmaxrow;
+                msgWin->curmsg = msgWin->tailmsg;
                 addtopl(prompt);
             }
             else {
@@ -1999,7 +2001,7 @@ tty_yn_function(
             character which has just been read is an acceptable
             response; if so, skip the reprompt and use it. */
             tty_clear_nhwindow(WIN_MESSAGE);
-            msgWin->msgmaxcol = msgWin->msgmaxrow;
+            msgWin->curmsg = msgWin->tailmsg;
             doprev = 0;
             addtopl(prompt);
             q = '\0'; /* force another loop iteration */
@@ -2119,7 +2121,7 @@ msghistory_snapshot(
 
     snapshot_mesgs = (char **)alloc((baseWin->rows + 1) * sizeof(char *));
     outidx = 0;
-    inidx = msgWin->msgmaxrow;
+    inidx = msgWin->tailmsg;
     for (i = 0; i < baseWin->rows; ++i) {
         snapshot_mesgs[i] = (char *)0;
         mesg = baseWin->data[inidx];
@@ -2137,8 +2139,10 @@ msghistory_snapshot(
     snapshot_mesgs[baseWin->rows] = (char *)0; /* sentinel */
 
                                           /* for a destructive snapshot, history is now completely empty */
-    if (purge)
-        msgWin->msgmaxcol = msgWin->msgmaxrow = 0;
+    if (purge) {
+        msgWin->curmsg = 0;
+        msgWin->tailmsg = 0;
+    }
 }
 
 /* release memory allocated to message history snapshot */
@@ -2236,13 +2240,13 @@ tty_putmsghistory(
         /* move most recent message to history, make this become most recent
         */
         remember_topl();
-        Strcpy(toplines, msg);
+        strncpy(toplines, msg, sizeof(toplines) - 1);
     }
     else if (snapshot_mesgs) {
         /* done putting arbitrary messages in; put the snapshot ones back */
         for (idx = 0; snapshot_mesgs[idx]; ++idx) {
             remember_topl();
-            Strcpy(toplines, snapshot_mesgs[idx]);
+            strncpy(toplines, snapshot_mesgs[idx], sizeof(toplines) - 1);
         }
         /* now release the snapshot */
         free_msghistory_snapshot(TRUE);

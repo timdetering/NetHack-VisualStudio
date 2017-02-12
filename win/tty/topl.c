@@ -231,8 +231,8 @@ register const char *bp;
     if ((ttyDisplay->toplin == 1 || (cw->flags & WIN_STOP)) && cw->cury == 0
         && n0 + (int) strlen(toplines) + 3 < CO - 8 /* room for --More-- */
         && (notdied = strncmp(bp, "You die", 7)) != 0) {
-        Strcat(toplines, "  ");
-        Strcat(toplines, bp);
+        strncat(toplines, "  ", sizeof(toplines) - strlen(toplines) - 1);
+        strncat(toplines, bp, sizeof(toplines) - strlen(toplines) - 1);
         cw->curx += 2;
         if (!(cw->flags & WIN_STOP))
             addtopl(bp);
@@ -651,12 +651,12 @@ boolean restoring_msghist;
         /* move most recent message to history, make this become most recent
          */
         remember_topl();
-        Strcpy(toplines, msg);
+        (void) strncpy(toplines, msg, sizeof(toplines) - 1);
     } else if (snapshot_mesgs) {
         /* done putting arbitrary messages in; put the snapshot ones back */
         for (idx = 0; snapshot_mesgs[idx]; ++idx) {
             remember_topl();
-            Strcpy(toplines, snapshot_mesgs[idx]);
+            (void) strncpy(toplines, snapshot_mesgs[idx], sizeof(toplines) - 1);
         }
         /* now release the snapshot */
         free_msghistory_snapshot(TRUE);

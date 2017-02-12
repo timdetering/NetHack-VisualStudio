@@ -48,13 +48,11 @@ struct GenericWindow : public BaseWindow
 };
 
 struct MessageWindow : public BaseWindow {
-    long msgmaxrow, msgmaxcol; /* the maximum size used -- for MENU wins */
-                         /* maxcol is also used by WIN_MESSAGE for */
-                         /* tracking the ^P command */
-
-    bool mustBeSeen;       /* message must be seen (MESSAGE) */
-    bool mustBeErased;     /* message must be erased (MESSAGE) */
-    bool nextIsPrompt;     /* next output message is a prompt (MESSAGE) */
+    long tailmsg;          /* tail of message queue */
+    long curmsg;           /* current msg shown */
+    bool mustBeSeen;       /* message must be seen */
+    bool mustBeErased;     /* message must be erased */
+    bool nextIsPrompt;     /* next output message is a prompt */
 };
 
 extern "C" {

@@ -58,7 +58,9 @@ getlin_hook_proc hook;
     *obufp = 0;
     for (;;) {
         (void) fflush(stdout);
-        Strcat(strcat(strcpy(toplines, query), " "), obufp);
+        (void) strncpy(toplines, query, sizeof(toplines) - 1);
+        (void) strncat(toplines, " ", sizeof(toplines) - strlen(toplines) - 1);
+        (void) strncat(toplines, obufp, sizeof(toplines) - strlen(toplines) - 1);
         c = pgetchar();
         if (c == '\033' || c == EOF) {
             if (c == '\033' && obufp[0] != '\0') {

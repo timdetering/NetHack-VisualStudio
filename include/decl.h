@@ -342,7 +342,7 @@ E NEARDATA winid WIN_MAP, WIN_INVEN;
 #define Sprintf1(buf, cstr) Sprintf(buf, "%s", cstr)
 #define panic1(cstr) panic("%s", cstr)
 
-E char toplines[];
+E char toplines[TBUFSZ];
 #ifndef TCAP_H
 E struct tc_gbl_data {   /* also declared in tcap.h */
     char *tc_AS, *tc_AE; /* graphics start and end (tty font swapping) */
