@@ -367,10 +367,10 @@ tty_create_nhwindow(int type)
         /* message window, 1 line long, very wide, top of screen */
         baseWin->offx = baseWin->offy = 0;
         /* sanity check */
-        if (iflags.msg_history < 20)
-            iflags.msg_history = 20;
-        else if (iflags.msg_history > 60)
-            iflags.msg_history = 60;
+        if (iflags.msg_history < kMinMessageHistoryLength)
+            iflags.msg_history = kMinMessageHistoryLength;
+        else if (iflags.msg_history > kMaxMessageHistoryLength)
+            iflags.msg_history = kMaxMessageHistoryLength;
         baseWin->rows = iflags.msg_history;
         baseWin->cols = 0;
         msgWin->tailmsg = 0;
@@ -425,38 +425,32 @@ tty_create_nhwindow(int type)
     }
 
     if (msgWin != NULL) {
-        baseWin->data =
-            (char **)alloc(sizeof(char *) * (unsigned)msgWin->rows);
-        baseWin->datlen =
-            (short *)alloc(sizeof(short) * (unsigned)msgWin->rows);
-
         for (i = 0; i < msgWin->rows; i++) {
-            baseWin->data[i] = NULL;
-            baseWin->datlen[i] = 0;
+            msgWin->msgdata[i][0] = 0;
         }
     } else {
         if (genWin->maxrow) {
-            baseWin->data =
+            genWin->data =
                 (char **)alloc(sizeof(char *) * (unsigned)genWin->maxrow);
-            baseWin->datlen =
+            genWin->datlen =
                 (short *)alloc(sizeof(short) * (unsigned)genWin->maxrow);
             if (genWin->maxcol) {
                 /* WIN_STATUS */
                 for (i = 0; i < genWin->maxrow; i++) {
-                    baseWin->data[i] = (char *)alloc((unsigned)genWin->maxcol);
-                    baseWin->datlen[i] = (short)genWin->maxcol;
+                    genWin->data[i] = (char *)alloc((unsigned)genWin->maxcol);
+                    genWin->datlen[i] = (short)genWin->maxcol;
                 }
             }
             else {
                 for (i = 0; i < genWin->maxrow; i++) {
-                    baseWin->data[i] = (char *)0;
-                    baseWin->datlen[i] = 0;
+                    genWin->data[i] = (char *)0;
+                    genWin->datlen[i] = 0;
                 }
             }
         }
         else {
-            baseWin->data = (char **)0;
-            baseWin->datlen = (short *)0;
+            genWin->data = (char **)0;
+            genWin->datlen = (short *)0;
         }
     }
 
@@ -529,42 +523,27 @@ free_window_info(
     GenericWindow * genWin = ToGenericWindow(baseWin);
 
     if (msgWin != NULL) {
-        assert(baseWin->data != NULL);
-        assert(baseWin->datlen != NULL);
-
         for (i = 0; i < msgWin->rows; i++) {
-            if (baseWin->data[i]) {
-                free((genericptr_t)baseWin->data[i]);
-                baseWin->data[i] = NULL;
-                baseWin->datlen[i] = 0;
-            }
-        }
-
-        if (free_data) {
-            free((genericptr_t)baseWin->data);
-            baseWin->data = (char **)0;
-            free((genericptr_t)baseWin->datlen);
-            baseWin->datlen = (short *)0;
-            baseWin->rows = 0;
+            msgWin->msgdata[i][0] = 0;
         }
 
         msgWin->tailmsg = 0;
         msgWin->curmsg = 0;
     } else {
-        if (baseWin->data) {
+        if (genWin->data) {
             for (i = 0; i < genWin->maxrow; i++)
-                if (baseWin->data[i]) {
-                    free((genericptr_t)baseWin->data[i]);
-                    baseWin->data[i] = (char *)0;
-                    if (baseWin->datlen)
-                        baseWin->datlen[i] = 0;
+                if (genWin->data[i]) {
+                    free((genericptr_t)genWin->data[i]);
+                    genWin->data[i] = (char *)0;
+                    if (genWin->datlen)
+                        genWin->datlen[i] = 0;
                 }
             if (free_data) {
-                free((genericptr_t)baseWin->data);
-                baseWin->data = (char **)0;
-                if (baseWin->datlen)
-                    free((genericptr_t)baseWin->datlen);
-                baseWin->datlen = (short *)0;
+                free((genericptr_t)genWin->data);
+                genWin->data = (char **)0;
+                if (genWin->datlen)
+                    free((genericptr_t)genWin->datlen);
+                genWin->datlen = (short *)0;
                 baseWin->rows = 0;
             }
         }
@@ -736,7 +715,7 @@ tty_display_nhwindow(winid window, boolean blocking)
                 tty_clear_nhwindow(WIN_MESSAGE);
         }
 
-        if (baseWin->data || !genWin->maxrow)
+        if (genWin->data || !genWin->maxrow)
             process_text_window(window, genWin);
         else
             process_menu_window(window, genWin);
@@ -918,7 +897,7 @@ tty_putstr(winid window, int attr, const char *str)
         break;
 
     case NHW_STATUS:
-        ob = &baseWin->data[baseWin->cury][j = baseWin->curx];
+        ob = &genWin->data[baseWin->cury][j = baseWin->curx];
         if (context.botlx)
             *ob = 0;
         if (!baseWin->cury && (int) strlen(str) >= CO) {
@@ -943,8 +922,8 @@ tty_putstr(winid window, int attr, const char *str)
                 ob++;
         }
 
-        (void) strncpy(&baseWin->data[baseWin->cury][j], str, baseWin->cols - j - 1);
-        baseWin->data[baseWin->cury][baseWin->cols - 1] = '\0'; /* null terminate */
+        (void) strncpy(&genWin->data[baseWin->cury][j], str, baseWin->cols - j - 1);
+        genWin->data[baseWin->cury][baseWin->cols - 1] = '\0'; /* null terminate */
 #ifdef STATUS_VIA_WINDOWPORT
         if (!iflags.use_status_hilites) {
 #endif
@@ -979,9 +958,9 @@ tty_putstr(winid window, int attr, const char *str)
             genWin->maxcol = g_textGrid.GetDimensions().m_x; /* force full-screen mode */
             tty_display_nhwindow(window, TRUE);
             for (i = 0; i < genWin->maxrow; i++)
-                if (baseWin->data[i]) {
-                    free((genericptr_t) baseWin->data[i]);
-                    baseWin->data[i] = 0;
+                if (genWin->data[i]) {
+                    free((genericptr_t)genWin->data[i]);
+                    genWin->data[i] = 0;
                 }
             genWin->maxrow = baseWin->cury = 0;
         }
@@ -992,18 +971,18 @@ tty_putstr(winid window, int attr, const char *str)
             baseWin->rows += 12;
             tmp = (char **) alloc(sizeof(char *) * (unsigned) baseWin->rows);
             for (i = 0; i < genWin->maxrow; i++)
-                tmp[i] = baseWin->data[i];
-            if (baseWin->data)
-                free((genericptr_t) baseWin->data);
-            baseWin->data = tmp;
+                tmp[i] = genWin->data[i];
+            if (genWin->data)
+                free((genericptr_t)genWin->data);
+            genWin->data = tmp;
 
             for (i = genWin->maxrow; i < baseWin->rows; i++)
-                baseWin->data[i] = 0;
+                genWin->data[i] = 0;
         }
-        if (baseWin->data[baseWin->cury])
-            free((genericptr_t) baseWin->data[baseWin->cury]);
+        if (genWin->data[baseWin->cury])
+            free((genericptr_t)genWin->data[baseWin->cury]);
         n0 = (long) strlen(str) + 1L;
-        ob = baseWin->data[baseWin->cury] = (char *) alloc((unsigned) n0 + 1);
+        ob = genWin->data[baseWin->cury] = (char *) alloc((unsigned) n0 + 1);
         *ob++ = (char) (attr + 1); /* avoid nuls, for convenience */
         Strcpy(ob, str);
 
@@ -1016,7 +995,7 @@ tty_putstr(winid window, int attr, const char *str)
             for (i = CO - 1; i && str[i] != ' ' && str[i] != '\n';)
                 i--;
             if (i) {
-                baseWin->data[baseWin->cury - 1][++i] = '\0';
+                genWin->data[baseWin->cury - 1][++i] = '\0';
                 tty_putstr(window, attr, &str[i]);
             }
         }
@@ -1593,7 +1572,6 @@ static void topl_putsym(char c, TextColor color, TextAttribute attribute);
 STATIC_DCL void NDECL(remember_topl);
 STATIC_DCL void FDECL(removetopl, (int));
 STATIC_DCL void FDECL(msghistory_snapshot, (BOOLEAN_P));
-STATIC_DCL void FDECL(free_msghistory_snapshot, (BOOLEAN_P));
 
 int
 tty_doprev_message()
@@ -1611,8 +1589,8 @@ tty_doprev_message()
             msgWin->curmsg = msgWin->tailmsg;
             i = msgWin->curmsg;
             do {
-                if (baseWin->data[i] && strcmp(baseWin->data[i], ""))
-                    putstr(prevmsg_win, 0, baseWin->data[i]);
+                if (msgWin->msgdata[i] && strcmp(msgWin->msgdata[i], ""))
+                    putstr(prevmsg_win, 0, msgWin->msgdata[i]);
                 i = (i + 1) % baseWin->rows;
             } while (i != msgWin->curmsg);
             putstr(prevmsg_win, 0, toplines);
@@ -1628,16 +1606,16 @@ tty_doprev_message()
                     msgWin->curmsg--;
                     if (msgWin->curmsg < 0)
                         msgWin->curmsg = baseWin->rows - 1;
-                    if (!baseWin->data[msgWin->curmsg])
+                    if (!msgWin->msgdata[msgWin->curmsg])
                         msgWin->curmsg = msgWin->tailmsg;
                 }
                 else if (msgWin->curmsg == (msgWin->tailmsg - 1)) {
                     g_uwpDisplay->dismiss_more = C('p'); /* ^P ok at --More-- */
-                    redotoplin(baseWin->data[msgWin->curmsg]);
+                    redotoplin(msgWin->msgdata[msgWin->curmsg]);
                     msgWin->curmsg--;
                     if (msgWin->curmsg < 0)
                         msgWin->curmsg = baseWin->rows - 1;
-                    if (!baseWin->data[msgWin->curmsg])
+                    if (!msgWin->msgdata[msgWin->curmsg])
                         msgWin->curmsg = msgWin->tailmsg;
                 }
                 else {
@@ -1647,8 +1625,8 @@ tty_doprev_message()
                     msgWin->curmsg = msgWin->tailmsg;
                     i = msgWin->curmsg;
                     do {
-                        if (baseWin->data[i] && strcmp(baseWin->data[i], ""))
-                            putstr(prevmsg_win, 0, baseWin->data[i]);
+                        if (msgWin->msgdata[i] && strcmp(msgWin->msgdata[i], ""))
+                            putstr(prevmsg_win, 0, msgWin->msgdata[i]);
                         i = (i + 1) % baseWin->rows;
                     } while (i != msgWin->curmsg);
                     putstr(prevmsg_win, 0, toplines);
@@ -1669,11 +1647,11 @@ tty_doprev_message()
             if (msgWin->curmsg < 0)
                 msgWin->curmsg = baseWin->rows - 1;
             do {
-                putstr(prevmsg_win, 0, baseWin->data[msgWin->curmsg]);
+                putstr(prevmsg_win, 0, msgWin->msgdata[msgWin->curmsg]);
                 msgWin->curmsg--;
                 if (msgWin->curmsg < 0)
                     msgWin->curmsg = baseWin->rows - 1;
-                if (!baseWin->data[msgWin->curmsg])
+                if (!msgWin->msgdata[msgWin->curmsg])
                     msgWin->curmsg = msgWin->tailmsg;
             } while (msgWin->curmsg != msgWin->tailmsg);
 
@@ -1689,12 +1667,12 @@ tty_doprev_message()
             morc = 0;
             if (msgWin->curmsg == msgWin->tailmsg)
                 redotoplin(toplines);
-            else if (baseWin->data[msgWin->curmsg])
-                redotoplin(baseWin->data[msgWin->curmsg]);
+            else if (msgWin->msgdata[msgWin->curmsg])
+                redotoplin(msgWin->msgdata[msgWin->curmsg]);
             msgWin->curmsg--;
             if (msgWin->curmsg < 0)
                 msgWin->curmsg = baseWin->rows - 1;
-            if (!baseWin->data[msgWin->curmsg])
+            if (!msgWin->msgdata[msgWin->curmsg])
                 msgWin->curmsg = msgWin->tailmsg;
         } while (morc == C('p'));
         g_uwpDisplay->dismiss_more = 0;
@@ -1737,17 +1715,10 @@ remember_topl()
     int idx = msgWin->tailmsg;
     unsigned len = strlen(toplines) + 1;
 
-    if ((baseWin->flags & WIN_LOCKHISTORY) || !*toplines)
+    if (!*toplines)
         return;
 
-    if (len > (unsigned)baseWin->datlen[idx]) {
-        if (baseWin->data[idx])
-            free(baseWin->data[idx]);
-        len += (8 - (len & 7)); /* pad up to next multiple of 8 */
-        baseWin->data[idx] = (char *)alloc(len);
-        baseWin->datlen[idx] = (short)len;
-    }
-    Strcpy(baseWin->data[idx], toplines);
+    strncpy(msgWin->msgdata[idx], toplines, sizeof(msgWin->msgdata[idx]) - 1);
     *toplines = '\0';
     msgWin->tailmsg = (idx + 1) % baseWin->rows;
     msgWin->curmsg = msgWin->tailmsg;
@@ -1841,8 +1812,7 @@ update_topl(
         }
     }
     remember_topl();
-    (void)strncpy(toplines, bp, TBUFSZ);
-    toplines[TBUFSZ - 1] = 0;
+    strncpy(toplines, bp, TBUFSZ - 1);
 
     for (tl = toplines; n0 >= CO; ) {
         otl = tl;
@@ -2094,7 +2064,7 @@ clean_up:
 }
 
 /* shared by tty_getmsghistory() and tty_putmsghistory() */
-static char **snapshot_mesgs = 0;
+static char snapshot_mesgs[kMaxMessageHistoryLength+1][TBUFSZ];
 
 /* collect currently available message history data into a sequential array;
 optionally, purge that data from the active circular buffer set as we go */
@@ -2114,56 +2084,29 @@ msghistory_snapshot(
     /* flush toplines[], moving most recent message to history */
     remember_topl();
 
-    /* for a passive snapshot, we just copy pointers, so can't allow further
-    history updating to take place because that could clobber them */
-    if (!purge)
-        baseWin->flags |= WIN_LOCKHISTORY;
-
-    snapshot_mesgs = (char **)alloc((baseWin->rows + 1) * sizeof(char *));
-    outidx = 0;
     inidx = msgWin->tailmsg;
+
     for (i = 0; i < baseWin->rows; ++i) {
-        snapshot_mesgs[i] = (char *)0;
-        mesg = baseWin->data[inidx];
-        if (mesg && *mesg) {
-            snapshot_mesgs[outidx++] = mesg;
-            if (purge) {
-                /* we're taking this pointer away; subsequest history
-                updates will eventually allocate a new one to replace it */
-                baseWin->data[inidx] = (char *)0;
-                baseWin->datlen[inidx] = 0;
-            }
-        }
+        if (msgWin->msgdata[inidx][0])
+            break;
         inidx = (inidx + 1) % baseWin->rows;
     }
-    snapshot_mesgs[baseWin->rows] = (char *)0; /* sentinel */
 
-                                          /* for a destructive snapshot, history is now completely empty */
+    outidx = 0;
+    for (; i < baseWin->rows; ++i) {
+        assert(msgWin->msgdata[inidx][0]);
+        strncpy(snapshot_mesgs[outidx++], msgWin->msgdata[inidx], sizeof(snapshot_mesgs[inidx]));
+        if (purge)
+            msgWin->msgdata[inidx][0] = 0;
+        inidx = (inidx + 1) % baseWin->rows;
+    }
+
+    snapshot_mesgs[outidx][0] = 0; /* sentinel */
+
+    /* for a destructive snapshot, history is now completely empty */
     if (purge) {
         msgWin->curmsg = 0;
         msgWin->tailmsg = 0;
-    }
-}
-
-/* release memory allocated to message history snapshot */
-STATIC_OVL void
-free_msghistory_snapshot(
-    boolean purged) /* True: took history's pointers, False: just cloned them */
-{
-    if (snapshot_mesgs) {
-        /* snapshot pointers are no longer in use */
-        if (purged) {
-            int i;
-
-            for (i = 0; snapshot_mesgs[i]; ++i)
-                free((genericptr_t)snapshot_mesgs[i]);
-        }
-
-        free((genericptr_t)snapshot_mesgs), snapshot_mesgs = (char **)0;
-
-        /* history can resume being updated at will now... */
-        if (!purged)
-            g_wins[WIN_MESSAGE]->flags &= ~WIN_LOCKHISTORY;
     }
 }
 
@@ -2180,7 +2123,7 @@ free_msghistory_snapshot(
 char *
 tty_getmsghistory(boolean init)
 {
-    static int nxtidx;
+    static int nxtidx = 0;
     char *nextmesg;
     char *result = 0;
 
@@ -2189,16 +2132,13 @@ tty_getmsghistory(boolean init)
         nxtidx = 0;
     }
 
-    if (snapshot_mesgs) {
-        nextmesg = snapshot_mesgs[nxtidx++];
-        if (nextmesg) {
-            result = (char *)nextmesg;
-        }
-        else {
-            free_msghistory_snapshot(FALSE);
-        }
-    }
-    return result;
+    if (nxtidx >= kMaxMessageHistoryLength)
+        return NULL;
+
+    if (snapshot_mesgs[nxtidx][0] == 0)
+        return NULL;
+
+    return snapshot_mesgs[nxtidx++];
 }
 
 /*
@@ -2241,15 +2181,15 @@ tty_putmsghistory(
         */
         remember_topl();
         strncpy(toplines, msg, sizeof(toplines) - 1);
-    }
-    else if (snapshot_mesgs) {
+    } else {
+
+        assert(initd);
         /* done putting arbitrary messages in; put the snapshot ones back */
-        for (idx = 0; snapshot_mesgs[idx]; ++idx) {
+        for (idx = 0; snapshot_mesgs[idx][0] != 0; ++idx) {
             remember_topl();
             strncpy(toplines, snapshot_mesgs[idx], sizeof(toplines) - 1);
         }
         /* now release the snapshot */
-        free_msghistory_snapshot(TRUE);
         initd = FALSE; /* reset */
     }
 }

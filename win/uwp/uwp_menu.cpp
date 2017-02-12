@@ -587,13 +587,13 @@ process_text_window(winid window, GenericWindow *genWin)
         if (baseWin->offx)
             cl_end();
 #endif
-        if (baseWin->data[i]) {
-            attr = baseWin->data[i][0] - 1;
+        if (genWin->data[i]) {
+            attr = genWin->data[i][0] - 1;
             if (baseWin->offx) {
                 win_putc(window, ' ');
             }
             TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
-            for (cp = &baseWin->data[i][1];
+            for (cp = &genWin->data[i][1];
                 *cp && g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
                 cp++)
                 win_putc(window, *cp, TextColor::NoColor, useAttribute);

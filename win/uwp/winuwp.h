@@ -28,8 +28,6 @@ struct BaseWindow {
     short offx, offy;    /* offset from topleft of display */
     long rows, cols;     /* dimensions */
     long curx, cury;     /* current cursor position */
-    short *datlen;         /* allocation size for *data */
-    char **data;           /* window data [row][column] */
     char *morestr;         /* string to display instead of default */
     tty_menu_item *mlist;  /* menu information (MENU) */
     tty_menu_item **plist; /* menu page pointers (MENU) */
@@ -45,9 +43,15 @@ struct GenericWindow : public BaseWindow
     long maxrow, maxcol; /* the maximum size used -- for MENU wins */
                          /* maxcol is also used by WIN_MESSAGE for */
                          /* tracking the ^P command */
+    short *datlen;         /* allocation size for *data */
+    char **data;           /* window data [row][column] */
 };
 
+static const int kMaxMessageHistoryLength = 60;
+static const int kMinMessageHistoryLength = 20;
+
 struct MessageWindow : public BaseWindow {
+    char msgdata[kMaxMessageHistoryLength][TBUFSZ];
     long tailmsg;          /* tail of message queue */
     long curmsg;           /* current msg shown */
     bool mustBeSeen;       /* message must be seen */
@@ -60,7 +64,6 @@ extern "C" {
 /* window flags */
 #define WIN_CANCELLED 1
 #define WIN_STOP 1        /* for NHW_MESSAGE; stops output */
-#define WIN_LOCKHISTORY 2 /* for NHW_MESSAGE; suppress history updates */
 
 /* descriptor for tty-based displays -- all the per-display data */
 struct DisplayDesc {
