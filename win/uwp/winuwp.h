@@ -21,17 +21,13 @@ typedef struct tty_mi {
 } tty_menu_item;
 
 /* struct for windows */
-struct WinDesc {
-public:
+struct BaseWindow {
     int flags;           /* window flags */
     xchar type;          /* type of window */
     boolean active;      /* true if window is active */
     short offx, offy;    /* offset from topleft of display */
     long rows, cols;     /* dimensions */
     long curx, cury;     /* current cursor position */
-    long maxrow, maxcol; /* the maximum size used -- for MENU wins */
-                         /* maxcol is also used by WIN_MESSAGE for */
-                         /* tracking the ^P command */
     short *datlen;         /* allocation size for *data */
     char **data;           /* window data [row][column] */
     char *morestr;         /* string to display instead of default */
@@ -44,7 +40,18 @@ public:
     char menu_ch;          /* menu char (MENU) */
 };
 
-struct MessageWindow : public WinDesc {
+struct GenericWindow : public BaseWindow
+{
+    long maxrow, maxcol; /* the maximum size used -- for MENU wins */
+                         /* maxcol is also used by WIN_MESSAGE for */
+                         /* tracking the ^P command */
+};
+
+struct MessageWindow : public BaseWindow {
+    long msgmaxrow, msgmaxcol; /* the maximum size used -- for MENU wins */
+                         /* maxcol is also used by WIN_MESSAGE for */
+                         /* tracking the ^P command */
+
     bool mustBeSeen;       /* message must be seen (MESSAGE) */
     bool mustBeErased;     /* message must be erased (MESSAGE) */
     bool nextIsPrompt;     /* next output message is a prompt (MESSAGE) */
@@ -82,7 +89,7 @@ extern struct window_procs uwp_procs;
 
 /* port specific variable declarations */
 
-extern struct WinDesc *g_wins[MAXWIN];
+extern BaseWindow *g_wins[MAXWIN];
 
 extern struct DisplayDesc *g_uwpDisplay; /* the tty display descriptor */
 
@@ -91,8 +98,8 @@ extern char defmorestr[]; /* default --more-- prompt */
 
 /* port specific external function references */
 
-void process_text_window(winid window, struct WinDesc * cw);
-void process_menu_window(winid window, struct WinDesc * cw);
+void process_text_window(winid window, GenericWindow * cw);
+void process_menu_window(winid window, GenericWindow * cw);
 
 
 /* ### getline.c ### */
@@ -234,5 +241,11 @@ void win_puts(
     const char *s,
     Nethack::TextColor textColor = Nethack::TextColor::NoColor,
     Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
+
+BaseWindow * GetBaseWindow(winid window);
+GenericWindow * GetGenericWindow(winid window);
+MessageWindow * GetMessageWindow();
+MessageWindow * ToMessageWindow(BaseWindow * baseWin);
+GenericWindow * ToGenericWindow(BaseWindow * baseWin);
 
 }

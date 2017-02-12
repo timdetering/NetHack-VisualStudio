@@ -26,13 +26,13 @@ static const char default_menu_cmds[] = {
 
 STATIC_OVL void
 dmore(
-    struct WinDesc *cw,
+    BaseWindow *baseWin,
     const char *s) /* valid responses */
 {
-    const char *prompt = cw->morestr ? cw->morestr : defmorestr;
-    int offset = (cw->type == NHW_TEXT) ? 1 : 2;
+    const char *prompt = baseWin->morestr ? baseWin->morestr : defmorestr;
+    int offset = (baseWin->type == NHW_TEXT) ? 1 : 2;
 
-    tty_curs(BASE_WINDOW, (int)cw->curx + cw->offx + offset, (int)cw->cury + cw->offy);
+    tty_curs(BASE_WINDOW, (int)baseWin->curx + baseWin->offx + offset, (int)baseWin->cury + baseWin->offy);
 
     win_puts(BASE_WINDOW, prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
 
@@ -158,12 +158,12 @@ invert_all(winid window, tty_menu_item *page_start, tty_menu_item *page_end, cha
 {
     tty_menu_item *curr;
     boolean on_curr_page;
-    struct WinDesc *cw = g_wins[window];
+    BaseWindow *baseWin = GetBaseWindow(window);
 
     invert_all_on_page(window, page_start, page_end, acc);
 
     /* invert the rest */
-    for (on_curr_page = FALSE, curr = cw->mlist; curr; curr = curr->next) {
+    for (on_curr_page = FALSE, curr = baseWin->mlist; curr; curr = curr->next) {
         if (curr == page_start)
             on_curr_page = TRUE;
         else if (curr == page_end)
@@ -182,8 +182,9 @@ invert_all(winid window, tty_menu_item *page_start, tty_menu_item *page_end, cha
 }
 
 void
-process_menu_window(winid window, struct WinDesc * cw)
+process_menu_window(winid window, GenericWindow * genWin)
 {
+    BaseWindow * baseWin = genWin;
     tty_menu_item *page_start, *page_end, *curr;
     long count;
     int n, attr_n, curr_page, page_lines, resp_len;
@@ -193,8 +194,8 @@ process_menu_window(winid window, struct WinDesc * cw)
 
     curr_page = page_lines = 0;
     page_start = page_end = 0;
-    msave = cw->morestr; /* save the morestr */
-    cw->morestr = morestr = (char *)alloc((unsigned)QBUFSZ);
+    msave = baseWin->morestr; /* save the morestr */
+    baseWin->morestr = morestr = (char *)alloc((unsigned)QBUFSZ);
     counting = FALSE;
     count = 0L;
     reset_count = TRUE;
@@ -204,23 +205,23 @@ process_menu_window(winid window, struct WinDesc * cw)
     for PICK_ONE, only those which match exactly one entry will be
     accepted; for PICK_ANY, those which match any entry are okay */
     gacc[0] = '\0';
-    if (cw->how != PICK_NONE) {
+    if (baseWin->how != PICK_NONE) {
         int i, gcnt[128];
 #define GSELIDX(c) (c & 127) /* guard against `signed char' */
 
         for (i = 0; i < SIZE(gcnt); i++)
             gcnt[i] = 0;
-        for (n = 0, curr = cw->mlist; curr; curr = curr->next)
+        for (n = 0, curr = baseWin->mlist; curr; curr = curr->next)
             if (curr->gselector && curr->gselector != curr->selector) {
                 ++n;
                 ++gcnt[GSELIDX(curr->gselector)];
             }
 
         if (n > 0) /* at least one group accelerator found */
-            for (rp = gacc, curr = cw->mlist; curr; curr = curr->next)
+            for (rp = gacc, curr = baseWin->mlist; curr; curr = curr->next)
                 if (curr->gselector && curr->gselector != curr->selector
                     && !index(gacc, curr->gselector)
-                    && (cw->how == PICK_ANY
+                    && (baseWin->how == PICK_ANY
                     || gcnt[GSELIDX(curr->gselector)] == 1)) {
                     *rp++ = curr->gselector;
                     *rp = '\0'; /* re-terminate for index() */
@@ -239,12 +240,12 @@ process_menu_window(winid window, struct WinDesc * cw)
 
         if (!page_start) {
             /* new page to be displayed */
-            if (curr_page < 0 || (cw->npages > 0 && curr_page >= cw->npages))
+            if (curr_page < 0 || (baseWin->npages > 0 && curr_page >= baseWin->npages))
                 panic("bad menu screen page #%d", curr_page);
 
             /* clear screen */
-            if (!cw->offx) { /* if not corner, do clearscreen */
-                if (cw->offy) {
+            if (!baseWin->offx) { /* if not corner, do clearscreen */
+                if (baseWin->offy) {
                     tty_curs(window, 1, 0);
                     cl_eos();
                 }
@@ -253,10 +254,10 @@ process_menu_window(winid window, struct WinDesc * cw)
             }
 
             rp = resp;
-            if (cw->npages > 0) {
+            if (baseWin->npages > 0) {
                 /* collect accelerators */
-                page_start = cw->plist[curr_page];
-                page_end = cw->plist[curr_page + 1];
+                page_start = baseWin->plist[curr_page];
+                page_end = baseWin->plist[curr_page + 1];
                 for (page_lines = 0, curr = page_start; curr != page_end;
                     page_lines++, curr = curr->next) {
                     int attr, color = NO_COLOR;
@@ -265,7 +266,7 @@ process_menu_window(winid window, struct WinDesc * cw)
                         *rp++ = curr->selector;
 
                     tty_curs(window, 1, page_lines);
-                    if (cw->offx)
+                    if (baseWin->offx)
                         cl_end();
 
                     TextColor useColor = TextColor::NoColor;
@@ -330,8 +331,8 @@ process_menu_window(winid window, struct WinDesc * cw)
             resp_len = (int)strlen(resp);
 
             /* corner window - clear extra lines from last page */
-            if (cw->offx) {
-                for (n = page_lines + 1; n < cw->maxrow; n++) {
+            if (baseWin->offx) {
+                for (n = page_lines + 1; n < genWin->maxrow; n++) {
                     tty_curs(window, 1, n);
                     cl_end();
                 }
@@ -344,21 +345,21 @@ process_menu_window(winid window, struct WinDesc * cw)
             Strcat(resp, gacc);                 /* group accelerators */
             Strcat(resp, mapped_menu_cmds);
 
-            if (cw->npages > 1)
-                Sprintf(cw->morestr, "(%d of %d)", curr_page + 1,
-                (int)cw->npages);
+            if (baseWin->npages > 1)
+                Sprintf(baseWin->morestr, "(%d of %d)", curr_page + 1,
+                (int)baseWin->npages);
             else if (msave)
-                Strcpy(cw->morestr, msave);
+                Strcpy(baseWin->morestr, msave);
             else
-                Strcpy(cw->morestr, defmorestr);
+                Strcpy(baseWin->morestr, defmorestr);
 
             tty_curs(window, 1, page_lines);
             cl_end();
-            dmore(cw, resp);
+            dmore(baseWin, resp);
         }
         else {
             /* just put the cursor back... */
-            tty_curs(window, (int)strlen(cw->morestr) + 2, page_lines);
+            tty_curs(window, (int)strlen(baseWin->morestr) + 2, page_lines);
             xwaitforspace(resp);
         }
 
@@ -406,11 +407,11 @@ process_menu_window(winid window, struct WinDesc * cw)
         case '\033': /* cancel - from counting or loop */
             if (!counting) {
                 /* deselect everything */
-                for (curr = cw->mlist; curr; curr = curr->next) {
+                for (curr = baseWin->mlist; curr; curr = curr->next) {
                     curr->selected = FALSE;
                     curr->count = -1L;
                 }
-                cw->flags |= WIN_CANCELLED;
+                baseWin->flags |= WIN_CANCELLED;
                 finished = TRUE;
             }
             /* else only stop count */
@@ -419,14 +420,14 @@ process_menu_window(winid window, struct WinDesc * cw)
         case '\n':
         case '\r':
             /* only finished if we are actually picking something */
-            if (cw->how != PICK_NONE) {
+            if (baseWin->how != PICK_NONE) {
                 finished = TRUE;
                 break;
             }
             /* else fall through */
         case ' ':
         case MENU_NEXT_PAGE:
-            if (cw->npages > 0 && curr_page != cw->npages - 1) {
+            if (baseWin->npages > 0 && curr_page != baseWin->npages - 1) {
                 curr_page++;
                 page_start = 0;
             }
@@ -436,39 +437,39 @@ process_menu_window(winid window, struct WinDesc * cw)
             }
             break;
         case MENU_PREVIOUS_PAGE:
-            if (cw->npages > 0 && curr_page != 0) {
+            if (baseWin->npages > 0 && curr_page != 0) {
                 --curr_page;
                 page_start = 0;
             }
             break;
         case MENU_FIRST_PAGE:
-            if (cw->npages > 0 && curr_page != 0) {
+            if (baseWin->npages > 0 && curr_page != 0) {
                 page_start = 0;
                 curr_page = 0;
             }
             break;
         case MENU_LAST_PAGE:
-            if (cw->npages > 0 && curr_page != cw->npages - 1) {
+            if (baseWin->npages > 0 && curr_page != baseWin->npages - 1) {
                 page_start = 0;
-                curr_page = cw->npages - 1;
+                curr_page = baseWin->npages - 1;
             }
             break;
         case MENU_SELECT_PAGE:
-            if (cw->how == PICK_ANY)
+            if (baseWin->how == PICK_ANY)
                 set_all_on_page(window, page_start, page_end);
             break;
         case MENU_UNSELECT_PAGE:
             unset_all_on_page(window, page_start, page_end);
             break;
         case MENU_INVERT_PAGE:
-            if (cw->how == PICK_ANY)
+            if (baseWin->how == PICK_ANY)
                 invert_all_on_page(window, page_start, page_end, 0);
             break;
         case MENU_SELECT_ALL:
-            if (cw->how == PICK_ANY) {
+            if (baseWin->how == PICK_ANY) {
                 set_all_on_page(window, page_start, page_end);
                 /* set the rest */
-                for (curr = cw->mlist; curr; curr = curr->next)
+                for (curr = baseWin->mlist; curr; curr = curr->next)
                     if (curr->identifier.a_void && !curr->selected)
                         curr->selected = TRUE;
             }
@@ -476,18 +477,18 @@ process_menu_window(winid window, struct WinDesc * cw)
         case MENU_UNSELECT_ALL:
             unset_all_on_page(window, page_start, page_end);
             /* unset the rest */
-            for (curr = cw->mlist; curr; curr = curr->next)
+            for (curr = baseWin->mlist; curr; curr = curr->next)
                 if (curr->identifier.a_void && curr->selected) {
                     curr->selected = FALSE;
                     curr->count = -1;
                 }
             break;
         case MENU_INVERT_ALL:
-            if (cw->how == PICK_ANY)
+            if (baseWin->how == PICK_ANY)
                 invert_all(window, page_start, page_end, 0);
             break;
         case MENU_SEARCH:
-            if (cw->how == PICK_NONE) {
+            if (baseWin->how == PICK_NONE) {
                 tty_nhbell();
                 break;
             }
@@ -501,7 +502,7 @@ process_menu_window(winid window, struct WinDesc * cw)
                     break;
                 Sprintf(searchbuf, "*%s*", tmpbuf);
 
-                for (curr = cw->mlist; curr; curr = curr->next) {
+                for (curr = baseWin->mlist; curr; curr = curr->next) {
                     if (on_curr_page)
                         lineno++;
                     if (curr == page_start)
@@ -512,7 +513,7 @@ process_menu_window(winid window, struct WinDesc * cw)
                         && pmatchi(searchbuf, curr->str)) {
                         toggle_menu_curr(window, curr, lineno, on_curr_page,
                             counting, count);
-                        if (cw->how == PICK_ONE) {
+                        if (baseWin->how == PICK_ONE) {
                             finished = TRUE;
                             break;
                         }
@@ -524,7 +525,7 @@ process_menu_window(winid window, struct WinDesc * cw)
             morc = really_morc;
             /*FALLTHRU*/
         default:
-            if (cw->how == PICK_NONE || !index(resp, morc)) {
+            if (baseWin->how == PICK_NONE || !index(resp, morc)) {
                 /* unacceptable input received */
                 tty_nhbell();
                 break;
@@ -534,7 +535,7 @@ process_menu_window(winid window, struct WinDesc * cw)
                 /* group accelerator; for the PICK_ONE case, we know that
                 it matches exactly one item in order to be in gacc[] */
                 invert_all(window, page_start, page_end, morc);
-                if (cw->how == PICK_ONE)
+                if (baseWin->how == PICK_ONE)
                     finished = TRUE;
                 break;
             }
@@ -543,7 +544,7 @@ process_menu_window(winid window, struct WinDesc * cw)
                 n++, curr = curr->next)
                 if (morc == curr->selector) {
                     toggle_menu_curr(window, curr, n, TRUE, counting, count);
-                    if (cw->how == PICK_ONE)
+                    if (baseWin->how == PICK_ONE)
                         finished = TRUE;
                     break; /* from `for' loop */
                 }
@@ -551,26 +552,27 @@ process_menu_window(winid window, struct WinDesc * cw)
         }
 
     } /* while */
-    cw->morestr = msave;
+    baseWin->morestr = msave;
     free((genericptr_t)morestr);
 }
 
 void
-process_text_window(winid window, struct WinDesc *cw)
+process_text_window(winid window, GenericWindow *genWin)
 {
     int i, n, attr;
     register char *cp;
+    BaseWindow * baseWin = genWin;
 
-    for (n = 0, i = 0; i < cw->maxrow; i++) {
-        if (!cw->offx && (n + cw->offy == g_textGrid.GetDimensions().m_y - 1)) {
+    for (n = 0, i = 0; i < genWin->maxrow; i++) {
+        if (!baseWin->offx && (n + baseWin->offy == g_textGrid.GetDimensions().m_y - 1)) {
             tty_curs(window, 1, n);
             cl_end();
-            dmore(cw, quitchars);
+            dmore(baseWin, quitchars);
             if (morc == '\033') {
-                cw->flags |= WIN_CANCELLED;
+                baseWin->flags |= WIN_CANCELLED;
                 break;
             }
-            if (cw->offy) {
+            if (baseWin->offy) {
                 tty_curs(window, 1, 0);
                 cl_eos();
             }
@@ -582,36 +584,36 @@ process_text_window(winid window, struct WinDesc *cw)
 #ifdef H2344_BROKEN
         cl_end();
 #else
-        if (cw->offx)
+        if (baseWin->offx)
             cl_end();
 #endif
-        if (cw->data[i]) {
-            attr = cw->data[i][0] - 1;
-            if (cw->offx) {
+        if (baseWin->data[i]) {
+            attr = baseWin->data[i][0] - 1;
+            if (baseWin->offx) {
                 win_putc(window, ' ');
             }
             TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
-            for (cp = &cw->data[i][1];
+            for (cp = &baseWin->data[i][1];
                 *cp && g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
                 cp++)
                 win_putc(window, *cp, TextColor::NoColor, useAttribute);
         }
     }
-    if (i == cw->maxrow) {
+    if (i == genWin->maxrow) {
 #ifdef H2344_BROKEN
-        if (cw->type == NHW_TEXT) {
-            tty_curs(BASE_WINDOW, 1, cw->cury + cw->offy + 1);
+        if (baseWin->type == NHW_TEXT) {
+            tty_curs(BASE_WINDOW, 1, baseWin->cury + baseWin->offy + 1);
             cl_eos();
         }
 #endif
-        tty_curs(BASE_WINDOW, (int)cw->offx + 1,
-            (cw->type == NHW_TEXT) ? g_textGrid.GetDimensions().m_y - 1 : n);
+        tty_curs(BASE_WINDOW, (int)baseWin->offx + 1,
+            (baseWin->type == NHW_TEXT) ? g_textGrid.GetDimensions().m_y - 1 : n);
         cl_end();
-        cw->curx = 0;
-        cw->cury = (cw->type == NHW_TEXT) ? g_textGrid.GetDimensions().m_y - 1 : n;
-        dmore(cw, quitchars);
+        baseWin->curx = 0;
+        baseWin->cury = (baseWin->type == NHW_TEXT) ? g_textGrid.GetDimensions().m_y - 1 : n;
+        dmore(baseWin, quitchars);
         if (morc == '\033')
-            cw->flags |= WIN_CANCELLED;
+            baseWin->flags |= WIN_CANCELLED;
     }
 }
 
@@ -638,7 +640,7 @@ tty_add_menu(
     const char *str,            /* menu string */
     boolean preselected)        /* item is marked as selected */
 {
-    register struct WinDesc *cw = 0;
+    BaseWindow *baseWin = GetBaseWindow(window);
     tty_menu_item *item;
     const char *newstr;
     char buf[4 + BUFSZ];
@@ -646,12 +648,10 @@ tty_add_menu(
     if (str == (const char *)0)
         return;
 
-    if (window == WIN_ERR
-        || (cw = g_wins[window]) == (struct WinDesc *) 0
-        || cw->type != NHW_MENU)
+    if (baseWin->type != NHW_MENU)
         panic(winpanicstr, window);
 
-    cw->nitems++;
+    baseWin->nitems++;
     if (identifier->a_void) {
         int len = strlen(str);
 
@@ -677,8 +677,8 @@ tty_add_menu(
     item->attr = attr;
     item->str = dupstr(newstr ? newstr : "");
 
-    item->next = cw->mlist;
-    cw->mlist = item;
+    item->next = baseWin->mlist;
+    baseWin->mlist = item;
 }
 
 /* Invert the given list, can handle NULL as an input. */
@@ -707,18 +707,18 @@ tty_end_menu(
     winid window,       /* menu to use */
     const char *prompt) /* prompt to for menu */
 {
-    struct WinDesc *cw = 0;
+    BaseWindow *baseWin = GetBaseWindow(window);
+    GenericWindow * genWin = ToGenericWindow(baseWin);
     tty_menu_item *curr;
     short len;
     int lmax, n;
     char menu_ch;
 
-    if (window == WIN_ERR || (cw = g_wins[window]) == (struct WinDesc *) 0
-        || cw->type != NHW_MENU)
+    if (baseWin->type != NHW_MENU)
         panic(winpanicstr, window);
 
     /* Reverse the list so that items are in correct order. */
-    cw->mlist = reverse(cw->mlist);
+    baseWin->mlist = reverse(baseWin->mlist);
 
     /* Put the prompt at the beginning of the menu. */
     if (prompt) {
@@ -733,24 +733,24 @@ tty_end_menu(
 
     /* XXX another magic number? 52 */
     lmax = min(52, (int)g_uwpDisplay->rows - 1);    /* # lines per page */
-    cw->npages = (cw->nitems + (lmax - 1)) / lmax; /* # of pages */
+    baseWin->npages = (baseWin->nitems + (lmax - 1)) / lmax; /* # of pages */
 
                                                    /* make sure page list is large enough */
-    if (cw->plist_size < cw->npages + 1 /*need 1 slot beyond last*/) {
-        if (cw->plist)
-            free((genericptr_t)cw->plist);
-        cw->plist_size = cw->npages + 1;
-        cw->plist = (tty_menu_item **)alloc(cw->plist_size
+    if (baseWin->plist_size < baseWin->npages + 1 /*need 1 slot beyond last*/) {
+        if (baseWin->plist)
+            free((genericptr_t)baseWin->plist);
+        baseWin->plist_size = baseWin->npages + 1;
+        baseWin->plist = (tty_menu_item **)alloc(baseWin->plist_size
             * sizeof(tty_menu_item *));
     }
 
-    cw->cols = 0;  /* cols is set when the win is initialized... (why?) */
+    baseWin->cols = 0;  /* cols is set when the win is initialized... (why?) */
     menu_ch = '?'; /* lint suppression */
-    for (n = 0, curr = cw->mlist; curr; n++, curr = curr->next) {
+    for (n = 0, curr = baseWin->mlist; curr; n++, curr = curr->next) {
         /* set page boundaries and character accelerators */
         if ((n % lmax) == 0) {
             menu_ch = 'a';
-            cw->plist[n / lmax] = curr;
+            baseWin->plist[n / lmax] = curr;
         }
         if (curr->identifier.a_void && !curr->selector) {
             curr->str[0] = curr->selector = menu_ch;
@@ -764,45 +764,45 @@ tty_end_menu(
             curr->str[g_uwpDisplay->cols - 2] = 0;
             len = g_uwpDisplay->cols;
         }
-        if (len > cw->cols)
-            cw->cols = len;
+        if (len > baseWin->cols)
+            baseWin->cols = len;
     }
-    cw->plist[cw->npages] = 0; /* plist terminator */
+    baseWin->plist[baseWin->npages] = 0; /* plist terminator */
 
                                /*
                                * If greater than 1 page, morestr is "(x of y) " otherwise, "(end) "
                                */
-    if (cw->npages > 1) {
+    if (baseWin->npages > 1) {
         char buf[QBUFSZ];
         /* produce the largest demo string */
-        Sprintf(buf, "(%ld of %ld) ", cw->npages, cw->npages);
+        Sprintf(buf, "(%ld of %ld) ", baseWin->npages, baseWin->npages);
         len = strlen(buf);
-        cw->morestr = dupstr("");
+        baseWin->morestr = dupstr("");
     }
     else {
-        cw->morestr = dupstr("(end) ");
-        len = strlen(cw->morestr);
+        baseWin->morestr = dupstr("(end) ");
+        len = strlen(baseWin->morestr);
     }
 
     if (len > (int)g_uwpDisplay->cols) {
         /* truncate the prompt if it's too long for the screen */
-        if (cw->npages <= 1) /* only str in single page case */
-            cw->morestr[g_uwpDisplay->cols] = 0;
+        if (baseWin->npages <= 1) /* only str in single page case */
+            baseWin->morestr[g_uwpDisplay->cols] = 0;
         len = g_uwpDisplay->cols;
     }
-    if (len > cw->cols)
-        cw->cols = len;
+    if (len > baseWin->cols)
+        baseWin->cols = len;
 
-    cw->maxcol = cw->cols;
+    genWin->maxcol = baseWin->cols;
 
     /*
     * The number of lines in the first page plus the morestr will be the
     * maximum size of the window.
     */
-    if (cw->npages > 1)
-        cw->maxrow = cw->rows = lmax + 1;
+    if (baseWin->npages > 1)
+        genWin->maxrow = baseWin->rows = lmax + 1;
     else
-        cw->maxrow = cw->rows = cw->nitems + 1;
+        genWin->maxrow = baseWin->rows = baseWin->nitems + 1;
 }
 
 int
@@ -811,34 +811,33 @@ tty_select_menu(
     int how,
     menu_item **menu_list)
 {
-    register struct WinDesc *cw = 0;
+    BaseWindow *baseWin = GetBaseWindow(window);
     tty_menu_item *curr;
     menu_item *mi;
     int n, cancelled;
 
-    if (window == WIN_ERR || (cw = g_wins[window]) == (struct WinDesc *) 0
-        || cw->type != NHW_MENU)
+    if (baseWin->type != NHW_MENU)
         panic(winpanicstr, window);
 
     *menu_list = (menu_item *)0;
-    cw->how = (short)how;
+    baseWin->how = (short)how;
     morc = 0;
     tty_display_nhwindow(window, TRUE);
-    cancelled = !!(cw->flags & WIN_CANCELLED);
+    cancelled = !!(baseWin->flags & WIN_CANCELLED);
     tty_dismiss_nhwindow(window); /* does not destroy window data */
 
     if (cancelled) {
         n = -1;
     }
     else {
-        for (n = 0, curr = cw->mlist; curr; curr = curr->next)
+        for (n = 0, curr = baseWin->mlist; curr; curr = curr->next)
             if (curr->selected)
                 n++;
     }
 
     if (n > 0) {
         *menu_list = (menu_item *)alloc(n * sizeof(menu_item));
-        for (mi = *menu_list, curr = cw->mlist; curr; curr = curr->next)
+        for (mi = *menu_list, curr = baseWin->mlist; curr; curr = curr->next)
             if (curr->selected) {
                 mi->item = curr->identifier;
                 mi->count = curr->count;
@@ -856,9 +855,9 @@ tty_message_menu(
     int how,
     const char *mesg)
 {
-    MessageWindow *cw = (MessageWindow *) g_wins[WIN_MESSAGE];
+    MessageWindow *baseWin = GetMessageWindow();
 
-    assert(cw != NULL);
+    assert(baseWin != NULL);
 
     /* "menu" without selection; use ordinary pline, no more() */
     if (how == PICK_NONE) {
@@ -873,11 +872,11 @@ tty_message_menu(
     tty_putstr(WIN_MESSAGE, 0, mesg);
     /* if `mesg' didn't wrap (triggering --More--), force --More-- now */
 
-    if (cw->mustBeSeen) {
+    if (baseWin->mustBeSeen) {
         more();
-        assert(!cw->mustBeSeen);
+        assert(!baseWin->mustBeSeen);
 
-        if (cw->mustBeErased)
+        if (baseWin->mustBeErased)
             tty_clear_nhwindow(WIN_MESSAGE);
     }
     /* normally <ESC> means skip further messages, but in this case
