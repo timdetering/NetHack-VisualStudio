@@ -330,10 +330,10 @@ tty_create_nhwindow(int type)
     GenericWindow * genWin = NULL;
 
     if (type == NHW_MESSAGE) {
-        msgWin = (MessageWindow *)alloc(sizeof(MessageWindow));
+        msgWin = new MessageWindow();
         baseWin = msgWin;
     } else {
-        genWin = (GenericWindow *)alloc(sizeof(GenericWindow));
+        genWin = new GenericWindow();
         baseWin = genWin;
     }
 
@@ -373,8 +373,7 @@ tty_create_nhwindow(int type)
             iflags.msg_history = kMaxMessageHistoryLength;
         baseWin->rows = iflags.msg_history;
         baseWin->cols = 0;
-        msgWin->tailmsg = 0;
-        msgWin->curmsg = 0;
+        msgWin->m_msgIter = msgWin->m_msgList.end();
         break;
 
     case NHW_STATUS:
@@ -424,11 +423,7 @@ tty_create_nhwindow(int type)
         return WIN_ERR;
     }
 
-    if (msgWin != NULL) {
-        for (i = 0; i < msgWin->rows; i++) {
-            msgWin->msgdata[i][0] = 0;
-        }
-    } else {
+    if (genWin != NULL) {
         if (genWin->maxrow) {
             genWin->data =
                 (char **)alloc(sizeof(char *) * (unsigned)genWin->maxrow);
@@ -523,12 +518,8 @@ free_window_info(
     GenericWindow * genWin = ToGenericWindow(baseWin);
 
     if (msgWin != NULL) {
-        for (i = 0; i < msgWin->rows; i++) {
-            msgWin->msgdata[i][0] = 0;
-        }
-
-        msgWin->tailmsg = 0;
-        msgWin->curmsg = 0;
+        msgWin->m_msgList.clear();
+        msgWin->m_msgIter = msgWin->m_msgList.end();
     } else {
         if (genWin->data) {
             for (i = 0; i < genWin->maxrow; i++)
@@ -770,6 +761,8 @@ void
 tty_destroy_nhwindow(winid window)
 {
     BaseWindow *baseWin = GetBaseWindow(window);
+    GenericWindow *genWin = ToGenericWindow(baseWin);
+    MessageWindow * msgWin = ToMessageWindow(baseWin);
 
     if (baseWin->active)
         tty_dismiss_nhwindow(window);
@@ -781,7 +774,14 @@ tty_destroy_nhwindow(winid window)
         clear_screen();
 
     free_window_info(baseWin, TRUE);
-    free((genericptr_t) baseWin);
+
+    if (msgWin != NULL) {
+        delete msgWin;
+    } else {
+        assert(genWin != NULL);
+        delete genWin;
+    }
+
     g_wins[window] = 0;
 }
 
@@ -1331,7 +1331,7 @@ hooked_tty_getlin(
                 obufp[0] = '\0';
                 bufp = obufp;
                 tty_clear_nhwindow(WIN_MESSAGE);
-                msgWin->curmsg = msgWin->tailmsg;
+                msgWin->m_msgIter = msgWin->m_msgList.end();
                 addtopl(query);
                 addtopl(" ");
                 addtopl(obufp);
@@ -1346,7 +1346,7 @@ hooked_tty_getlin(
             if (iflags.prevmsg_window != 's') {
                 (void)tty_doprev_message();
                 tty_clear_nhwindow(WIN_MESSAGE);
-                msgWin->curmsg = msgWin->tailmsg;
+                msgWin->m_msgIter = msgWin->m_msgList.end();
                 addtopl(query);
                 addtopl(" ");
                 *bufp = 0;
@@ -1362,7 +1362,7 @@ hooked_tty_getlin(
         }
         else if (doprev && iflags.prevmsg_window == 's') {
             tty_clear_nhwindow(WIN_MESSAGE);
-            msgWin->curmsg = msgWin->tailmsg;
+            msgWin->m_msgIter = msgWin->m_msgList.end();
             doprev = 0;
             addtopl(query);
             addtopl(" ");
@@ -1586,13 +1586,12 @@ tty_doprev_message()
             prevmsg_win = create_nhwindow(NHW_MENU);
             putstr(prevmsg_win, 0, "Message History");
             putstr(prevmsg_win, 0, "");
-            msgWin->curmsg = msgWin->tailmsg;
-            i = msgWin->curmsg;
-            do {
-                if (msgWin->msgdata[i] && strcmp(msgWin->msgdata[i], ""))
-                    putstr(prevmsg_win, 0, msgWin->msgdata[i]);
-                i = (i + 1) % baseWin->rows;
-            } while (i != msgWin->curmsg);
+
+            msgWin->m_msgIter = msgWin->m_msgList.end();
+
+            for (auto & msg : msgWin->m_msgList)
+                putstr(prevmsg_win, 0, msg.c_str());
+
             putstr(prevmsg_win, 0, toplines);
             display_nhwindow(prevmsg_win, TRUE);
             destroy_nhwindow(prevmsg_win);
@@ -1600,38 +1599,40 @@ tty_doprev_message()
         else if (iflags.prevmsg_window == 'c') { /* combination */
             do {
                 morc = 0;
-                if (msgWin->curmsg == msgWin->tailmsg) {
+                if (msgWin->m_msgIter == msgWin->m_msgList.end()) {
                     g_uwpDisplay->dismiss_more = C('p'); /* ^P ok at --More-- */
                     redotoplin(toplines);
-                    msgWin->curmsg--;
-                    if (msgWin->curmsg < 0)
-                        msgWin->curmsg = baseWin->rows - 1;
-                    if (!msgWin->msgdata[msgWin->curmsg])
-                        msgWin->curmsg = msgWin->tailmsg;
-                }
-                else if (msgWin->curmsg == (msgWin->tailmsg - 1)) {
-                    g_uwpDisplay->dismiss_more = C('p'); /* ^P ok at --More-- */
-                    redotoplin(msgWin->msgdata[msgWin->curmsg]);
-                    msgWin->curmsg--;
-                    if (msgWin->curmsg < 0)
-                        msgWin->curmsg = baseWin->rows - 1;
-                    if (!msgWin->msgdata[msgWin->curmsg])
-                        msgWin->curmsg = msgWin->tailmsg;
-                }
-                else {
-                    prevmsg_win = create_nhwindow(NHW_MENU);
-                    putstr(prevmsg_win, 0, "Message History");
-                    putstr(prevmsg_win, 0, "");
-                    msgWin->curmsg = msgWin->tailmsg;
-                    i = msgWin->curmsg;
-                    do {
-                        if (msgWin->msgdata[i] && strcmp(msgWin->msgdata[i], ""))
-                            putstr(prevmsg_win, 0, msgWin->msgdata[i]);
-                        i = (i + 1) % baseWin->rows;
-                    } while (i != msgWin->curmsg);
-                    putstr(prevmsg_win, 0, toplines);
-                    display_nhwindow(prevmsg_win, TRUE);
-                    destroy_nhwindow(prevmsg_win);
+
+                    if (msgWin->m_msgIter != msgWin->m_msgList.begin())
+                        msgWin->m_msgIter--;
+
+                } else {
+                    auto iter = msgWin->m_msgIter;
+                    iter++;
+
+                    if (iter == msgWin->m_msgList.end()) {
+                        g_uwpDisplay->dismiss_more = C('p'); /* ^P ok at --More-- */
+                        redotoplin(iter->c_str());
+
+                        if (msgWin->m_msgIter != msgWin->m_msgList.begin())
+                            msgWin->m_msgIter--;
+                        else
+                            msgWin->m_msgIter = msgWin->m_msgList.end();
+
+                    } else {
+                        prevmsg_win = create_nhwindow(NHW_MENU);
+                        putstr(prevmsg_win, 0, "Message History");
+                        putstr(prevmsg_win, 0, "");
+
+                        msgWin->m_msgIter = msgWin->m_msgList.end();
+
+                        for (auto & msg : msgWin->m_msgList)
+                            putstr(prevmsg_win, 0, msg.c_str());
+
+                        putstr(prevmsg_win, 0, toplines);
+                        display_nhwindow(prevmsg_win, TRUE);
+                        destroy_nhwindow(prevmsg_win);
+                    }
                 }
 
             } while (morc == C('p'));
@@ -1643,21 +1644,17 @@ tty_doprev_message()
             putstr(prevmsg_win, 0, "Message History");
             putstr(prevmsg_win, 0, "");
             putstr(prevmsg_win, 0, toplines);
-            msgWin->curmsg = msgWin->tailmsg - 1;
-            if (msgWin->curmsg < 0)
-                msgWin->curmsg = baseWin->rows - 1;
-            do {
-                putstr(prevmsg_win, 0, msgWin->msgdata[msgWin->curmsg]);
-                msgWin->curmsg--;
-                if (msgWin->curmsg < 0)
-                    msgWin->curmsg = baseWin->rows - 1;
-                if (!msgWin->msgdata[msgWin->curmsg])
-                    msgWin->curmsg = msgWin->tailmsg;
-            } while (msgWin->curmsg != msgWin->tailmsg);
+
+            auto & iter = msgWin->m_msgList.end();
+            while (iter != msgWin->m_msgList.begin())
+            {
+                putstr(prevmsg_win, 0, iter->c_str());
+                iter--;
+            }
 
             display_nhwindow(prevmsg_win, TRUE);
             destroy_nhwindow(prevmsg_win);
-            msgWin->curmsg = msgWin->tailmsg;
+            msgWin->m_msgIter = msgWin->m_msgList.end();
             g_uwpDisplay->dismiss_more = 0;
         }
     }
@@ -1665,15 +1662,17 @@ tty_doprev_message()
         g_uwpDisplay->dismiss_more = C('p'); /* <ctrl/P> allowed at --More-- */
         do {
             morc = 0;
-            if (msgWin->curmsg == msgWin->tailmsg)
+            if (msgWin->m_msgIter == msgWin->m_msgList.end()) {
                 redotoplin(toplines);
-            else if (msgWin->msgdata[msgWin->curmsg])
-                redotoplin(msgWin->msgdata[msgWin->curmsg]);
-            msgWin->curmsg--;
-            if (msgWin->curmsg < 0)
-                msgWin->curmsg = baseWin->rows - 1;
-            if (!msgWin->msgdata[msgWin->curmsg])
-                msgWin->curmsg = msgWin->tailmsg;
+            } else {
+                redotoplin(msgWin->m_msgIter->c_str());
+            }
+
+            if (msgWin->m_msgIter != msgWin->m_msgList.begin())
+                msgWin->m_msgIter--;
+            else
+                msgWin->m_msgIter = msgWin->m_msgList.end();
+
         } while (morc == C('p'));
         g_uwpDisplay->dismiss_more = 0;
     }
@@ -1712,16 +1711,14 @@ remember_topl()
     MessageWindow *msgWin = GetMessageWindow();
     BaseWindow *baseWin = msgWin;
 
-    int idx = msgWin->tailmsg;
-    unsigned len = strlen(toplines) + 1;
-
     if (!*toplines)
         return;
 
-    strncpy(msgWin->msgdata[idx], toplines, sizeof(msgWin->msgdata[idx]) - 1);
+    msgWin->m_msgList.push_back(std::string(toplines));
+    while (msgWin->m_msgList.size() > baseWin->rows)
+        msgWin->m_msgList.pop_front();
     *toplines = '\0';
-    msgWin->tailmsg = (idx + 1) % baseWin->rows;
-    msgWin->curmsg = msgWin->tailmsg;
+    msgWin->m_msgIter = msgWin->m_msgList.end();
 }
 
 void
@@ -1954,7 +1951,7 @@ tty_yn_function(
             if (iflags.prevmsg_window != 's') {
                 (void)tty_doprev_message();
                 tty_clear_nhwindow(WIN_MESSAGE);
-                msgWin->curmsg = msgWin->tailmsg;
+                msgWin->m_msgIter = msgWin->m_msgList.end();
                 addtopl(prompt);
             }
             else {
@@ -1971,7 +1968,7 @@ tty_yn_function(
             character which has just been read is an acceptable
             response; if so, skip the reprompt and use it. */
             tty_clear_nhwindow(WIN_MESSAGE);
-            msgWin->curmsg = msgWin->tailmsg;
+            msgWin->m_msgIter = msgWin->m_msgList.end();
             doprev = 0;
             addtopl(prompt);
             q = '\0'; /* force another loop iteration */
@@ -2030,7 +2027,8 @@ tty_yn_function(
                     }
                     else {
                         value /= 10;
-                        removetopl(1), n_len--;
+                        removetopl(1);
+                        n_len--;
                     }
                 }
                 else {
@@ -2044,7 +2042,8 @@ tty_yn_function(
             else if (value == 0)
                 q = 'n'; /* 0 => "no" */
             else {       /* remove number from top line, then try again */
-                removetopl(n_len), n_len = 0;
+                removetopl(n_len);
+                n_len = 0;
                 q = '\0';
             }
         }
@@ -2064,7 +2063,7 @@ clean_up:
 }
 
 /* shared by tty_getmsghistory() and tty_putmsghistory() */
-static char snapshot_mesgs[kMaxMessageHistoryLength+1][TBUFSZ];
+static std::list<std::string> s_snapshot_msgList;
 
 /* collect currently available message history data into a sequential array;
 optionally, purge that data from the active circular buffer set as we go */
@@ -2072,10 +2071,7 @@ STATIC_OVL void
 msghistory_snapshot(
     boolean purge) /* clear message history buffer as we copy it */
 {
-    char *mesg;
-    int i, inidx, outidx;
     MessageWindow *msgWin = GetMessageWindow();
-    BaseWindow *baseWin = msgWin;
 
     /* paranoia (too early or too late panic save attempt?) */
     if (msgWin == NULL)
@@ -2084,29 +2080,12 @@ msghistory_snapshot(
     /* flush toplines[], moving most recent message to history */
     remember_topl();
 
-    inidx = msgWin->tailmsg;
-
-    for (i = 0; i < baseWin->rows; ++i) {
-        if (msgWin->msgdata[inidx][0])
-            break;
-        inidx = (inidx + 1) % baseWin->rows;
-    }
-
-    outidx = 0;
-    for (; i < baseWin->rows; ++i) {
-        assert(msgWin->msgdata[inidx][0]);
-        strncpy(snapshot_mesgs[outidx++], msgWin->msgdata[inidx], sizeof(snapshot_mesgs[inidx]));
-        if (purge)
-            msgWin->msgdata[inidx][0] = 0;
-        inidx = (inidx + 1) % baseWin->rows;
-    }
-
-    snapshot_mesgs[outidx][0] = 0; /* sentinel */
+    s_snapshot_msgList = msgWin->m_msgList;
 
     /* for a destructive snapshot, history is now completely empty */
     if (purge) {
-        msgWin->curmsg = 0;
-        msgWin->tailmsg = 0;
+        msgWin->m_msgList.clear();
+        msgWin->m_msgIter = msgWin->m_msgList.end();
     }
 }
 
@@ -2123,22 +2102,17 @@ msghistory_snapshot(
 char *
 tty_getmsghistory(boolean init)
 {
-    static int nxtidx = 0;
-    char *nextmesg;
-    char *result = 0;
+    static std::list<std::string>::iterator iter;
 
     if (init) {
         msghistory_snapshot(FALSE);
-        nxtidx = 0;
+        iter = s_snapshot_msgList.begin();
     }
 
-    if (nxtidx >= kMaxMessageHistoryLength)
+    if (iter == s_snapshot_msgList.end())
         return NULL;
-
-    if (snapshot_mesgs[nxtidx][0] == 0)
-        return NULL;
-
-    return snapshot_mesgs[nxtidx++];
+    
+    return (char *) (iter++)->c_str();
 }
 
 /*
@@ -2184,11 +2158,11 @@ tty_putmsghistory(
     } else {
 
         assert(initd);
-        /* done putting arbitrary messages in; put the snapshot ones back */
-        for (idx = 0; snapshot_mesgs[idx][0] != 0; ++idx) {
+        for (auto msg : s_snapshot_msgList) {
             remember_topl();
-            strncpy(toplines, snapshot_mesgs[idx], sizeof(toplines) - 1);
+            strncpy(toplines, msg.c_str(), sizeof(toplines) - 1);
         }
+
         /* now release the snapshot */
         initd = FALSE; /* reset */
     }

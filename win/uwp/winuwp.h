@@ -51,9 +51,8 @@ static const int kMaxMessageHistoryLength = 60;
 static const int kMinMessageHistoryLength = 20;
 
 struct MessageWindow : public BaseWindow {
-    char msgdata[kMaxMessageHistoryLength][TBUFSZ];
-    long tailmsg;          /* tail of message queue */
-    long curmsg;           /* current msg shown */
+    std::list<std::string> m_msgList;
+    std::list<std::string>::iterator m_msgIter;
     bool mustBeSeen;       /* message must be seen */
     bool mustBeErased;     /* message must be erased */
     bool nextIsPrompt;     /* next output message is a prompt */
