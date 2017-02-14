@@ -249,7 +249,7 @@ tty_player_selection()
         q - quit
         */
         tty_putstr(BASE_WINDOW, 0, "");
-        echoline = g_wins[BASE_WINDOW]->cury;
+        echoline = g_wins[BASE_WINDOW]->m_cury;
         tty_putstr(BASE_WINDOW, 0, prompt);
         do {
             pick4u = lowc(readchar());

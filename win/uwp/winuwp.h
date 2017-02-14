@@ -21,18 +21,25 @@ typedef struct tty_mi {
 } tty_menu_item;
 
 /* struct for windows */
-struct BaseWindow {
-    int flags;           /* window flags */
-    xchar type;          /* type of window */
-    boolean active;      /* true if window is active */
-    short offx, offy;    /* offset from topleft of display */
-    long rows, cols;     /* dimensions */
-    long curx, cury;     /* current cursor position */
-    char *morestr;         /* string to display instead of default */
+struct CoreWindow {
+
+    CoreWindow(int type);
+    virtual ~CoreWindow();
+
+    int m_flags;           /* window flags */
+    xchar m_type;          /* type of window */
+    boolean m_active;      /* true if window is active */
+    short m_offx, m_offy;    /* offset from topleft of display */
+    long m_rows, m_cols;     /* dimensions */
+    long m_curx, m_cury;     /* current cursor position */
+    char *m_morestr;         /* string to display instead of default */
 };
 
-struct GenericWindow : public BaseWindow
+struct GenericWindow : public CoreWindow
 {
+    GenericWindow(int type);
+    virtual ~GenericWindow();
+
     long maxrow, maxcol; /* the maximum size used -- for MENU wins */
                          /* maxcol is also used by WIN_MESSAGE for */
                          /* tracking the ^P command */
@@ -43,7 +50,11 @@ struct GenericWindow : public BaseWindow
 static const int kMaxMessageHistoryLength = 60;
 static const int kMinMessageHistoryLength = 20;
 
-struct MessageWindow : public BaseWindow {
+struct MessageWindow : public CoreWindow {
+
+    MessageWindow();
+    virtual ~MessageWindow();
+
     std::list<std::string> m_msgList;
     std::list<std::string>::iterator m_msgIter;
     bool mustBeSeen;       /* message must be seen */
@@ -52,6 +63,10 @@ struct MessageWindow : public BaseWindow {
 };
 
 struct MenuWindow : public GenericWindow {
+
+    MenuWindow();
+    virtual ~MenuWindow();
+
     tty_menu_item *mlist;  /* menu information (MENU) */
     tty_menu_item **plist; /* menu page pointers (MENU) */
     long plist_size;       /* size of allocated plist (MENU) */
@@ -59,6 +74,26 @@ struct MenuWindow : public GenericWindow {
     long nitems;           /* total number of items (MENU) */
     short how;             /* menu mode - pick 1 or N (MENU) */
     char menu_ch;          /* menu char (MENU) */
+};
+
+struct BaseWindow : public GenericWindow {
+    BaseWindow();
+    virtual ~BaseWindow();
+};
+
+struct StatusWindow : public GenericWindow {
+    StatusWindow();
+    virtual ~StatusWindow();
+};
+
+struct MapWindow : public GenericWindow {
+    MapWindow();
+    virtual ~MapWindow();
+};
+
+struct TextWindow : public GenericWindow {
+    TextWindow();
+    virtual ~TextWindow();
 };
 
 extern "C" {
@@ -92,7 +127,7 @@ extern struct window_procs uwp_procs;
 
 /* port specific variable declarations */
 
-extern BaseWindow *g_wins[MAXWIN];
+extern CoreWindow *g_wins[MAXWIN];
 
 extern struct DisplayDesc *g_uwpDisplay; /* the tty display descriptor */
 
@@ -245,11 +280,11 @@ void win_puts(
     Nethack::TextColor textColor = Nethack::TextColor::NoColor,
     Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
 
-BaseWindow * GetBaseWindow(winid window);
+CoreWindow * GetCoreWindow(winid window);
 GenericWindow * GetGenericWindow(winid window);
 MessageWindow * GetMessageWindow();
-MessageWindow * ToMessageWindow(BaseWindow * baseWin);
-GenericWindow * ToGenericWindow(BaseWindow * baseWin);
-MenuWindow * ToMenuWindow(BaseWindow * baseWin);
+MessageWindow * ToMessageWindow(CoreWindow * coreWin);
+GenericWindow * ToGenericWindow(CoreWindow * coreWin);
+MenuWindow * ToMenuWindow(CoreWindow * coreWin);
 
 }

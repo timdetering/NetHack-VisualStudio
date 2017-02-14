@@ -90,14 +90,14 @@ struct window_procs uwp_procs = {
 };
 
 static int maxwin = 0; /* number of windows in use */
-BaseWindow *g_wins[MAXWIN];
+CoreWindow *g_wins[MAXWIN];
 struct DisplayDesc *g_uwpDisplay; /* the tty display descriptor */
 
 char winpanicstr[] = "Bad window id %d";
 char defmorestr[] = "--More--";
 
 #if defined(USE_TILES) && defined(MSDOS)
-extern void FDECL(adjust_cursor_flags, (BaseWindow *));
+extern void FDECL(adjust_cursor_flags, (CoreWindow *));
 #endif
 
 #if defined(ASCIIGRAPH) && !defined(NO_TERMS)
@@ -112,9 +112,9 @@ static const char to_continue[] = "to continue";
 STATIC_DCL void NDECL(getret);
 #endif
 STATIC_DCL void FDECL(erase_menu_or_text,
-                      (winid, BaseWindow *, BOOLEAN_P));
-STATIC_DCL void FDECL(free_window_info, (BaseWindow *, BOOLEAN_P));
-STATIC_DCL void FDECL(dmore, (BaseWindow *, const char *));
+                      (winid, CoreWindow *, BOOLEAN_P));
+STATIC_DCL void FDECL(free_window_info, (CoreWindow *, BOOLEAN_P));
+STATIC_DCL void FDECL(dmore, (CoreWindow *, const char *));
 STATIC_DCL void FDECL(set_item_state, (winid, int, tty_menu_item *));
 STATIC_DCL void FDECL(set_all_on_page, (winid, tty_menu_item *,
                                         tty_menu_item *));
@@ -175,7 +175,7 @@ tty_init_nhwindows(int *, char **)
     winid base_window = tty_create_nhwindow(NHW_BASE);
     assert(base_window == BASE_WINDOW);
 
-    g_wins[BASE_WINDOW]->active = 1;
+    g_wins[BASE_WINDOW]->m_active = 1;
 
     g_uwpDisplay->lastwin = WIN_ERR;
 
@@ -208,7 +208,7 @@ tty_askname()
         }
 #endif /* SELECTSAVED */
 
-    int startLine = g_wins[BASE_WINDOW]->cury;
+    int startLine = g_wins[BASE_WINDOW]->m_cury;
 
     do {
         if (++tryct > 1) {
@@ -251,7 +251,7 @@ tty_askname()
     } while (ct == 0);
 
     /* move to next line to simulate echo of user's <return> */
-    tty_curs(BASE_WINDOW, 1, g_wins[BASE_WINDOW]->cury + 1);
+    tty_curs(BASE_WINDOW, 1, g_wins[BASE_WINDOW]->m_cury + 1);
 
     /* since we let user pick an arbitrary name now, he/she can pick
        another one during role selection */
@@ -316,6 +316,156 @@ tty_exit_nhwindows(const char *str)
     iflags.window_inited = 0;
 }
 
+CoreWindow::CoreWindow(int inType) : m_type(inType)
+{
+    m_flags = 0;
+    m_active = FALSE;
+    m_curx = 0;
+    m_cury = 0;
+    m_morestr = 0;
+}
+
+CoreWindow::~CoreWindow()
+{
+}
+
+GenericWindow::GenericWindow(int inType) : CoreWindow(inType)
+{
+}
+
+GenericWindow::~GenericWindow()
+{
+}
+
+MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE)
+{
+    // msg
+    mustBeSeen = false;
+    mustBeErased = false;
+    nextIsPrompt = false;
+
+    m_msgIter = m_msgList.end();
+
+    // core
+    /* message window, 1 line long, very wide, top of screen */
+    m_offx = 0;
+    m_offy = 0;
+
+    /* sanity check */
+    if (iflags.msg_history < kMinMessageHistoryLength)
+        iflags.msg_history = kMinMessageHistoryLength;
+    else if (iflags.msg_history > kMaxMessageHistoryLength)
+        iflags.msg_history = kMaxMessageHistoryLength;
+
+    m_rows = iflags.msg_history;
+    m_cols = 0;
+}
+
+MessageWindow::~MessageWindow()
+{
+}
+
+MenuWindow::MenuWindow() : GenericWindow(NHW_MENU)
+{
+    // menu
+    mlist = (tty_menu_item *)0;
+    plist = (tty_menu_item **)0;
+    npages = 0;
+    plist_size = 0;
+    nitems = 0;
+    how = 0;
+
+    // core
+    /* inventory/menu window, variable length, full width, top of screen
+    */
+    /* help window, the same, different semantics for display, etc */
+    m_offx = 0;
+    m_offy = 0;
+    m_rows = 0;
+    m_cols = g_uwpDisplay->cols;
+
+    // gen
+    maxrow = 0;
+    maxcol = 0;
+}
+
+MenuWindow::~MenuWindow()
+{
+}
+
+BaseWindow::BaseWindow() : GenericWindow(NHW_BASE)
+{
+    // core
+    m_offx = 0;
+    m_offy = 0;
+    m_rows = g_uwpDisplay->rows;
+    m_cols = g_uwpDisplay->cols;
+
+    // gen
+    maxrow = 0;
+    maxcol = 0;
+}
+
+BaseWindow::~BaseWindow()
+{
+}
+
+StatusWindow::StatusWindow() : GenericWindow(NHW_STATUS)
+{
+    // core
+    /* status window, 2 lines long, full width, bottom of screen */
+    m_offx = 0;
+    m_offy = min((int)g_uwpDisplay->rows - 2, ROWNO + 1);
+    m_rows = 2;
+    m_cols = g_uwpDisplay->cols;
+
+    // gen
+    maxrow = m_rows;
+    maxcol = m_cols;
+}
+
+StatusWindow::~StatusWindow()
+{
+}
+
+MapWindow::MapWindow() : GenericWindow(NHW_MAP)
+{
+    // core
+    /* map window, ROWNO lines long, full width, below message window */
+    m_offx = 0;
+    m_offy = 1;
+    m_rows = ROWNO;
+    m_cols = COLNO;
+
+    // gen
+    maxrow = 0; /* no buffering done -- let gbuf do it */
+    maxcol = 0;
+}
+
+MapWindow::~MapWindow()
+{
+}
+
+TextWindow::TextWindow() : GenericWindow(NHW_TEXT)
+{
+    // core
+    /* inventory/menu window, variable length, full width, top of screen
+    */
+    /* help window, the same, different semantics for display, etc */
+    m_offx = 0;
+    m_offy = 0;
+    m_rows = 0;
+    m_cols = g_uwpDisplay->cols;
+
+    // gen
+    maxrow = 0;
+    maxcol = 0;
+}
+
+TextWindow::~TextWindow()
+{
+}
+
 winid
 tty_create_nhwindow(int type)
 {
@@ -325,103 +475,59 @@ tty_create_nhwindow(int type)
     if (maxwin == MAXWIN)
         return WIN_ERR;
 
-    BaseWindow *baseWin = NULL;
-    MessageWindow * msgWin = NULL;
+    CoreWindow *coreWin = NULL;
     GenericWindow * genWin = NULL;
-    MenuWindow * menuWin = NULL;
-
-    if (type == NHW_MESSAGE) {
-        msgWin = new MessageWindow();
-        baseWin = msgWin;
-    } else if(type == NHW_MENU) {
-        menuWin = new MenuWindow();
-        baseWin = menuWin;
-        genWin = menuWin;
-    } else {
-        genWin = new GenericWindow();
-        baseWin = genWin;
-    }
-
-    baseWin->type = type;
-    baseWin->flags = 0;
-    baseWin->active = FALSE;
-    baseWin->curx = baseWin->cury = 0;
-    baseWin->morestr = 0;
 
     switch (type) {
     case NHW_BASE:
-
+    {
         if (g_wins[BASE_WINDOW] != NULL) return WIN_ERR;
 
+        BaseWindow * baseWin = new BaseWindow();
+        genWin = baseWin;
+        coreWin = genWin;
+
         /* base window, used for absolute movement on the screen */
-        baseWin->offx = baseWin->offy = 0;
-        baseWin->rows = g_uwpDisplay->rows;
-        baseWin->cols = g_uwpDisplay->cols;
-        genWin->maxrow = genWin->maxcol = 0;
         break;
+    }
 
     case NHW_MESSAGE:
+    {
+        MessageWindow * msgWin = new MessageWindow();
+        coreWin = msgWin;
 
-        msgWin->mustBeSeen = false;
-        msgWin->mustBeErased = false;
-        msgWin->nextIsPrompt = false;
-
-        /* message window, 1 line long, very wide, top of screen */
-        baseWin->offx = baseWin->offy = 0;
-        /* sanity check */
-        if (iflags.msg_history < kMinMessageHistoryLength)
-            iflags.msg_history = kMinMessageHistoryLength;
-        else if (iflags.msg_history > kMaxMessageHistoryLength)
-            iflags.msg_history = kMaxMessageHistoryLength;
-        baseWin->rows = iflags.msg_history;
-        baseWin->cols = 0;
-        msgWin->m_msgIter = msgWin->m_msgList.end();
         break;
-
+    }
     case NHW_STATUS:
-        /* status window, 2 lines long, full width, bottom of screen */
-        baseWin->offx = 0;
-#if defined(USE_TILES) && defined(MSDOS)
-        if (iflags.grmode) {
-            newwin->offy = g_uwpDisplay->rows - 2;
-        } else
-#endif
-            baseWin->offy = min((int) g_uwpDisplay->rows - 2, ROWNO + 1);
-        baseWin->rows = genWin->maxrow = 2;
-        baseWin->cols = genWin->maxcol = g_uwpDisplay->cols;
+    {
+        StatusWindow * statusWin = new StatusWindow();
+        genWin = statusWin;
+        coreWin = genWin;
         break;
+    }
     case NHW_MAP:
-        /* map window, ROWNO lines long, full width, below message window */
-        baseWin->offx = 0;
-        baseWin->offy = 1;
-        baseWin->rows = ROWNO;
-        baseWin->cols = COLNO;
-        genWin->maxrow = 0; /* no buffering done -- let gbuf do it */
-        genWin->maxcol = 0;
-        break;
-    case NHW_MENU:
-        assert(menuWin != NULL);
-        menuWin->mlist = (tty_menu_item *)0;
-        menuWin->plist = (tty_menu_item **)0;
-        menuWin->npages = menuWin->plist_size = menuWin->nitems = menuWin->how = 0;
-        /* inventory/menu window, variable length, full width, top of screen
-        */
-        /* help window, the same, different semantics for display, etc */
-        baseWin->offx = baseWin->offy = 0;
-        baseWin->rows = 0;
-        baseWin->cols = g_uwpDisplay->cols;
-        genWin->maxrow = genWin->maxcol = 0;
-        break;
+    {
+        MapWindow * mapWin = new MapWindow();
+        genWin = mapWin;
+        coreWin = genWin;
 
-    case NHW_TEXT:
-        /* inventory/menu window, variable length, full width, top of screen
-         */
-        /* help window, the same, different semantics for display, etc */
-        baseWin->offx = baseWin->offy = 0;
-        baseWin->rows = 0;
-        baseWin->cols = g_uwpDisplay->cols;
-        genWin->maxrow = genWin->maxcol = 0;
         break;
+    }
+    case NHW_MENU:
+    {
+        MenuWindow * menuWin = new MenuWindow();
+        genWin = menuWin;
+        coreWin = genWin;
+
+        break;
+    }
+    case NHW_TEXT:
+    {
+        TextWindow * textWin = new TextWindow();
+        genWin = textWin;
+        coreWin = genWin;
+        break;
+    }
     default:
         panic("Tried to create window type %d\n", (int) type);
         return WIN_ERR;
@@ -429,7 +535,7 @@ tty_create_nhwindow(int type)
 
     for (newid = 0; newid < MAXWIN; newid++) {
         if (g_wins[newid] == 0) {
-            g_wins[newid] = baseWin;
+            g_wins[newid] = coreWin;
             break;
         }
     }
@@ -467,7 +573,7 @@ tty_create_nhwindow(int type)
     return newid;
 }
 
-BaseWindow * GetBaseWindow(winid window)
+CoreWindow * GetCoreWindow(winid window)
 {
     if (window == WIN_ERR || g_wins[window] == NULL)
         panic(winpanicstr, window);
@@ -489,34 +595,34 @@ GenericWindow * GetGenericWindow(winid window)
     return NULL;
 }
 
-MessageWindow * ToMessageWindow(BaseWindow * baseWin)
+MessageWindow * ToMessageWindow(CoreWindow * coreWin)
 {
-    if (baseWin->type == NHW_MESSAGE)
-        return (MessageWindow *)baseWin;
+    if (coreWin->m_type == NHW_MESSAGE)
+        return (MessageWindow *)coreWin;
     return NULL;
 }
 
-GenericWindow * ToGenericWindow(BaseWindow * baseWin)
+GenericWindow * ToGenericWindow(CoreWindow * coreWin)
 {
-    if (baseWin->type != NHW_MESSAGE)
-        return (GenericWindow *)baseWin;
+    if (coreWin->m_type != NHW_MESSAGE)
+        return (GenericWindow *)coreWin;
     return NULL;
 }
 
-MenuWindow * ToMenuWindow(BaseWindow * baseWin)
+MenuWindow * ToMenuWindow(CoreWindow * coreWin)
 {
-    if (baseWin->type == NHW_MENU)
-        return (MenuWindow *)baseWin;
+    if (coreWin->m_type == NHW_MENU)
+        return (MenuWindow *)coreWin;
     return NULL;
 }
 
 STATIC_OVL void
-erase_menu_or_text(winid window, BaseWindow * baseWin, boolean clear)
+erase_menu_or_text(winid window, CoreWindow * coreWin, boolean clear)
 {
-    GenericWindow * genWin = ToGenericWindow(baseWin);
+    GenericWindow * genWin = ToGenericWindow(coreWin);
 
-    if (baseWin->offx == 0)
-        if (baseWin->offy) {
+    if (coreWin->m_offx == 0)
+        if (coreWin->m_offy) {
             tty_curs(window, 1, 0);
             cl_eos();
         } else if (clear)
@@ -524,21 +630,21 @@ erase_menu_or_text(winid window, BaseWindow * baseWin, boolean clear)
         else
             docrt();
     else {
-        assert(genWin->type == NHW_MENU || genWin->type == NHW_TEXT);
-        docorner((int)baseWin->offx, genWin->maxrow + 1);
+        assert(genWin->m_type == NHW_MENU || genWin->m_type == NHW_TEXT);
+        docorner((int)coreWin->m_offx, genWin->maxrow + 1);
     }
 }
 
 STATIC_OVL void
 free_window_info(
-    BaseWindow *baseWin,
+    CoreWindow *coreWin,
     boolean free_data)
 {
     int i;
 
-    MessageWindow * msgWin = ToMessageWindow(baseWin);
-    GenericWindow * genWin = ToGenericWindow(baseWin);
-    MenuWindow * menuWin = ToMenuWindow(baseWin);
+    MessageWindow * msgWin = ToMessageWindow(coreWin);
+    GenericWindow * genWin = ToGenericWindow(coreWin);
+    MenuWindow * menuWin = ToMenuWindow(coreWin);
 
     if (msgWin != NULL) {
         msgWin->m_msgList.clear();
@@ -558,7 +664,7 @@ free_window_info(
                 if (genWin->datlen)
                     free((genericptr_t)genWin->datlen);
                 genWin->datlen = (short *)0;
-                baseWin->rows = 0;
+                coreWin->m_rows = 0;
             }
         }
         genWin->maxrow = genWin->maxcol = 0;
@@ -584,28 +690,28 @@ free_window_info(
         menuWin->plist_size = menuWin->npages = menuWin->nitems = menuWin->how = 0;
     }
 
-    if (baseWin->morestr) {
-        free((genericptr_t)baseWin->morestr);
-        baseWin->morestr = 0;
+    if (coreWin->m_morestr) {
+        free((genericptr_t)coreWin->m_morestr);
+        coreWin->m_morestr = 0;
     }
 }
 
 void
 tty_clear_nhwindow(winid window)
 {
-    BaseWindow *baseWin = GetBaseWindow(window);
+    CoreWindow *coreWin = GetCoreWindow(window);
 
     g_uwpDisplay->lastwin = window;
 
-    switch (baseWin->type) {
+    switch (coreWin->m_type) {
     case NHW_MESSAGE:
     {
-        MessageWindow * msgWin = (MessageWindow *)baseWin;
+        MessageWindow * msgWin = (MessageWindow *)coreWin;
         if (msgWin->mustBeErased) {
             home();
             cl_end();
-            if (msgWin->cury)
-                docorner(1, msgWin->cury + 1);
+            if (msgWin->m_cury)
+                docorner(1, msgWin->m_cury + 1);
             msgWin->mustBeErased = false;
         }
         break;
@@ -625,12 +731,12 @@ tty_clear_nhwindow(winid window)
         break;
     case NHW_MENU:
     case NHW_TEXT:
-        if (baseWin->active)
-            erase_menu_or_text(window, baseWin, TRUE);
-        free_window_info(baseWin, FALSE);
+        if (coreWin->m_active)
+            erase_menu_or_text(window, coreWin, TRUE);
+        free_window_info(coreWin, FALSE);
         break;
     }
-    baseWin->curx = baseWin->cury = 0;
+    coreWin->m_curx = coreWin->m_cury = 0;
 }
 
 /*ARGSUSED*/
@@ -638,10 +744,10 @@ void
 tty_display_nhwindow(winid window, boolean blocking)
 {
     short s_maxcol;
-    BaseWindow *baseWin = GetBaseWindow(window);
-    GenericWindow *genWin = ToGenericWindow(baseWin);
+    CoreWindow *coreWin = GetCoreWindow(window);
+    GenericWindow *genWin = ToGenericWindow(coreWin);
 
-    if (baseWin->flags & WIN_CANCELLED)
+    if (coreWin->m_flags & WIN_CANCELLED)
         return;
 
     g_uwpDisplay->lastwin = window;
@@ -649,7 +755,7 @@ tty_display_nhwindow(winid window, boolean blocking)
 
     MessageWindow *msgWin = GetMessageWindow();
 
-    switch (baseWin->type) {
+    switch (coreWin->m_type) {
     case NHW_MESSAGE:
     {
         if (msgWin->mustBeSeen) {
@@ -660,8 +766,8 @@ tty_display_nhwindow(winid window, boolean blocking)
                 tty_clear_nhwindow(window);
         }
 
-        baseWin->curx = baseWin->cury = 0;
-        if (!baseWin->active)
+        coreWin->m_curx = coreWin->m_cury = 0;
+        if (!coreWin->m_active)
             iflags.window_inited = TRUE;
         break;
     }
@@ -684,25 +790,25 @@ tty_display_nhwindow(winid window, boolean blocking)
         genWin->maxcol = g_uwpDisplay->cols; /* force full-screen mode */
         /*FALLTHRU*/
     case NHW_MENU:
-        baseWin->active = 1;
-        /* baseWin->maxcol is a long, but its value is constrained to
+        coreWin->m_active = 1;
+        /* coreWin->maxcol is a long, but its value is constrained to
            be <= g_uwpDisplay->cols, so is sure to fit within a short */
         s_maxcol = (short) genWin->maxcol;
 #ifdef H2344_BROKEN
-        baseWin->offx = (baseWin->type == NHW_TEXT)
+        coreWin->m_offx = (coreWin->m_type == NHW_TEXT)
                        ? 0
                        : min(min(82, g_uwpDisplay->cols / 2),
                              g_uwpDisplay->cols - s_maxcol - 1);
 #else
         /* avoid converting to uchar before calculations are finished */
-        baseWin->offx = (uchar) max((int) 10,
+        coreWin->m_offx = (uchar) max((int) 10,
                                (int) (g_uwpDisplay->cols - s_maxcol - 1));
 #endif
-        if (baseWin->offx < 0)
-            baseWin->offx = 0;
+        if (coreWin->m_offx < 0)
+            coreWin->m_offx = 0;
 
-        if (baseWin->type == NHW_MENU)
-            baseWin->offy = 0;
+        if (coreWin->m_type == NHW_MENU)
+            coreWin->m_offy = 0;
 
         if (msgWin != NULL && msgWin->mustBeSeen)
             tty_display_nhwindow(WIN_MESSAGE, TRUE);
@@ -711,12 +817,12 @@ tty_display_nhwindow(winid window, boolean blocking)
         if (genWin->maxrow >= (int) g_uwpDisplay->rows
             || !iflags.menu_overlay)
 #else
-        if (baseWin->offx == 10 || baseWin->maxrow >= (int) g_uwpDisplay->rows
+        if (coreWin->m_offx == 10 || coreWin->maxrow >= (int) g_uwpDisplay->rows
             || !iflags.menu_overlay)
 #endif
         {
-            baseWin->offx = 0;
-            if (baseWin->offy || iflags.menu_overlay) {
+            coreWin->m_offx = 0;
+            if (coreWin->m_offy || iflags.menu_overlay) {
                 tty_curs(window, 1, 0);
                 cl_eos();
             } else
@@ -739,18 +845,18 @@ tty_display_nhwindow(winid window, boolean blocking)
             process_menu_window(window, genWin);
         break;
     }
-    baseWin->active = 1;
+    coreWin->m_active = 1;
 }
 
 void
 tty_dismiss_nhwindow(winid window)
 {
-    BaseWindow *baseWin = GetBaseWindow(window);
+    CoreWindow *coreWin = GetCoreWindow(window);
 
-    switch (baseWin->type) {
+    switch (coreWin->m_type) {
     case NHW_MESSAGE:
     {
-        MessageWindow * msgWin = (MessageWindow *)baseWin;
+        MessageWindow * msgWin = (MessageWindow *)coreWin;
         if (msgWin->mustBeSeen)
             tty_display_nhwindow(WIN_MESSAGE, TRUE);
     }
@@ -763,11 +869,11 @@ tty_dismiss_nhwindow(winid window)
          * or suspending
          */
         tty_curs(BASE_WINDOW, 1, (int) g_uwpDisplay->rows - 1);
-        baseWin->active = 0;
+        coreWin->m_active = 0;
         break;
     case NHW_MENU:
     case NHW_TEXT:
-        if (baseWin->active) {
+        if (coreWin->m_active) {
             if (iflags.window_inited) {
                 /* otherwise dismissing the text endwin after other windows
                  * are dismissed tries to redraw the map and panics.  since
@@ -775,42 +881,32 @@ tty_dismiss_nhwindow(winid window)
                  * leave the ending window on the screen, we don't want to
                  * erase it anyway.
                  */
-                erase_menu_or_text(window, baseWin, FALSE);
+                erase_menu_or_text(window, coreWin, FALSE);
             }
-            baseWin->active = 0;
+            coreWin->m_active = 0;
         }
         break;
     }
-    baseWin->flags = 0;
+    coreWin->m_flags = 0;
 }
 
 void
 tty_destroy_nhwindow(winid window)
 {
-    BaseWindow *baseWin = GetBaseWindow(window);
-    GenericWindow *genWin = ToGenericWindow(baseWin);
-    MessageWindow * msgWin = ToMessageWindow(baseWin);
-    MenuWindow * menuWin = ToMenuWindow(baseWin);
+    CoreWindow *coreWin = GetCoreWindow(window);
 
-    if (baseWin->active)
+    if (coreWin->m_active)
         tty_dismiss_nhwindow(window);
 
-    if (baseWin->type == NHW_MESSAGE)
+    if (coreWin->m_type == NHW_MESSAGE)
         iflags.window_inited = 0;
 
-    if (baseWin->type == NHW_MAP)
+    if (coreWin->m_type == NHW_MAP)
         clear_screen();
 
-    free_window_info(baseWin, TRUE);
+    free_window_info(coreWin, TRUE);
 
-    if (msgWin != NULL) {
-        delete msgWin;
-    } else if(menuWin != NULL) {
-        delete menuWin;
-    } else {
-        assert(genWin != NULL);
-        delete genWin;
-    }
+    delete coreWin;
 
     g_wins[window] = 0;
 }
@@ -818,22 +914,22 @@ tty_destroy_nhwindow(winid window)
 void
 tty_curs(winid window, int x, int y)
 {
-    BaseWindow *baseWin = GetBaseWindow(window);
+    CoreWindow *coreWin = GetCoreWindow(window);
 
     g_uwpDisplay->lastwin = window;
 
 #if defined(USE_TILES) && defined(MSDOS)
-    adjust_cursor_flags(baseWin);
+    adjust_cursor_flags(coreWin);
 #endif
 
-    baseWin->curx = --x; /* column 0 is never used */
-    baseWin->cury = y;
+    coreWin->m_curx = --x; /* column 0 is never used */
+    coreWin->m_cury = y;
 
-    assert(x >= 0 && x <= baseWin->cols);
-    assert(y >= 0 && y < baseWin->rows);
+    assert(x >= 0 && x <= coreWin->m_cols);
+    assert(y >= 0 && y < coreWin->m_rows);
 
-    x += baseWin->offx;
-    y += baseWin->offy;
+    x += coreWin->m_offx;
+    y += coreWin->m_offy;
 
     g_textGrid.SetCursor(Int2D(x, y));
 
@@ -842,9 +938,9 @@ tty_curs(winid window, int x, int y)
 void
 tty_putsym(winid window, int x, int y, char ch)
 {
-    BaseWindow *baseWin = GetBaseWindow(window);
+    CoreWindow *coreWin = GetCoreWindow(window);
 
-    switch (baseWin->type) {
+    switch (coreWin->m_type) {
     case NHW_STATUS:
     case NHW_MAP:
     case NHW_BASE:
@@ -854,7 +950,7 @@ tty_putsym(winid window, int x, int y, char ch)
     case NHW_MESSAGE:
     case NHW_MENU:
     case NHW_TEXT:
-        impossible("Can't putsym to window type %d", baseWin->type);
+        impossible("Can't putsym to window type %d", coreWin->m_type);
         break;
     }
 }
@@ -892,7 +988,7 @@ compress_str(const char * str)
 void
 tty_putstr(winid window, int attr, const char *str)
 {
-    BaseWindow *baseWin = 0;
+    CoreWindow *coreWin = 0;
     char *ob;
     const char *nb;
     long i, j, n0;
@@ -902,22 +998,22 @@ tty_putstr(winid window, int attr, const char *str)
     /* Assume there's a real problem if the window is missing --
      * probably a panic message
      */
-    if (window == WIN_ERR || (baseWin = g_wins[window]) == NULL) {
+    if (window == WIN_ERR || (coreWin = g_wins[window]) == NULL) {
         tty_raw_print(str);
         return;
     }
 
-    GenericWindow * genWin = ToGenericWindow(baseWin);
+    GenericWindow * genWin = ToGenericWindow(coreWin);
 
     if (str == (const char *) 0
-        || ((baseWin->flags & WIN_CANCELLED) && (baseWin->type != NHW_MESSAGE)))
+        || ((coreWin->m_flags & WIN_CANCELLED) && (coreWin->m_type != NHW_MESSAGE)))
         return;
-    if (baseWin->type != NHW_MESSAGE)
+    if (coreWin->m_type != NHW_MESSAGE)
         str = compress_str(str);
 
     g_uwpDisplay->lastwin = window;
 
-    switch (baseWin->type) {
+    switch (coreWin->m_type) {
     case NHW_MESSAGE:
         /* really do this later */
 #if defined(USER_SOUNDS) && defined(WIN32CON)
@@ -927,61 +1023,61 @@ tty_putstr(winid window, int attr, const char *str)
         break;
 
     case NHW_STATUS:
-        ob = &genWin->data[baseWin->cury][j = baseWin->curx];
+        ob = &genWin->data[coreWin->m_cury][j = coreWin->m_curx];
         if (context.botlx)
             *ob = 0;
-        if (!baseWin->cury && (int) strlen(str) >= CO) {
+        if (!coreWin->m_cury && (int) strlen(str) >= CO) {
             /* the characters before "St:" are unnecessary */
             nb = index(str, ':');
             if (nb && nb > str + 2)
                 str = nb - 2;
         }
         nb = str;
-        for (i = baseWin->curx + 1, n0 = baseWin->cols; i < n0; i++, nb++) {
+        for (i = coreWin->m_curx + 1, n0 = coreWin->m_cols; i < n0; i++, nb++) {
             if (!*nb) {
                 if (*ob || context.botlx) {
                     /* last char printed may be in middle of line */
-                    tty_curs(WIN_STATUS, i, baseWin->cury);
+                    tty_curs(WIN_STATUS, i, coreWin->m_cury);
                     cl_end();
                 }
                 break;
             }
             if (*ob != *nb)
-                tty_putsym(WIN_STATUS, i, baseWin->cury, *nb);
+                tty_putsym(WIN_STATUS, i, coreWin->m_cury, *nb);
             if (*ob)
                 ob++;
         }
 
-        (void) strncpy(&genWin->data[baseWin->cury][j], str, baseWin->cols - j - 1);
-        genWin->data[baseWin->cury][baseWin->cols - 1] = '\0'; /* null terminate */
+        (void) strncpy(&genWin->data[coreWin->m_cury][j], str, coreWin->m_cols - j - 1);
+        genWin->data[coreWin->m_cury][coreWin->m_cols - 1] = '\0'; /* null terminate */
 #ifdef STATUS_VIA_WINDOWPORT
         if (!iflags.use_status_hilites) {
 #endif
-            baseWin->cury = (baseWin->cury + 1) % 2;
-            baseWin->curx = 0;
+            coreWin->m_cury = (coreWin->m_cury + 1) % 2;
+            coreWin->m_curx = 0;
 #ifdef STATUS_VIA_WINDOWPORT
         }
 #endif
         break;
     case NHW_MAP:
-        tty_curs(window, baseWin->curx + 1, baseWin->cury);
+        tty_curs(window, coreWin->m_curx + 1, coreWin->m_cury);
         win_puts(window, str, TextColor::NoColor, useAttribute);
-        baseWin->curx = 0;
-        baseWin->cury++;
+        coreWin->m_curx = 0;
+        coreWin->m_cury++;
         break;
     case NHW_BASE:
-        tty_curs(window, baseWin->curx + 1, baseWin->cury);
+        tty_curs(window, coreWin->m_curx + 1, coreWin->m_cury);
         win_puts(window, str, TextColor::NoColor, useAttribute);
-        baseWin->curx = 0;
-        baseWin->cury++;
+        coreWin->m_curx = 0;
+        coreWin->m_cury++;
         break;
     case NHW_MENU:
     case NHW_TEXT:
 #ifdef H2344_BROKEN
-        if (baseWin->type == NHW_TEXT
-            && (baseWin->cury + baseWin->offy) == g_textGrid.GetDimensions().m_y - 1)
+        if (coreWin->m_type == NHW_TEXT
+            && (coreWin->m_cury + coreWin->m_offy) == g_textGrid.GetDimensions().m_y - 1)
 #else
-        if (baseWin->type == NHW_TEXT && baseWin->cury == g_uwpDisplay->rows - 1)
+        if (coreWin->m_type == NHW_TEXT && coreWin->m_cury == g_uwpDisplay->rows - 1)
 #endif
         {
             /* not a menu, so save memory and output 1 page at a time */
@@ -992,40 +1088,40 @@ tty_putstr(winid window, int attr, const char *str)
                     free((genericptr_t)genWin->data[i]);
                     genWin->data[i] = 0;
                 }
-            genWin->maxrow = baseWin->cury = 0;
+            genWin->maxrow = coreWin->m_cury = 0;
         }
         /* always grows one at a time, but alloc 12 at a time */
-        if (baseWin->cury >= baseWin->rows) {
+        if (coreWin->m_cury >= coreWin->m_rows) {
             char **tmp;
 
-            baseWin->rows += 12;
-            tmp = (char **) alloc(sizeof(char *) * (unsigned) baseWin->rows);
+            coreWin->m_rows += 12;
+            tmp = (char **) alloc(sizeof(char *) * (unsigned) coreWin->m_rows);
             for (i = 0; i < genWin->maxrow; i++)
                 tmp[i] = genWin->data[i];
             if (genWin->data)
                 free((genericptr_t)genWin->data);
             genWin->data = tmp;
 
-            for (i = genWin->maxrow; i < baseWin->rows; i++)
+            for (i = genWin->maxrow; i < coreWin->m_rows; i++)
                 genWin->data[i] = 0;
         }
-        if (genWin->data[baseWin->cury])
-            free((genericptr_t)genWin->data[baseWin->cury]);
+        if (genWin->data[coreWin->m_cury])
+            free((genericptr_t)genWin->data[coreWin->m_cury]);
         n0 = (long) strlen(str) + 1L;
-        ob = genWin->data[baseWin->cury] = (char *) alloc((unsigned) n0 + 1);
+        ob = genWin->data[coreWin->m_cury] = (char *) alloc((unsigned) n0 + 1);
         *ob++ = (char) (attr + 1); /* avoid nuls, for convenience */
         Strcpy(ob, str);
 
         if (n0 > genWin->maxcol)
             genWin->maxcol = n0;
-        if (++baseWin->cury > genWin->maxrow)
-            genWin->maxrow = baseWin->cury;
+        if (++coreWin->m_cury > genWin->maxrow)
+            genWin->maxrow = coreWin->m_cury;
         if (n0 > CO) {
             /* attempt to break the line */
             for (i = CO - 1; i && str[i] != ' ' && str[i] != '\n';)
                 i--;
             if (i) {
-                genWin->data[baseWin->cury - 1][++i] = '\0';
+                genWin->data[coreWin->m_cury - 1][++i] = '\0';
                 tty_putstr(window, attr, &str[i]);
             }
         }
@@ -1062,9 +1158,9 @@ tty_display_file(const char *fname, boolean complain)
 #endif
             ) {
             /* attempt to scroll text below map window if there's room */
-            g_wins[datawin]->offy = g_wins[WIN_STATUS]->offy + 3;
-            if ((int)g_wins[datawin]->offy + 12 > g_textGrid.GetDimensions().m_y)
-                    g_wins[datawin]->offy = 0;
+            g_wins[datawin]->m_offy = g_wins[WIN_STATUS]->m_offy + 3;
+            if ((int)g_wins[datawin]->m_offy + 12 > g_textGrid.GetDimensions().m_y)
+                    g_wins[datawin]->m_offy = 0;
         }
         while (dlb_fgets(buf, BUFSZ, f)) {
             if ((cr = index(buf, '\n')) != 0)
@@ -1073,7 +1169,7 @@ tty_display_file(const char *fname, boolean complain)
                 (void) tabexpand(buf);
             empty = FALSE;
             tty_putstr(datawin, 0, buf);
-            if (g_wins[datawin]->flags & WIN_CANCELLED)
+            if (g_wins[datawin]->m_flags & WIN_CANCELLED)
                 break;
         }
         if (!empty)
@@ -1114,30 +1210,30 @@ docorner(
     int ymax)
 {
     register int y;
-    register BaseWindow *baseWin = g_wins[WIN_MAP];
+    register CoreWindow *coreWin = g_wins[WIN_MAP];
 
     for (y = 0; y < ymax; y++) {
         tty_curs(BASE_WINDOW, xmin, y); /* move cursor */
         cl_end();                       /* clear to end of line */
 #ifdef CLIPPING
-        if (y < (int) baseWin->offy || y + clipy > ROWNO)
+        if (y < (int) coreWin->m_offy || y + clipy > ROWNO)
             continue; /* only refresh board */
 #if defined(USE_TILES) && defined(MSDOS)
         if (iflags.tile_view)
-            row_refresh((xmin / 2) + clipx - ((int) baseWin->offx / 2), COLNO - 1,
-                        y + clipy - (int) baseWin->offy);
+            row_refresh((xmin / 2) + clipx - ((int) coreWin->m_offx / 2), COLNO - 1,
+                        y + clipy - (int) coreWin->m_offy);
         else
 #endif
-            row_refresh(xmin + clipx - (int) baseWin->offx, COLNO - 1,
-                        y + clipy - (int) baseWin->offy);
+            row_refresh(xmin + clipx - (int) coreWin->m_offx, COLNO - 1,
+                        y + clipy - (int) coreWin->m_offy);
 #else
-        if (y < baseWin->offy || y > ROWNO)
+        if (y < coreWin->m_offy || y > ROWNO)
             continue; /* only refresh board  */
-        row_refresh(xmin - (int) baseWin->offx, COLNO - 1, y - (int) baseWin->offy);
+        row_refresh(xmin - (int) coreWin->m_offx, COLNO - 1, y - (int) coreWin->m_offy);
 #endif
     }
 
-    if (ymax >= (int) g_wins[WIN_STATUS]->offy) {
+    if (ymax >= (int) g_wins[WIN_STATUS]->m_offy) {
         /* we have wrecked the bottom line */
         context.botlx = 1;
         bot();
@@ -1250,7 +1346,7 @@ tty_nhgetch()
      * here, but validate those pointers just in case...
      */
     if (msgWin != NULL)
-        msgWin->flags &= ~WIN_STOP;
+        msgWin->m_flags &= ~WIN_STOP;
 
     i = tgetch();
     if (!i)
@@ -1287,7 +1383,7 @@ tty_nh_poskey(int *x, int *y, int *mod)
      * here, but validate those pointers just in case...
      */
     if (msgWin != NULL)
-        msgWin->flags &= ~WIN_STOP;
+        msgWin->m_flags &= ~WIN_STOP;
 
     i = ntposkey(x, y, mod);
     if (!i && mod && (*mod == 0 || *mod == EOF))
@@ -1340,12 +1436,12 @@ hooked_tty_getlin(
     register char *obufp = bufp;
     register int c;
     MessageWindow *msgWin = GetMessageWindow();
-    BaseWindow * baseWin = (BaseWindow *)msgWin;
+    CoreWindow * coreWin = (CoreWindow *)msgWin;
     boolean doprev = 0;
 
-    if (msgWin->mustBeSeen && !(msgWin->flags & WIN_STOP))
+    if (msgWin->mustBeSeen && !(msgWin->m_flags & WIN_STOP))
         more();
-    baseWin->flags &= ~WIN_STOP;
+    coreWin->m_flags &= ~WIN_STOP;
 
     msgWin->nextIsPrompt = true;
     pline("%s ", query);
@@ -1607,7 +1703,7 @@ int
 tty_doprev_message()
 {
     MessageWindow *msgWin = GetMessageWindow();
-    BaseWindow *baseWin = msgWin;
+    CoreWindow *coreWin = msgWin;
 
     winid prevmsg_win;
     int i;
@@ -1714,14 +1810,14 @@ redotoplin(
     const char *str)
 {
     MessageWindow *msgWin = GetMessageWindow();
-    BaseWindow * baseWin = msgWin;
+    CoreWindow * coreWin = msgWin;
 
-    assert(baseWin != NULL);
+    assert(coreWin != NULL);
 
     home();
 
-    baseWin->curx = 0;
-    baseWin->cury = 0;
+    coreWin->m_curx = 0;
+    coreWin->m_cury = 0;
 
     putsyms(str, TextColor::NoColor, TextAttribute::None);
     cl_end();
@@ -1730,7 +1826,7 @@ redotoplin(
 
     if (msgWin->nextIsPrompt) {
         msgWin->nextIsPrompt = false;
-    } else if (baseWin->cury != 0)
+    } else if (coreWin->m_cury != 0)
         more();
 
 }
@@ -1739,13 +1835,13 @@ STATIC_OVL void
 remember_topl()
 {
     MessageWindow *msgWin = GetMessageWindow();
-    BaseWindow *baseWin = msgWin;
+    CoreWindow *coreWin = msgWin;
 
     if (!*toplines)
         return;
 
     msgWin->m_msgList.push_back(std::string(toplines));
-    while (msgWin->m_msgList.size() > baseWin->rows)
+    while (msgWin->m_msgList.size() > coreWin->m_rows)
         msgWin->m_msgList.pop_front();
     *toplines = '\0';
     msgWin->m_msgIter = msgWin->m_msgList.end();
@@ -1756,9 +1852,9 @@ addtopl(
     const char *s)
 {
     MessageWindow *msgWin = GetMessageWindow();
-    BaseWindow *baseWin = msgWin;
+    CoreWindow *coreWin = msgWin;
 
-    tty_curs(BASE_WINDOW, baseWin->curx + 1, baseWin->cury);
+    tty_curs(BASE_WINDOW, coreWin->m_curx + 1, coreWin->m_cury);
     putsyms(s, TextColor::NoColor, TextAttribute::None);
     cl_end();
     msgWin->mustBeSeen = true;
@@ -1769,13 +1865,13 @@ void
 more()
 {
     MessageWindow *msgWin = GetMessageWindow();
-    BaseWindow *baseWin = msgWin;
+    CoreWindow *coreWin = msgWin;
 
     assert(!msgWin->nextIsPrompt);
 
     if (msgWin->mustBeErased) {
-        tty_curs(BASE_WINDOW, baseWin->curx + 1, baseWin->cury);
-        if (baseWin->curx >= CO - 8)
+        tty_curs(BASE_WINDOW, coreWin->m_curx + 1, coreWin->m_cury);
+        if (coreWin->m_curx >= CO - 8)
             topl_putsym('\n', TextColor::NoColor, TextAttribute::None);
     }
 
@@ -1784,18 +1880,18 @@ more()
     xwaitforspace("\033 ");
 
     if (morc == '\033')
-        baseWin->flags |= WIN_STOP;
+        coreWin->m_flags |= WIN_STOP;
 
     /* if the message is more then one line then erase the entire message */
-    if (msgWin->mustBeErased && baseWin->cury) {
-        docorner(1, baseWin->cury + 1);
-        baseWin->curx = baseWin->cury = 0;
+    if (msgWin->mustBeErased && coreWin->m_cury) {
+        docorner(1, coreWin->m_cury + 1);
+        coreWin->m_curx = coreWin->m_cury = 0;
         home();
         msgWin->mustBeErased = false;
     }
     /* if the single line message was cancelled then erase the message */
     else if (morc == '\033') {
-        baseWin->curx = baseWin->cury = 0;
+        coreWin->m_curx = coreWin->m_cury = 0;
         home();
         cl_end();
         msgWin->mustBeErased = false;
@@ -1814,28 +1910,28 @@ update_topl(
     register int n0;
     int notdied = 1;
     MessageWindow *msgWin = GetMessageWindow();
-    BaseWindow *baseWin = msgWin;
+    CoreWindow *coreWin = msgWin;
 
     /* If there is room on the line, print message on same line */
     /* But messages like "You die..." deserve their own line */
     n0 = strlen(bp);
-    if ((msgWin->mustBeSeen || (baseWin->flags & WIN_STOP)) && baseWin->cury == 0
+    if ((msgWin->mustBeSeen || (coreWin->m_flags & WIN_STOP)) && coreWin->m_cury == 0
         && n0 + (int)strlen(toplines) + 3 < CO - 8 /* room for --More-- */
         && (notdied = strncmp(bp, "You die", 7)) != 0) {
         strncat(toplines, "  ", sizeof(toplines) - strlen(toplines) - 1);
         strncat(toplines, bp, sizeof(toplines) - strlen(toplines) - 1);
-        baseWin->curx += 2;
-        if (!(baseWin->flags & WIN_STOP))
+        coreWin->m_curx += 2;
+        if (!(coreWin->m_flags & WIN_STOP))
             addtopl(bp);
         return;
     }
-    else if (!(baseWin->flags & WIN_STOP)) {
+    else if (!(coreWin->m_flags & WIN_STOP)) {
         if (msgWin->mustBeSeen) {
             more();
         }
-        else if (baseWin->cury) { /* for when flags.toplin == 2 && cury > 1 */
-            docorner(1, baseWin->cury + 1); /* reset cury = 0 if redraw screen */
-            baseWin->curx = baseWin->cury = 0;   /* from home--cls() & docorner(1,n) */
+        else if (coreWin->m_cury) { /* for when flags.toplin == 2 && cury > 1 */
+            docorner(1, coreWin->m_cury + 1); /* reset cury = 0 if redraw screen */
+            coreWin->m_curx = coreWin->m_cury = 0;   /* from home--cls() & docorner(1,n) */
         }
     }
     remember_topl();
@@ -1856,8 +1952,8 @@ update_topl(
         n0 = strlen(tl);
     }
     if (!notdied)
-        baseWin->flags &= ~WIN_STOP;
-    if (!(baseWin->flags & WIN_STOP))
+        coreWin->m_flags &= ~WIN_STOP;
+    if (!(coreWin->m_flags & WIN_STOP))
         redotoplin(toplines);
 }
 
@@ -1866,9 +1962,9 @@ void
 topl_putsym(char c, TextColor color, TextAttribute attribute)
 {
     MessageWindow *msgWin = GetMessageWindow();
-    BaseWindow *baseWin = msgWin;
+    CoreWindow *coreWin = msgWin;
 
-    if (baseWin == NULL)
+    if (coreWin == NULL)
         panic("Putsym window MESSAGE nonexistant");
 
     switch (c) {
@@ -1880,12 +1976,12 @@ topl_putsym(char c, TextColor color, TextAttribute attribute)
         win_putc(WIN_MESSAGE, '\n');
         break;
     default:
-        if (baseWin->curx + baseWin->offx == CO - 1)
+        if (coreWin->m_curx + coreWin->m_offx == CO - 1)
             topl_putsym('\n', TextColor::NoColor, TextAttribute::None); /* 1 <= curx < CO; avoid CO */
         win_putc(WIN_MESSAGE, c);
     }
 
-    if (baseWin->curx == 0)
+    if (coreWin->m_curx == 0)
         cl_end();
 }
 
@@ -1927,14 +2023,14 @@ tty_yn_function(
     char rtmp[40];
     boolean digit_ok, allow_num, preserve_case = FALSE;
     MessageWindow *msgWin = GetMessageWindow();
-    BaseWindow *baseWin = msgWin;
+    CoreWindow *coreWin = msgWin;
     boolean doprev = 0;
     char prompt[BUFSZ];
 
-    if (msgWin->mustBeSeen && !(baseWin->flags & WIN_STOP))
+    if (msgWin->mustBeSeen && !(coreWin->m_flags & WIN_STOP))
         more();
 
-    baseWin->flags &= ~WIN_STOP;
+    coreWin->m_flags &= ~WIN_STOP;
     msgWin->nextIsPrompt = true;
     if (resp) {
         char *rb, respbuf[QBUFSZ];
@@ -2086,7 +2182,7 @@ tty_yn_function(
 clean_up:
     msgWin->mustBeSeen = false;
 
-    if (baseWin->cury)
+    if (coreWin->m_cury)
         tty_clear_nhwindow(WIN_MESSAGE);
 
     return q;
@@ -2371,17 +2467,17 @@ void win_putc(
     Nethack::TextColor textColor,
     Nethack::TextAttribute textAttribute)
 {
-    BaseWindow *baseWin = g_wins[window];
+    CoreWindow *coreWin = g_wins[window];
 
-    assert(baseWin != NULL);
+    assert(coreWin != NULL);
 
-    int x = baseWin->curx + baseWin->offx;
-    int y = baseWin->cury + baseWin->offy;
+    int x = coreWin->m_curx + coreWin->m_offx;
+    int y = coreWin->m_cury + coreWin->m_offy;
 
     g_textGrid.Put(x, y, ch, textColor, textAttribute);
 
-    baseWin->curx = g_textGrid.GetCursor().m_x - baseWin->offx;
-    baseWin->cury = g_textGrid.GetCursor().m_y - baseWin->offy;
+    coreWin->m_curx = g_textGrid.GetCursor().m_x - coreWin->m_offx;
+    coreWin->m_cury = g_textGrid.GetCursor().m_y - coreWin->m_offy;
 
 }
 
@@ -2391,17 +2487,17 @@ void win_puts(
     TextColor textColor,
     TextAttribute textAttribute)
 {
-    BaseWindow *baseWin = g_wins[window];
+    CoreWindow *coreWin = g_wins[window];
 
-    assert(baseWin != NULL);
+    assert(coreWin != NULL);
 
-    int x = baseWin->curx + baseWin->offx;
-    int y = baseWin->cury + baseWin->offy;
+    int x = coreWin->m_curx + coreWin->m_offx;
+    int y = coreWin->m_cury + coreWin->m_offy;
 
     g_textGrid.Putstr(textColor, textAttribute, s);
 
-    baseWin->curx = g_textGrid.GetCursor().m_x - baseWin->offx;
-    baseWin->cury = g_textGrid.GetCursor().m_y - baseWin->offy;
+    coreWin->m_curx = g_textGrid.GetCursor().m_x - coreWin->m_offx;
+    coreWin->m_cury = g_textGrid.GetCursor().m_y - coreWin->m_offy;
 }
 
 } /* extern "C" */
