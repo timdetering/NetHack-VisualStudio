@@ -877,11 +877,11 @@ tty_message_menu(
     tty_putstr(WIN_MESSAGE, 0, mesg);
     /* if `mesg' didn't wrap (triggering --More--), force --More-- now */
 
-    if (coreWin->mustBeSeen) {
+    if (coreWin->m_mustBeSeen) {
         more();
-        assert(!coreWin->mustBeSeen);
+        assert(!coreWin->m_mustBeSeen);
 
-        if (coreWin->mustBeErased)
+        if (coreWin->m_mustBeErased)
             tty_clear_nhwindow(WIN_MESSAGE);
     }
     /* normally <ESC> means skip further messages, but in this case

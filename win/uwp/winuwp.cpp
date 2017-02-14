@@ -340,9 +340,9 @@ GenericWindow::~GenericWindow()
 MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE)
 {
     // msg
-    mustBeSeen = false;
-    mustBeErased = false;
-    nextIsPrompt = false;
+    m_mustBeSeen = false;
+    m_mustBeErased = false;
+    m_nextIsPrompt = false;
 
     m_msgIter = m_msgList.end();
 
@@ -707,12 +707,12 @@ tty_clear_nhwindow(winid window)
     case NHW_MESSAGE:
     {
         MessageWindow * msgWin = (MessageWindow *)coreWin;
-        if (msgWin->mustBeErased) {
+        if (msgWin->m_mustBeErased) {
             home();
             cl_end();
             if (msgWin->m_cury)
                 docorner(1, msgWin->m_cury + 1);
-            msgWin->mustBeErased = false;
+            msgWin->m_mustBeErased = false;
         }
         break;
     }
@@ -758,11 +758,11 @@ tty_display_nhwindow(winid window, boolean blocking)
     switch (coreWin->m_type) {
     case NHW_MESSAGE:
     {
-        if (msgWin->mustBeSeen) {
+        if (msgWin->m_mustBeSeen) {
             more();
-            assert(!msgWin->mustBeSeen);
+            assert(!msgWin->m_mustBeSeen);
 
-            if (msgWin->mustBeErased)
+            if (msgWin->m_mustBeErased)
                 tty_clear_nhwindow(window);
         }
 
@@ -775,10 +775,10 @@ tty_display_nhwindow(winid window, boolean blocking)
         if (blocking) {
 
             /* blocking map (i.e. ask user to acknowledge it as seen) */
-            if (msgWin != NULL && !msgWin->mustBeSeen)
+            if (msgWin != NULL && !msgWin->m_mustBeSeen)
             {
-                msgWin->mustBeSeen = true;
-                msgWin->mustBeErased = true;
+                msgWin->m_mustBeSeen = true;
+                msgWin->m_mustBeErased = true;
             }
 
             tty_display_nhwindow(WIN_MESSAGE, TRUE);
@@ -810,7 +810,7 @@ tty_display_nhwindow(winid window, boolean blocking)
         if (coreWin->m_type == NHW_MENU)
             coreWin->m_offy = 0;
 
-        if (msgWin != NULL && msgWin->mustBeSeen)
+        if (msgWin != NULL && msgWin->m_mustBeSeen)
             tty_display_nhwindow(WIN_MESSAGE, TRUE);
 
 #ifdef H2344_BROKEN
@@ -830,7 +830,7 @@ tty_display_nhwindow(winid window, boolean blocking)
 
             /* we just cleared the message area so we no longer need to erase */
             if (msgWin != NULL)
-                msgWin->mustBeErased = false;
+                msgWin->m_mustBeErased = false;
         } else {
             /* TODO(bhouse) why do we have this complexity ... why not just
              * always clear?
@@ -857,7 +857,7 @@ tty_dismiss_nhwindow(winid window)
     case NHW_MESSAGE:
     {
         MessageWindow * msgWin = (MessageWindow *)coreWin;
-        if (msgWin->mustBeSeen)
+        if (msgWin->m_mustBeSeen)
             tty_display_nhwindow(WIN_MESSAGE, TRUE);
     }
     /*FALLTHRU*/
@@ -1355,7 +1355,7 @@ tty_nhgetch()
         i = '\033'; /* same for EOF */
 
     if (msgWin != NULL)
-        msgWin->mustBeSeen = false;
+        msgWin->m_mustBeSeen = false;
 
     return i;
 }
@@ -1390,7 +1390,7 @@ tty_nh_poskey(int *x, int *y, int *mod)
         i = '\033'; /* map NUL or EOF to ESC, nethack doesn't expect either */
 
     if (msgWin != NULL)
-        msgWin->mustBeSeen = false;
+        msgWin->m_mustBeSeen = false;
 
     return i;
 #else /* !WIN32CON */
@@ -1439,13 +1439,13 @@ hooked_tty_getlin(
     CoreWindow * coreWin = (CoreWindow *)msgWin;
     boolean doprev = 0;
 
-    if (msgWin->mustBeSeen && !(msgWin->m_flags & WIN_STOP))
+    if (msgWin->m_mustBeSeen && !(msgWin->m_flags & WIN_STOP))
         more();
     coreWin->m_flags &= ~WIN_STOP;
 
-    msgWin->nextIsPrompt = true;
+    msgWin->m_nextIsPrompt = true;
     pline("%s ", query);
-    assert(!msgWin->nextIsPrompt);
+    assert(!msgWin->m_nextIsPrompt);
     *obufp = 0;
     for (;;) {
         strncpy(toplines, query, sizeof(toplines) - 1);
@@ -1577,7 +1577,7 @@ hooked_tty_getlin(
         else
             tty_nhbell();
     }
-    msgWin->mustBeSeen = false;
+    msgWin->m_mustBeSeen = false;
     clear_nhwindow(WIN_MESSAGE); /* clean up after ourselves */
 }
 
@@ -1821,11 +1821,11 @@ redotoplin(
 
     putsyms(str, TextColor::NoColor, TextAttribute::None);
     cl_end();
-    msgWin->mustBeSeen = true;
-    msgWin->mustBeErased = true;
+    msgWin->m_mustBeSeen = true;
+    msgWin->m_mustBeErased = true;
 
-    if (msgWin->nextIsPrompt) {
-        msgWin->nextIsPrompt = false;
+    if (msgWin->m_nextIsPrompt) {
+        msgWin->m_nextIsPrompt = false;
     } else if (coreWin->m_cury != 0)
         more();
 
@@ -1857,8 +1857,8 @@ addtopl(
     tty_curs(BASE_WINDOW, coreWin->m_curx + 1, coreWin->m_cury);
     putsyms(s, TextColor::NoColor, TextAttribute::None);
     cl_end();
-    msgWin->mustBeSeen = true;
-    msgWin->mustBeErased = true;
+    msgWin->m_mustBeSeen = true;
+    msgWin->m_mustBeErased = true;
 }
 
 void
@@ -1867,9 +1867,9 @@ more()
     MessageWindow *msgWin = GetMessageWindow();
     CoreWindow *coreWin = msgWin;
 
-    assert(!msgWin->nextIsPrompt);
+    assert(!msgWin->m_nextIsPrompt);
 
-    if (msgWin->mustBeErased) {
+    if (msgWin->m_mustBeErased) {
         tty_curs(BASE_WINDOW, coreWin->m_curx + 1, coreWin->m_cury);
         if (coreWin->m_curx >= CO - 8)
             topl_putsym('\n', TextColor::NoColor, TextAttribute::None);
@@ -1883,22 +1883,22 @@ more()
         coreWin->m_flags |= WIN_STOP;
 
     /* if the message is more then one line then erase the entire message */
-    if (msgWin->mustBeErased && coreWin->m_cury) {
+    if (msgWin->m_mustBeErased && coreWin->m_cury) {
         docorner(1, coreWin->m_cury + 1);
         coreWin->m_curx = coreWin->m_cury = 0;
         home();
-        msgWin->mustBeErased = false;
+        msgWin->m_mustBeErased = false;
     }
     /* if the single line message was cancelled then erase the message */
     else if (morc == '\033') {
         coreWin->m_curx = coreWin->m_cury = 0;
         home();
         cl_end();
-        msgWin->mustBeErased = false;
+        msgWin->m_mustBeErased = false;
     }
     /* otherwise we have left the message visible */
 
-    msgWin->mustBeSeen = false;
+    msgWin->m_mustBeSeen = false;
 }
 
 /* add to the top line */
@@ -1915,7 +1915,7 @@ update_topl(
     /* If there is room on the line, print message on same line */
     /* But messages like "You die..." deserve their own line */
     n0 = strlen(bp);
-    if ((msgWin->mustBeSeen || (coreWin->m_flags & WIN_STOP)) && coreWin->m_cury == 0
+    if ((msgWin->m_mustBeSeen || (coreWin->m_flags & WIN_STOP)) && coreWin->m_cury == 0
         && n0 + (int)strlen(toplines) + 3 < CO - 8 /* room for --More-- */
         && (notdied = strncmp(bp, "You die", 7)) != 0) {
         strncat(toplines, "  ", sizeof(toplines) - strlen(toplines) - 1);
@@ -1926,7 +1926,7 @@ update_topl(
         return;
     }
     else if (!(coreWin->m_flags & WIN_STOP)) {
-        if (msgWin->mustBeSeen) {
+        if (msgWin->m_mustBeSeen) {
             more();
         }
         else if (coreWin->m_cury) { /* for when flags.toplin == 2 && cury > 1 */
@@ -2027,11 +2027,11 @@ tty_yn_function(
     boolean doprev = 0;
     char prompt[BUFSZ];
 
-    if (msgWin->mustBeSeen && !(coreWin->m_flags & WIN_STOP))
+    if (msgWin->m_mustBeSeen && !(coreWin->m_flags & WIN_STOP))
         more();
 
     coreWin->m_flags &= ~WIN_STOP;
-    msgWin->nextIsPrompt = true;
+    msgWin->m_nextIsPrompt = true;
     if (resp) {
         char *rb, respbuf[QBUFSZ];
 
@@ -2057,13 +2057,13 @@ tty_yn_function(
         trailing space is wanted here in case of reprompt */
         Strcat(prompt, " ");
         pline("%s", prompt);
-        assert(!msgWin->nextIsPrompt);
+        assert(!msgWin->m_nextIsPrompt);
     }
     else {
         /* no restriction on allowed response, so always preserve case */
         /* preserve_case = TRUE; -- moot since we're jumping to the end */
         pline("%s ", query);
-        assert(!msgWin->nextIsPrompt);
+        assert(!msgWin->m_nextIsPrompt);
 
         q = readchar();
         goto clean_up;
@@ -2180,7 +2180,7 @@ tty_yn_function(
         addtopl(rtmp);
     }
 clean_up:
-    msgWin->mustBeSeen = false;
+    msgWin->m_mustBeSeen = false;
 
     if (coreWin->m_cury)
         tty_clear_nhwindow(WIN_MESSAGE);

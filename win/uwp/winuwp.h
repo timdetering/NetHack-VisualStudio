@@ -40,7 +40,8 @@ struct GenericWindow : public CoreWindow
     GenericWindow(int type);
     virtual ~GenericWindow();
 
-    long m_maxrow, m_maxcol; /* the maximum size used -- for MENU wins */
+    long m_maxrow;
+    long m_maxcol; /* the maximum size used -- for MENU wins */
                          /* maxcol is also used by WIN_MESSAGE for */
                          /* tracking the ^P command */
     short *m_datlen;         /* allocation size for *data */
@@ -57,9 +58,9 @@ struct MessageWindow : public CoreWindow {
 
     std::list<std::string> m_msgList;
     std::list<std::string>::iterator m_msgIter;
-    bool mustBeSeen;       /* message must be seen */
-    bool mustBeErased;     /* message must be erased */
-    bool nextIsPrompt;     /* next output message is a prompt */
+    bool m_mustBeSeen;       /* message must be seen */
+    bool m_mustBeErased;     /* message must be erased */
+    bool m_nextIsPrompt;     /* next output message is a prompt */
 };
 
 struct MenuWindow : public GenericWindow {
