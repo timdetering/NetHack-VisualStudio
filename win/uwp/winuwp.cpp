@@ -328,10 +328,15 @@ tty_create_nhwindow(int type)
     BaseWindow *baseWin = NULL;
     MessageWindow * msgWin = NULL;
     GenericWindow * genWin = NULL;
+    MenuWindow * menuWin = NULL;
 
     if (type == NHW_MESSAGE) {
         msgWin = new MessageWindow();
         baseWin = msgWin;
+    } else if(type == NHW_MENU) {
+        menuWin = new MenuWindow();
+        baseWin = menuWin;
+        genWin = menuWin;
     } else {
         genWin = new GenericWindow();
         baseWin = genWin;
@@ -342,9 +347,6 @@ tty_create_nhwindow(int type)
     baseWin->active = FALSE;
     baseWin->curx = baseWin->cury = 0;
     baseWin->morestr = 0;
-    baseWin->mlist = (tty_menu_item *) 0;
-    baseWin->plist = (tty_menu_item **) 0;
-    baseWin->npages = baseWin->plist_size = baseWin->nitems = baseWin->how = 0;
 
     switch (type) {
     case NHW_BASE:
@@ -398,6 +400,19 @@ tty_create_nhwindow(int type)
         genWin->maxcol = 0;
         break;
     case NHW_MENU:
+        assert(menuWin != NULL);
+        menuWin->mlist = (tty_menu_item *)0;
+        menuWin->plist = (tty_menu_item **)0;
+        menuWin->npages = menuWin->plist_size = menuWin->nitems = menuWin->how = 0;
+        /* inventory/menu window, variable length, full width, top of screen
+        */
+        /* help window, the same, different semantics for display, etc */
+        baseWin->offx = baseWin->offy = 0;
+        baseWin->rows = 0;
+        baseWin->cols = g_uwpDisplay->cols;
+        genWin->maxrow = genWin->maxcol = 0;
+        break;
+
     case NHW_TEXT:
         /* inventory/menu window, variable length, full width, top of screen
          */
@@ -488,6 +503,13 @@ GenericWindow * ToGenericWindow(BaseWindow * baseWin)
     return NULL;
 }
 
+MenuWindow * ToMenuWindow(BaseWindow * baseWin)
+{
+    if (baseWin->type == NHW_MENU)
+        return (MenuWindow *)baseWin;
+    return NULL;
+}
+
 STATIC_OVL void
 erase_menu_or_text(winid window, BaseWindow * baseWin, boolean clear)
 {
@@ -516,6 +538,7 @@ free_window_info(
 
     MessageWindow * msgWin = ToMessageWindow(baseWin);
     GenericWindow * genWin = ToGenericWindow(baseWin);
+    MenuWindow * menuWin = ToMenuWindow(baseWin);
 
     if (msgWin != NULL) {
         msgWin->m_msgList.clear();
@@ -541,22 +564,26 @@ free_window_info(
         genWin->maxrow = genWin->maxcol = 0;
     }
 
-    if (baseWin->mlist) {
-        tty_menu_item *temp;
+    if (menuWin != NULL)
+    {
+        if (menuWin->mlist) {
+            tty_menu_item *temp;
 
-        while ((temp = baseWin->mlist) != 0) {
-            baseWin->mlist = baseWin->mlist->next;
-            if (temp->str)
-                free((genericptr_t) temp->str);
-            free((genericptr_t) temp);
+            while ((temp = menuWin->mlist) != 0) {
+                menuWin->mlist = menuWin->mlist->next;
+                if (temp->str)
+                    free((genericptr_t)temp->str);
+                free((genericptr_t)temp);
+            }
         }
-    }
-    if (baseWin->plist) {
-        free((genericptr_t)baseWin->plist);
-        baseWin->plist = 0;
+        if (menuWin->plist) {
+            free((genericptr_t)menuWin->plist);
+            menuWin->plist = 0;
+        }
+
+        menuWin->plist_size = menuWin->npages = menuWin->nitems = menuWin->how = 0;
     }
 
-    baseWin->plist_size = baseWin->npages = baseWin->nitems = baseWin->how = 0;
     if (baseWin->morestr) {
         free((genericptr_t)baseWin->morestr);
         baseWin->morestr = 0;
@@ -763,6 +790,7 @@ tty_destroy_nhwindow(winid window)
     BaseWindow *baseWin = GetBaseWindow(window);
     GenericWindow *genWin = ToGenericWindow(baseWin);
     MessageWindow * msgWin = ToMessageWindow(baseWin);
+    MenuWindow * menuWin = ToMenuWindow(baseWin);
 
     if (baseWin->active)
         tty_dismiss_nhwindow(window);
@@ -777,6 +805,8 @@ tty_destroy_nhwindow(winid window)
 
     if (msgWin != NULL) {
         delete msgWin;
+    } else if(menuWin != NULL) {
+        delete menuWin;
     } else {
         assert(genWin != NULL);
         delete genWin;

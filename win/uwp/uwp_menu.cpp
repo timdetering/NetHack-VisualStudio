@@ -159,11 +159,12 @@ invert_all(winid window, tty_menu_item *page_start, tty_menu_item *page_end, cha
     tty_menu_item *curr;
     boolean on_curr_page;
     BaseWindow *baseWin = GetBaseWindow(window);
+    MenuWindow *menuWin = ToMenuWindow(baseWin);
 
     invert_all_on_page(window, page_start, page_end, acc);
 
     /* invert the rest */
-    for (on_curr_page = FALSE, curr = baseWin->mlist; curr; curr = curr->next) {
+    for (on_curr_page = FALSE, curr = menuWin->mlist; curr; curr = curr->next) {
         if (curr == page_start)
             on_curr_page = TRUE;
         else if (curr == page_end)
@@ -185,6 +186,7 @@ void
 process_menu_window(winid window, GenericWindow * genWin)
 {
     BaseWindow * baseWin = genWin;
+    MenuWindow * menuWin = ToMenuWindow(baseWin);
     tty_menu_item *page_start, *page_end, *curr;
     long count;
     int n, attr_n, curr_page, page_lines, resp_len;
@@ -205,23 +207,23 @@ process_menu_window(winid window, GenericWindow * genWin)
     for PICK_ONE, only those which match exactly one entry will be
     accepted; for PICK_ANY, those which match any entry are okay */
     gacc[0] = '\0';
-    if (baseWin->how != PICK_NONE) {
+    if (menuWin->how != PICK_NONE) {
         int i, gcnt[128];
 #define GSELIDX(c) (c & 127) /* guard against `signed char' */
 
         for (i = 0; i < SIZE(gcnt); i++)
             gcnt[i] = 0;
-        for (n = 0, curr = baseWin->mlist; curr; curr = curr->next)
+        for (n = 0, curr = menuWin->mlist; curr; curr = curr->next)
             if (curr->gselector && curr->gselector != curr->selector) {
                 ++n;
                 ++gcnt[GSELIDX(curr->gselector)];
             }
 
         if (n > 0) /* at least one group accelerator found */
-            for (rp = gacc, curr = baseWin->mlist; curr; curr = curr->next)
+            for (rp = gacc, curr = menuWin->mlist; curr; curr = curr->next)
                 if (curr->gselector && curr->gselector != curr->selector
                     && !index(gacc, curr->gselector)
-                    && (baseWin->how == PICK_ANY
+                    && (menuWin->how == PICK_ANY
                     || gcnt[GSELIDX(curr->gselector)] == 1)) {
                     *rp++ = curr->gselector;
                     *rp = '\0'; /* re-terminate for index() */
@@ -240,7 +242,7 @@ process_menu_window(winid window, GenericWindow * genWin)
 
         if (!page_start) {
             /* new page to be displayed */
-            if (curr_page < 0 || (baseWin->npages > 0 && curr_page >= baseWin->npages))
+            if (curr_page < 0 || (menuWin->npages > 0 && curr_page >= menuWin->npages))
                 panic("bad menu screen page #%d", curr_page);
 
             /* clear screen */
@@ -254,10 +256,10 @@ process_menu_window(winid window, GenericWindow * genWin)
             }
 
             rp = resp;
-            if (baseWin->npages > 0) {
+            if (menuWin->npages > 0) {
                 /* collect accelerators */
-                page_start = baseWin->plist[curr_page];
-                page_end = baseWin->plist[curr_page + 1];
+                page_start = menuWin->plist[curr_page];
+                page_end = menuWin->plist[curr_page + 1];
                 for (page_lines = 0, curr = page_start; curr != page_end;
                     page_lines++, curr = curr->next) {
                     int attr, color = NO_COLOR;
@@ -345,9 +347,9 @@ process_menu_window(winid window, GenericWindow * genWin)
             Strcat(resp, gacc);                 /* group accelerators */
             Strcat(resp, mapped_menu_cmds);
 
-            if (baseWin->npages > 1)
+            if (menuWin->npages > 1)
                 Sprintf(baseWin->morestr, "(%d of %d)", curr_page + 1,
-                (int)baseWin->npages);
+                (int)menuWin->npages);
             else if (msave)
                 Strcpy(baseWin->morestr, msave);
             else
@@ -407,7 +409,7 @@ process_menu_window(winid window, GenericWindow * genWin)
         case '\033': /* cancel - from counting or loop */
             if (!counting) {
                 /* deselect everything */
-                for (curr = baseWin->mlist; curr; curr = curr->next) {
+                for (curr = menuWin->mlist; curr; curr = curr->next) {
                     curr->selected = FALSE;
                     curr->count = -1L;
                 }
@@ -420,14 +422,14 @@ process_menu_window(winid window, GenericWindow * genWin)
         case '\n':
         case '\r':
             /* only finished if we are actually picking something */
-            if (baseWin->how != PICK_NONE) {
+            if (menuWin->how != PICK_NONE) {
                 finished = TRUE;
                 break;
             }
             /* else fall through */
         case ' ':
         case MENU_NEXT_PAGE:
-            if (baseWin->npages > 0 && curr_page != baseWin->npages - 1) {
+            if (menuWin->npages > 0 && curr_page != menuWin->npages - 1) {
                 curr_page++;
                 page_start = 0;
             }
@@ -437,39 +439,39 @@ process_menu_window(winid window, GenericWindow * genWin)
             }
             break;
         case MENU_PREVIOUS_PAGE:
-            if (baseWin->npages > 0 && curr_page != 0) {
+            if (menuWin->npages > 0 && curr_page != 0) {
                 --curr_page;
                 page_start = 0;
             }
             break;
         case MENU_FIRST_PAGE:
-            if (baseWin->npages > 0 && curr_page != 0) {
+            if (menuWin->npages > 0 && curr_page != 0) {
                 page_start = 0;
                 curr_page = 0;
             }
             break;
         case MENU_LAST_PAGE:
-            if (baseWin->npages > 0 && curr_page != baseWin->npages - 1) {
+            if (menuWin->npages > 0 && curr_page != menuWin->npages - 1) {
                 page_start = 0;
-                curr_page = baseWin->npages - 1;
+                curr_page = menuWin->npages - 1;
             }
             break;
         case MENU_SELECT_PAGE:
-            if (baseWin->how == PICK_ANY)
+            if (menuWin->how == PICK_ANY)
                 set_all_on_page(window, page_start, page_end);
             break;
         case MENU_UNSELECT_PAGE:
             unset_all_on_page(window, page_start, page_end);
             break;
         case MENU_INVERT_PAGE:
-            if (baseWin->how == PICK_ANY)
+            if (menuWin->how == PICK_ANY)
                 invert_all_on_page(window, page_start, page_end, 0);
             break;
         case MENU_SELECT_ALL:
-            if (baseWin->how == PICK_ANY) {
+            if (menuWin->how == PICK_ANY) {
                 set_all_on_page(window, page_start, page_end);
                 /* set the rest */
-                for (curr = baseWin->mlist; curr; curr = curr->next)
+                for (curr = menuWin->mlist; curr; curr = curr->next)
                     if (curr->identifier.a_void && !curr->selected)
                         curr->selected = TRUE;
             }
@@ -477,18 +479,18 @@ process_menu_window(winid window, GenericWindow * genWin)
         case MENU_UNSELECT_ALL:
             unset_all_on_page(window, page_start, page_end);
             /* unset the rest */
-            for (curr = baseWin->mlist; curr; curr = curr->next)
+            for (curr = menuWin->mlist; curr; curr = curr->next)
                 if (curr->identifier.a_void && curr->selected) {
                     curr->selected = FALSE;
                     curr->count = -1;
                 }
             break;
         case MENU_INVERT_ALL:
-            if (baseWin->how == PICK_ANY)
+            if (menuWin->how == PICK_ANY)
                 invert_all(window, page_start, page_end, 0);
             break;
         case MENU_SEARCH:
-            if (baseWin->how == PICK_NONE) {
+            if (menuWin->how == PICK_NONE) {
                 tty_nhbell();
                 break;
             }
@@ -502,7 +504,7 @@ process_menu_window(winid window, GenericWindow * genWin)
                     break;
                 Sprintf(searchbuf, "*%s*", tmpbuf);
 
-                for (curr = baseWin->mlist; curr; curr = curr->next) {
+                for (curr = menuWin->mlist; curr; curr = curr->next) {
                     if (on_curr_page)
                         lineno++;
                     if (curr == page_start)
@@ -513,7 +515,7 @@ process_menu_window(winid window, GenericWindow * genWin)
                         && pmatchi(searchbuf, curr->str)) {
                         toggle_menu_curr(window, curr, lineno, on_curr_page,
                             counting, count);
-                        if (baseWin->how == PICK_ONE) {
+                        if (menuWin->how == PICK_ONE) {
                             finished = TRUE;
                             break;
                         }
@@ -525,7 +527,7 @@ process_menu_window(winid window, GenericWindow * genWin)
             morc = really_morc;
             /*FALLTHRU*/
         default:
-            if (baseWin->how == PICK_NONE || !index(resp, morc)) {
+            if (menuWin->how == PICK_NONE || !index(resp, morc)) {
                 /* unacceptable input received */
                 tty_nhbell();
                 break;
@@ -535,7 +537,7 @@ process_menu_window(winid window, GenericWindow * genWin)
                 /* group accelerator; for the PICK_ONE case, we know that
                 it matches exactly one item in order to be in gacc[] */
                 invert_all(window, page_start, page_end, morc);
-                if (baseWin->how == PICK_ONE)
+                if (menuWin->how == PICK_ONE)
                     finished = TRUE;
                 break;
             }
@@ -544,7 +546,7 @@ process_menu_window(winid window, GenericWindow * genWin)
                 n++, curr = curr->next)
                 if (morc == curr->selector) {
                     toggle_menu_curr(window, curr, n, TRUE, counting, count);
-                    if (baseWin->how == PICK_ONE)
+                    if (menuWin->how == PICK_ONE)
                         finished = TRUE;
                     break; /* from `for' loop */
                 }
@@ -641,6 +643,7 @@ tty_add_menu(
     boolean preselected)        /* item is marked as selected */
 {
     BaseWindow *baseWin = GetBaseWindow(window);
+    MenuWindow *menuWin = ToMenuWindow(baseWin);
     tty_menu_item *item;
     const char *newstr;
     char buf[4 + BUFSZ];
@@ -651,7 +654,7 @@ tty_add_menu(
     if (baseWin->type != NHW_MENU)
         panic(winpanicstr, window);
 
-    baseWin->nitems++;
+    menuWin->nitems++;
     if (identifier->a_void) {
         int len = strlen(str);
 
@@ -677,8 +680,8 @@ tty_add_menu(
     item->attr = attr;
     item->str = dupstr(newstr ? newstr : "");
 
-    item->next = baseWin->mlist;
-    baseWin->mlist = item;
+    item->next = menuWin->mlist;
+    menuWin->mlist = item;
 }
 
 /* Invert the given list, can handle NULL as an input. */
@@ -709,6 +712,7 @@ tty_end_menu(
 {
     BaseWindow *baseWin = GetBaseWindow(window);
     GenericWindow * genWin = ToGenericWindow(baseWin);
+    MenuWindow *menuWin = ToMenuWindow(baseWin);
     tty_menu_item *curr;
     short len;
     int lmax, n;
@@ -718,7 +722,7 @@ tty_end_menu(
         panic(winpanicstr, window);
 
     /* Reverse the list so that items are in correct order. */
-    baseWin->mlist = reverse(baseWin->mlist);
+    menuWin->mlist = reverse(menuWin->mlist);
 
     /* Put the prompt at the beginning of the menu. */
     if (prompt) {
@@ -733,24 +737,24 @@ tty_end_menu(
 
     /* XXX another magic number? 52 */
     lmax = min(52, (int)g_uwpDisplay->rows - 1);    /* # lines per page */
-    baseWin->npages = (baseWin->nitems + (lmax - 1)) / lmax; /* # of pages */
+    menuWin->npages = (menuWin->nitems + (lmax - 1)) / lmax; /* # of pages */
 
                                                    /* make sure page list is large enough */
-    if (baseWin->plist_size < baseWin->npages + 1 /*need 1 slot beyond last*/) {
-        if (baseWin->plist)
-            free((genericptr_t)baseWin->plist);
-        baseWin->plist_size = baseWin->npages + 1;
-        baseWin->plist = (tty_menu_item **)alloc(baseWin->plist_size
+    if (menuWin->plist_size < menuWin->npages + 1 /*need 1 slot beyond last*/) {
+        if (menuWin->plist)
+            free((genericptr_t)menuWin->plist);
+        menuWin->plist_size = menuWin->npages + 1;
+        menuWin->plist = (tty_menu_item **)alloc(menuWin->plist_size
             * sizeof(tty_menu_item *));
     }
 
     baseWin->cols = 0;  /* cols is set when the win is initialized... (why?) */
     menu_ch = '?'; /* lint suppression */
-    for (n = 0, curr = baseWin->mlist; curr; n++, curr = curr->next) {
+    for (n = 0, curr = menuWin->mlist; curr; n++, curr = curr->next) {
         /* set page boundaries and character accelerators */
         if ((n % lmax) == 0) {
             menu_ch = 'a';
-            baseWin->plist[n / lmax] = curr;
+            menuWin->plist[n / lmax] = curr;
         }
         if (curr->identifier.a_void && !curr->selector) {
             curr->str[0] = curr->selector = menu_ch;
@@ -767,15 +771,15 @@ tty_end_menu(
         if (len > baseWin->cols)
             baseWin->cols = len;
     }
-    baseWin->plist[baseWin->npages] = 0; /* plist terminator */
+    menuWin->plist[menuWin->npages] = 0; /* plist terminator */
 
                                /*
                                * If greater than 1 page, morestr is "(x of y) " otherwise, "(end) "
                                */
-    if (baseWin->npages > 1) {
+    if (menuWin->npages > 1) {
         char buf[QBUFSZ];
         /* produce the largest demo string */
-        Sprintf(buf, "(%ld of %ld) ", baseWin->npages, baseWin->npages);
+        Sprintf(buf, "(%ld of %ld) ", menuWin->npages, menuWin->npages);
         len = strlen(buf);
         baseWin->morestr = dupstr("");
     }
@@ -786,7 +790,7 @@ tty_end_menu(
 
     if (len > (int)g_uwpDisplay->cols) {
         /* truncate the prompt if it's too long for the screen */
-        if (baseWin->npages <= 1) /* only str in single page case */
+        if (menuWin->npages <= 1) /* only str in single page case */
             baseWin->morestr[g_uwpDisplay->cols] = 0;
         len = g_uwpDisplay->cols;
     }
@@ -799,10 +803,10 @@ tty_end_menu(
     * The number of lines in the first page plus the morestr will be the
     * maximum size of the window.
     */
-    if (baseWin->npages > 1)
+    if (menuWin->npages > 1)
         genWin->maxrow = baseWin->rows = lmax + 1;
     else
-        genWin->maxrow = baseWin->rows = baseWin->nitems + 1;
+        genWin->maxrow = baseWin->rows = menuWin->nitems + 1;
 }
 
 int
@@ -812,6 +816,7 @@ tty_select_menu(
     menu_item **menu_list)
 {
     BaseWindow *baseWin = GetBaseWindow(window);
+    MenuWindow *menuWin = ToMenuWindow(baseWin);
     tty_menu_item *curr;
     menu_item *mi;
     int n, cancelled;
@@ -820,7 +825,7 @@ tty_select_menu(
         panic(winpanicstr, window);
 
     *menu_list = (menu_item *)0;
-    baseWin->how = (short)how;
+    menuWin->how = (short)how;
     morc = 0;
     tty_display_nhwindow(window, TRUE);
     cancelled = !!(baseWin->flags & WIN_CANCELLED);
@@ -830,14 +835,14 @@ tty_select_menu(
         n = -1;
     }
     else {
-        for (n = 0, curr = baseWin->mlist; curr; curr = curr->next)
+        for (n = 0, curr = menuWin->mlist; curr; curr = curr->next)
             if (curr->selected)
                 n++;
     }
 
     if (n > 0) {
         *menu_list = (menu_item *)alloc(n * sizeof(menu_item));
-        for (mi = *menu_list, curr = baseWin->mlist; curr; curr = curr->next)
+        for (mi = *menu_list, curr = menuWin->mlist; curr; curr = curr->next)
             if (curr->selected) {
                 mi->item = curr->identifier;
                 mi->count = curr->count;

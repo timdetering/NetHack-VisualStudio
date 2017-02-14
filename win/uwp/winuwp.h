@@ -29,13 +29,6 @@ struct BaseWindow {
     long rows, cols;     /* dimensions */
     long curx, cury;     /* current cursor position */
     char *morestr;         /* string to display instead of default */
-    tty_menu_item *mlist;  /* menu information (MENU) */
-    tty_menu_item **plist; /* menu page pointers (MENU) */
-    long plist_size;       /* size of allocated plist (MENU) */
-    long npages;           /* number of pages in menu (MENU) */
-    long nitems;           /* total number of items (MENU) */
-    short how;             /* menu mode - pick 1 or N (MENU) */
-    char menu_ch;          /* menu char (MENU) */
 };
 
 struct GenericWindow : public BaseWindow
@@ -56,6 +49,16 @@ struct MessageWindow : public BaseWindow {
     bool mustBeSeen;       /* message must be seen */
     bool mustBeErased;     /* message must be erased */
     bool nextIsPrompt;     /* next output message is a prompt */
+};
+
+struct MenuWindow : public GenericWindow {
+    tty_menu_item *mlist;  /* menu information (MENU) */
+    tty_menu_item **plist; /* menu page pointers (MENU) */
+    long plist_size;       /* size of allocated plist (MENU) */
+    long npages;           /* number of pages in menu (MENU) */
+    long nitems;           /* total number of items (MENU) */
+    short how;             /* menu mode - pick 1 or N (MENU) */
+    char menu_ch;          /* menu char (MENU) */
 };
 
 extern "C" {
@@ -247,5 +250,6 @@ GenericWindow * GetGenericWindow(winid window);
 MessageWindow * GetMessageWindow();
 MessageWindow * ToMessageWindow(BaseWindow * baseWin);
 GenericWindow * ToGenericWindow(BaseWindow * baseWin);
+MenuWindow * ToMenuWindow(BaseWindow * baseWin);
 
 }
