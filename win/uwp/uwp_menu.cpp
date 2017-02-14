@@ -562,10 +562,10 @@ void
 process_text_window(winid window, GenericWindow *genWin)
 {
     int i, n, attr;
-    register char *cp;
+    const char *cp;
     CoreWindow * coreWin = genWin;
 
-    for (n = 0, i = 0; i < genWin->m_maxrow; i++) {
+    for (n = 0, i = 0; i < genWin->m_lines.size(); i++) {
         if (!coreWin->m_offx && (n + coreWin->m_offy == g_textGrid.GetDimensions().m_y - 1)) {
             tty_curs(window, 1, n);
             cl_end();
@@ -583,25 +583,30 @@ process_text_window(winid window, GenericWindow *genWin)
             n = 0;
         }
         tty_curs(window, 1, n++);
+
 #ifdef H2344_BROKEN
         cl_end();
 #else
         if (coreWin->m_offx)
             cl_end();
 #endif
-        if (genWin->m_data[i]) {
-            attr = genWin->m_data[i][0] - 1;
+
+        if (genWin->m_lines[i].size() > 0) {
+            auto & line = genWin->m_lines[i];
+            const char * str = line.c_str();
+            attr = str[0] - 1;
             if (coreWin->m_offx) {
                 win_putc(window, ' ');
             }
             TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
-            for (cp = &genWin->m_data[i][1];
+            for (cp = &str[1];
                 *cp && g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
                 cp++)
                 win_putc(window, *cp, TextColor::NoColor, useAttribute);
         }
+
     }
-    if (i == genWin->m_maxrow) {
+    if (i == genWin->m_lines.size()) {
 #ifdef H2344_BROKEN
         if (coreWin->m_type == NHW_TEXT) {
             tty_curs(BASE_WINDOW, 1, coreWin->m_cury + coreWin->m_offy + 1);

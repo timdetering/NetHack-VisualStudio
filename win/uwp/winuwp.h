@@ -44,8 +44,9 @@ struct GenericWindow : public CoreWindow
     long m_maxcol; /* the maximum size used -- for MENU wins */
                          /* maxcol is also used by WIN_MESSAGE for */
                          /* tracking the ^P command */
-    short *m_datlen;         /* allocation size for *data */
-    char **m_data;           /* window data [row][column] */
+
+    std::vector<std::string> m_lines;
+
 };
 
 static const int kMaxMessageHistoryLength = 60;
@@ -82,9 +83,16 @@ struct BaseWindow : public GenericWindow {
     virtual ~BaseWindow();
 };
 
-struct StatusWindow : public GenericWindow {
+struct StatusWindow : public CoreWindow {
     StatusWindow();
     virtual ~StatusWindow();
+
+    static const int kStatusHeight = 2;
+    static const int kStatusWidth = 80;
+
+    long m_statusWidth;
+    long m_statusHeight;
+    char m_statusLines[kStatusHeight][kStatusWidth];
 };
 
 struct MapWindow : public GenericWindow {
