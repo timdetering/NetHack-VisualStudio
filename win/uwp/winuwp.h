@@ -40,11 +40,11 @@ struct GenericWindow : public CoreWindow
     GenericWindow(int type);
     virtual ~GenericWindow();
 
-    long maxrow, maxcol; /* the maximum size used -- for MENU wins */
+    long m_maxrow, m_maxcol; /* the maximum size used -- for MENU wins */
                          /* maxcol is also used by WIN_MESSAGE for */
                          /* tracking the ^P command */
-    short *datlen;         /* allocation size for *data */
-    char **data;           /* window data [row][column] */
+    short *m_datlen;         /* allocation size for *data */
+    char **m_data;           /* window data [row][column] */
 };
 
 static const int kMaxMessageHistoryLength = 60;
@@ -67,13 +67,13 @@ struct MenuWindow : public GenericWindow {
     MenuWindow();
     virtual ~MenuWindow();
 
-    tty_menu_item *mlist;  /* menu information (MENU) */
-    tty_menu_item **plist; /* menu page pointers (MENU) */
-    long plist_size;       /* size of allocated plist (MENU) */
-    long npages;           /* number of pages in menu (MENU) */
-    long nitems;           /* total number of items (MENU) */
-    short how;             /* menu mode - pick 1 or N (MENU) */
-    char menu_ch;          /* menu char (MENU) */
+    tty_menu_item *m_mlist;  /* menu information (MENU) */
+    tty_menu_item **m_plist; /* menu page pointers (MENU) */
+    long m_plist_size;       /* size of allocated plist (MENU) */
+    long m_npages;           /* number of pages in menu (MENU) */
+    long m_nitems;           /* total number of items (MENU) */
+    short m_how;             /* menu mode - pick 1 or N (MENU) */
+    char m_menu_ch;          /* menu char (MENU) */
 };
 
 struct BaseWindow : public GenericWindow {

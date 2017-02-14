@@ -368,12 +368,12 @@ MessageWindow::~MessageWindow()
 MenuWindow::MenuWindow() : GenericWindow(NHW_MENU)
 {
     // menu
-    mlist = (tty_menu_item *)0;
-    plist = (tty_menu_item **)0;
-    npages = 0;
-    plist_size = 0;
-    nitems = 0;
-    how = 0;
+    m_mlist = (tty_menu_item *)0;
+    m_plist = (tty_menu_item **)0;
+    m_npages = 0;
+    m_plist_size = 0;
+    m_nitems = 0;
+    m_how = 0;
 
     // core
     /* inventory/menu window, variable length, full width, top of screen
@@ -385,8 +385,8 @@ MenuWindow::MenuWindow() : GenericWindow(NHW_MENU)
     m_cols = g_uwpDisplay->cols;
 
     // gen
-    maxrow = 0;
-    maxcol = 0;
+    m_maxrow = 0;
+    m_maxcol = 0;
 }
 
 MenuWindow::~MenuWindow()
@@ -402,8 +402,8 @@ BaseWindow::BaseWindow() : GenericWindow(NHW_BASE)
     m_cols = g_uwpDisplay->cols;
 
     // gen
-    maxrow = 0;
-    maxcol = 0;
+    m_maxrow = 0;
+    m_maxcol = 0;
 }
 
 BaseWindow::~BaseWindow()
@@ -420,8 +420,8 @@ StatusWindow::StatusWindow() : GenericWindow(NHW_STATUS)
     m_cols = g_uwpDisplay->cols;
 
     // gen
-    maxrow = m_rows;
-    maxcol = m_cols;
+    m_maxrow = m_rows;
+    m_maxcol = m_cols;
 }
 
 StatusWindow::~StatusWindow()
@@ -438,8 +438,8 @@ MapWindow::MapWindow() : GenericWindow(NHW_MAP)
     m_cols = COLNO;
 
     // gen
-    maxrow = 0; /* no buffering done -- let gbuf do it */
-    maxcol = 0;
+    m_maxrow = 0; /* no buffering done -- let gbuf do it */
+    m_maxcol = 0;
 }
 
 MapWindow::~MapWindow()
@@ -458,8 +458,8 @@ TextWindow::TextWindow() : GenericWindow(NHW_TEXT)
     m_cols = g_uwpDisplay->cols;
 
     // gen
-    maxrow = 0;
-    maxcol = 0;
+    m_maxrow = 0;
+    m_maxcol = 0;
 }
 
 TextWindow::~TextWindow()
@@ -545,28 +545,28 @@ tty_create_nhwindow(int type)
     }
 
     if (genWin != NULL) {
-        if (genWin->maxrow) {
-            genWin->data =
-                (char **)alloc(sizeof(char *) * (unsigned)genWin->maxrow);
-            genWin->datlen =
-                (short *)alloc(sizeof(short) * (unsigned)genWin->maxrow);
-            if (genWin->maxcol) {
+        if (genWin->m_maxrow) {
+            genWin->m_data =
+                (char **)alloc(sizeof(char *) * (unsigned)genWin->m_maxrow);
+            genWin->m_datlen =
+                (short *)alloc(sizeof(short) * (unsigned)genWin->m_maxrow);
+            if (genWin->m_maxcol) {
                 /* WIN_STATUS */
-                for (i = 0; i < genWin->maxrow; i++) {
-                    genWin->data[i] = (char *)alloc((unsigned)genWin->maxcol);
-                    genWin->datlen[i] = (short)genWin->maxcol;
+                for (i = 0; i < genWin->m_maxrow; i++) {
+                    genWin->m_data[i] = (char *)alloc((unsigned)genWin->m_maxcol);
+                    genWin->m_datlen[i] = (short)genWin->m_maxcol;
                 }
             }
             else {
-                for (i = 0; i < genWin->maxrow; i++) {
-                    genWin->data[i] = (char *)0;
-                    genWin->datlen[i] = 0;
+                for (i = 0; i < genWin->m_maxrow; i++) {
+                    genWin->m_data[i] = (char *)0;
+                    genWin->m_datlen[i] = 0;
                 }
             }
         }
         else {
-            genWin->data = (char **)0;
-            genWin->datlen = (short *)0;
+            genWin->m_data = (char **)0;
+            genWin->m_datlen = (short *)0;
         }
     }
 
@@ -631,7 +631,7 @@ erase_menu_or_text(winid window, CoreWindow * coreWin, boolean clear)
             docrt();
     else {
         assert(genWin->m_type == NHW_MENU || genWin->m_type == NHW_TEXT);
-        docorner((int)coreWin->m_offx, genWin->maxrow + 1);
+        docorner((int)coreWin->m_offx, genWin->m_maxrow + 1);
     }
 }
 
@@ -650,44 +650,44 @@ free_window_info(
         msgWin->m_msgList.clear();
         msgWin->m_msgIter = msgWin->m_msgList.end();
     } else {
-        if (genWin->data) {
-            for (i = 0; i < genWin->maxrow; i++)
-                if (genWin->data[i]) {
-                    free((genericptr_t)genWin->data[i]);
-                    genWin->data[i] = (char *)0;
-                    if (genWin->datlen)
-                        genWin->datlen[i] = 0;
+        if (genWin->m_data) {
+            for (i = 0; i < genWin->m_maxrow; i++)
+                if (genWin->m_data[i]) {
+                    free((genericptr_t)genWin->m_data[i]);
+                    genWin->m_data[i] = (char *)0;
+                    if (genWin->m_datlen)
+                        genWin->m_datlen[i] = 0;
                 }
             if (free_data) {
-                free((genericptr_t)genWin->data);
-                genWin->data = (char **)0;
-                if (genWin->datlen)
-                    free((genericptr_t)genWin->datlen);
-                genWin->datlen = (short *)0;
+                free((genericptr_t)genWin->m_data);
+                genWin->m_data = (char **)0;
+                if (genWin->m_datlen)
+                    free((genericptr_t)genWin->m_datlen);
+                genWin->m_datlen = (short *)0;
                 coreWin->m_rows = 0;
             }
         }
-        genWin->maxrow = genWin->maxcol = 0;
+        genWin->m_maxrow = genWin->m_maxcol = 0;
     }
 
     if (menuWin != NULL)
     {
-        if (menuWin->mlist) {
+        if (menuWin->m_mlist) {
             tty_menu_item *temp;
 
-            while ((temp = menuWin->mlist) != 0) {
-                menuWin->mlist = menuWin->mlist->next;
+            while ((temp = menuWin->m_mlist) != 0) {
+                menuWin->m_mlist = menuWin->m_mlist->next;
                 if (temp->str)
                     free((genericptr_t)temp->str);
                 free((genericptr_t)temp);
             }
         }
-        if (menuWin->plist) {
-            free((genericptr_t)menuWin->plist);
-            menuWin->plist = 0;
+        if (menuWin->m_plist) {
+            free((genericptr_t)menuWin->m_plist);
+            menuWin->m_plist = 0;
         }
 
-        menuWin->plist_size = menuWin->npages = menuWin->nitems = menuWin->how = 0;
+        menuWin->m_plist_size = menuWin->m_npages = menuWin->m_nitems = menuWin->m_how = 0;
     }
 
     if (coreWin->m_morestr) {
@@ -787,13 +787,13 @@ tty_display_nhwindow(winid window, boolean blocking)
     case NHW_BASE:
         break;
     case NHW_TEXT:
-        genWin->maxcol = g_uwpDisplay->cols; /* force full-screen mode */
+        genWin->m_maxcol = g_uwpDisplay->cols; /* force full-screen mode */
         /*FALLTHRU*/
     case NHW_MENU:
         coreWin->m_active = 1;
         /* coreWin->maxcol is a long, but its value is constrained to
            be <= g_uwpDisplay->cols, so is sure to fit within a short */
-        s_maxcol = (short) genWin->maxcol;
+        s_maxcol = (short) genWin->m_maxcol;
 #ifdef H2344_BROKEN
         coreWin->m_offx = (coreWin->m_type == NHW_TEXT)
                        ? 0
@@ -814,7 +814,7 @@ tty_display_nhwindow(winid window, boolean blocking)
             tty_display_nhwindow(WIN_MESSAGE, TRUE);
 
 #ifdef H2344_BROKEN
-        if (genWin->maxrow >= (int) g_uwpDisplay->rows
+        if (genWin->m_maxrow >= (int) g_uwpDisplay->rows
             || !iflags.menu_overlay)
 #else
         if (coreWin->m_offx == 10 || coreWin->maxrow >= (int) g_uwpDisplay->rows
@@ -839,7 +839,7 @@ tty_display_nhwindow(winid window, boolean blocking)
                 tty_clear_nhwindow(WIN_MESSAGE);
         }
 
-        if (genWin->data || !genWin->maxrow)
+        if (genWin->m_data || !genWin->m_maxrow)
             process_text_window(window, genWin);
         else
             process_menu_window(window, genWin);
@@ -1023,7 +1023,7 @@ tty_putstr(winid window, int attr, const char *str)
         break;
 
     case NHW_STATUS:
-        ob = &genWin->data[coreWin->m_cury][j = coreWin->m_curx];
+        ob = &genWin->m_data[coreWin->m_cury][j = coreWin->m_curx];
         if (context.botlx)
             *ob = 0;
         if (!coreWin->m_cury && (int) strlen(str) >= CO) {
@@ -1048,8 +1048,8 @@ tty_putstr(winid window, int attr, const char *str)
                 ob++;
         }
 
-        (void) strncpy(&genWin->data[coreWin->m_cury][j], str, coreWin->m_cols - j - 1);
-        genWin->data[coreWin->m_cury][coreWin->m_cols - 1] = '\0'; /* null terminate */
+        (void) strncpy(&genWin->m_data[coreWin->m_cury][j], str, coreWin->m_cols - j - 1);
+        genWin->m_data[coreWin->m_cury][coreWin->m_cols - 1] = '\0'; /* null terminate */
 #ifdef STATUS_VIA_WINDOWPORT
         if (!iflags.use_status_hilites) {
 #endif
@@ -1081,14 +1081,14 @@ tty_putstr(winid window, int attr, const char *str)
 #endif
         {
             /* not a menu, so save memory and output 1 page at a time */
-            genWin->maxcol = g_textGrid.GetDimensions().m_x; /* force full-screen mode */
+            genWin->m_maxcol = g_textGrid.GetDimensions().m_x; /* force full-screen mode */
             tty_display_nhwindow(window, TRUE);
-            for (i = 0; i < genWin->maxrow; i++)
-                if (genWin->data[i]) {
-                    free((genericptr_t)genWin->data[i]);
-                    genWin->data[i] = 0;
+            for (i = 0; i < genWin->m_maxrow; i++)
+                if (genWin->m_data[i]) {
+                    free((genericptr_t)genWin->m_data[i]);
+                    genWin->m_data[i] = 0;
                 }
-            genWin->maxrow = coreWin->m_cury = 0;
+            genWin->m_maxrow = coreWin->m_cury = 0;
         }
         /* always grows one at a time, but alloc 12 at a time */
         if (coreWin->m_cury >= coreWin->m_rows) {
@@ -1096,32 +1096,32 @@ tty_putstr(winid window, int attr, const char *str)
 
             coreWin->m_rows += 12;
             tmp = (char **) alloc(sizeof(char *) * (unsigned) coreWin->m_rows);
-            for (i = 0; i < genWin->maxrow; i++)
-                tmp[i] = genWin->data[i];
-            if (genWin->data)
-                free((genericptr_t)genWin->data);
-            genWin->data = tmp;
+            for (i = 0; i < genWin->m_maxrow; i++)
+                tmp[i] = genWin->m_data[i];
+            if (genWin->m_data)
+                free((genericptr_t)genWin->m_data);
+            genWin->m_data = tmp;
 
-            for (i = genWin->maxrow; i < coreWin->m_rows; i++)
-                genWin->data[i] = 0;
+            for (i = genWin->m_maxrow; i < coreWin->m_rows; i++)
+                genWin->m_data[i] = 0;
         }
-        if (genWin->data[coreWin->m_cury])
-            free((genericptr_t)genWin->data[coreWin->m_cury]);
+        if (genWin->m_data[coreWin->m_cury])
+            free((genericptr_t)genWin->m_data[coreWin->m_cury]);
         n0 = (long) strlen(str) + 1L;
-        ob = genWin->data[coreWin->m_cury] = (char *) alloc((unsigned) n0 + 1);
+        ob = genWin->m_data[coreWin->m_cury] = (char *) alloc((unsigned) n0 + 1);
         *ob++ = (char) (attr + 1); /* avoid nuls, for convenience */
         Strcpy(ob, str);
 
-        if (n0 > genWin->maxcol)
-            genWin->maxcol = n0;
-        if (++coreWin->m_cury > genWin->maxrow)
-            genWin->maxrow = coreWin->m_cury;
+        if (n0 > genWin->m_maxcol)
+            genWin->m_maxcol = n0;
+        if (++coreWin->m_cury > genWin->m_maxrow)
+            genWin->m_maxrow = coreWin->m_cury;
         if (n0 > CO) {
             /* attempt to break the line */
             for (i = CO - 1; i && str[i] != ' ' && str[i] != '\n';)
                 i--;
             if (i) {
-                genWin->data[coreWin->m_cury - 1][++i] = '\0';
+                genWin->m_data[coreWin->m_cury - 1][++i] = '\0';
                 tty_putstr(window, attr, &str[i]);
             }
         }
