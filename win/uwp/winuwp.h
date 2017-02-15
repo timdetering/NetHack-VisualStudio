@@ -27,6 +27,7 @@ struct CoreWindow {
     virtual ~CoreWindow();
 
     virtual void Clear();
+    virtual void Display(bool blocking) { assert(0); }
 
     winid m_window;         /* winid */
     int m_flags;           /* window flags */
@@ -44,6 +45,7 @@ struct GenericWindow : public CoreWindow
     virtual ~GenericWindow();
 
     virtual void Clear();
+    virtual void Display(bool blocking);
 
     long m_maxrow;
     long m_maxcol; /* the maximum size used -- for MENU wins */
@@ -63,6 +65,7 @@ struct MessageWindow : public CoreWindow {
     virtual ~MessageWindow();
 
     virtual void Clear();
+    virtual void Display(bool blocking);
 
     std::list<std::string> m_msgList;
     std::list<std::string>::iterator m_msgIter;
@@ -77,6 +80,7 @@ struct MenuWindow : public GenericWindow {
     virtual ~MenuWindow();
 
     virtual void Clear() { GenericWindow::Clear(); }
+    virtual void Display(bool blocking);
 
     tty_menu_item *m_mlist;  /* menu information (MENU) */
     tty_menu_item **m_plist; /* menu page pointers (MENU) */
@@ -92,6 +96,7 @@ struct BaseWindow : public GenericWindow {
     virtual ~BaseWindow();
 
     virtual void Clear();
+    virtual void Display(bool blocking);
 };
 
 struct StatusWindow : public CoreWindow {
@@ -99,6 +104,7 @@ struct StatusWindow : public CoreWindow {
     virtual ~StatusWindow();
 
     virtual void Clear();
+    virtual void Display(bool blocking);
 
     static const int kStatusHeight = 2;
     static const int kStatusWidth = 80;
@@ -113,6 +119,7 @@ struct MapWindow : public GenericWindow {
     virtual ~MapWindow();
 
     virtual void Clear();
+    virtual void Display(bool blocking);
 };
 
 struct TextWindow : public GenericWindow {
@@ -120,6 +127,7 @@ struct TextWindow : public GenericWindow {
     virtual ~TextWindow();
 
     virtual void Clear() { GenericWindow::Clear(); }
+    virtual void Display(bool blocking);
 };
 
 extern "C" {

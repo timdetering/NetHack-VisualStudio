@@ -709,125 +709,142 @@ void CoreWindow::Clear()
 void
 tty_clear_nhwindow(winid window)
 {
-    CoreWindow *coreWin = GetCoreWindow(window);
+    GetCoreWindow(window)->Clear();
+}
 
-    switch (coreWin->m_type) {
-    case NHW_MESSAGE: coreWin->Clear(); break;
-    case NHW_STATUS: coreWin->Clear(); break;
-    case NHW_MAP: coreWin->Clear(); break;
-    case NHW_BASE: coreWin->Clear(); break;
-    case NHW_MENU:
-    case NHW_TEXT: coreWin->Clear(); break;
+void MessageWindow::Display(bool blocking)
+{
+    if (m_mustBeSeen) {
+        more();
+        assert(!m_mustBeSeen);
+
+        if (m_mustBeErased)
+            tty_clear_nhwindow(m_window);
     }
-    coreWin->m_curx = coreWin->m_cury = 0;
+
+    m_curx = 0;
+    m_cury = 0;
+
+    if (!m_active)
+        iflags.window_inited = TRUE;
+
+    m_active = 1;
+}
+
+void MapWindow::Display(bool blocking)
+{
+    if (blocking) {
+        MessageWindow * msgWin = GetMessageWindow();
+        /* blocking map (i.e. ask user to acknowledge it as seen) */
+        if (msgWin != NULL && !msgWin->m_mustBeSeen)
+        {
+            msgWin->m_mustBeSeen = true;
+            msgWin->m_mustBeErased = true;
+        }
+
+        tty_display_nhwindow(WIN_MESSAGE, TRUE);
+        return;
+    }
+    
+    m_active = 1;
+}
+
+void BaseWindow::Display(bool blocking)
+{
+    m_active = 1;
+}
+
+void TextWindow::Display(bool blocking)
+{
+    m_maxcol = g_uwpDisplay->cols; /* force full-screen mode */
+    GenericWindow::Display(blocking);
+}
+
+void MenuWindow::Display(bool blocking)
+{
+    GenericWindow::Display(blocking);
+}
+
+void GenericWindow::Display(bool blocking)
+{
+    short s_maxcol;
+
+    m_active = 1;
+    /* coreWin->maxcol is a long, but its value is constrained to
+    be <= g_uwpDisplay->cols, so is sure to fit within a short */
+    s_maxcol = (short)m_maxcol;
+#ifdef H2344_BROKEN
+    m_offx = (m_type == NHW_TEXT)
+        ? 0
+        : min(min(82, g_uwpDisplay->cols / 2),
+        g_uwpDisplay->cols - s_maxcol - 1);
+#else
+    /* avoid converting to uchar before calculations are finished */
+    coreWin->m_offx = (uchar)max((int)10,
+        (int)(g_uwpDisplay->cols - s_maxcol - 1));
+#endif
+    if (m_offx < 0)
+        m_offx = 0;
+
+    if (m_type == NHW_MENU)
+        m_offy = 0;
+
+    MessageWindow * msgWin = GetMessageWindow();
+
+    if (msgWin != NULL && msgWin->m_mustBeSeen)
+        tty_display_nhwindow(WIN_MESSAGE, TRUE);
+
+#ifdef H2344_BROKEN
+    if (m_maxrow >= (int)g_uwpDisplay->rows
+        || !iflags.menu_overlay)
+#else
+    if (coreWin->m_offx == 10 || coreWin->maxrow >= (int)g_uwpDisplay->rows
+        || !iflags.menu_overlay)
+#endif
+    {
+        m_offx = 0;
+        if (m_offy || iflags.menu_overlay) {
+            tty_curs(m_window, 1, 0);
+            cl_eos();
+        } else
+            clear_screen();
+
+        /* we just cleared the message area so we no longer need to erase */
+        if (msgWin != NULL)
+            msgWin->m_mustBeErased = false;
+    } else {
+        /* TODO(bhouse) why do we have this complexity ... why not just
+        * always clear?
+        */
+        if (WIN_MESSAGE != WIN_ERR)
+            tty_clear_nhwindow(WIN_MESSAGE);
+    }
+
+    if (m_lines.size() > 0 || !m_maxrow) {
+        process_text_window(m_window, this);
+    } else
+        process_menu_window(m_window, this);
+
+    m_active = 1;
+}
+
+void StatusWindow::Display(bool blocking)
+{
+    m_active = 1;
 }
 
 /*ARGSUSED*/
 void
 tty_display_nhwindow(winid window, boolean blocking)
 {
-    short s_maxcol;
     CoreWindow *coreWin = GetCoreWindow(window);
-    GenericWindow *genWin = ToGenericWindow(coreWin);
 
     if (coreWin->m_flags & WIN_CANCELLED)
         return;
 
     g_uwpDisplay->rawprint = 0;
 
-    MessageWindow *msgWin = GetMessageWindow();
-
-    switch (coreWin->m_type) {
-    case NHW_MESSAGE:
-    {
-        if (msgWin->m_mustBeSeen) {
-            more();
-            assert(!msgWin->m_mustBeSeen);
-
-            if (msgWin->m_mustBeErased)
-                tty_clear_nhwindow(window);
-        }
-
-        coreWin->m_curx = coreWin->m_cury = 0;
-        if (!coreWin->m_active)
-            iflags.window_inited = TRUE;
-        break;
-    }
-    case NHW_MAP:
-        if (blocking) {
-
-            /* blocking map (i.e. ask user to acknowledge it as seen) */
-            if (msgWin != NULL && !msgWin->m_mustBeSeen)
-            {
-                msgWin->m_mustBeSeen = true;
-                msgWin->m_mustBeErased = true;
-            }
-
-            tty_display_nhwindow(WIN_MESSAGE, TRUE);
-            return;
-        }
-    case NHW_BASE:
-        break;
-    case NHW_TEXT:
-        genWin->m_maxcol = g_uwpDisplay->cols; /* force full-screen mode */
-        /*FALLTHRU*/
-    case NHW_MENU:
-        coreWin->m_active = 1;
-        /* coreWin->maxcol is a long, but its value is constrained to
-           be <= g_uwpDisplay->cols, so is sure to fit within a short */
-        s_maxcol = (short) genWin->m_maxcol;
-#ifdef H2344_BROKEN
-        coreWin->m_offx = (coreWin->m_type == NHW_TEXT)
-                       ? 0
-                       : min(min(82, g_uwpDisplay->cols / 2),
-                             g_uwpDisplay->cols - s_maxcol - 1);
-#else
-        /* avoid converting to uchar before calculations are finished */
-        coreWin->m_offx = (uchar) max((int) 10,
-                               (int) (g_uwpDisplay->cols - s_maxcol - 1));
-#endif
-        if (coreWin->m_offx < 0)
-            coreWin->m_offx = 0;
-
-        if (coreWin->m_type == NHW_MENU)
-            coreWin->m_offy = 0;
-
-        if (msgWin != NULL && msgWin->m_mustBeSeen)
-            tty_display_nhwindow(WIN_MESSAGE, TRUE);
-
-#ifdef H2344_BROKEN
-        if (genWin->m_maxrow >= (int) g_uwpDisplay->rows
-            || !iflags.menu_overlay)
-#else
-        if (coreWin->m_offx == 10 || coreWin->maxrow >= (int) g_uwpDisplay->rows
-            || !iflags.menu_overlay)
-#endif
-        {
-            coreWin->m_offx = 0;
-            if (coreWin->m_offy || iflags.menu_overlay) {
-                tty_curs(window, 1, 0);
-                cl_eos();
-            } else
-                clear_screen();
-
-            /* we just cleared the message area so we no longer need to erase */
-            if (msgWin != NULL)
-                msgWin->m_mustBeErased = false;
-        } else {
-            /* TODO(bhouse) why do we have this complexity ... why not just
-             * always clear?
-             */
-            if (WIN_MESSAGE != WIN_ERR)
-                tty_clear_nhwindow(WIN_MESSAGE);
-        }
-
-        if (genWin->m_lines.size() > 0 || !genWin->m_maxrow) {
-            process_text_window(window, genWin);
-        } else
-            process_menu_window(window, genWin);
-        break;
-    }
-    coreWin->m_active = 1;
+    coreWin->Display(blocking != 0);
 }
 
 void
@@ -852,6 +869,7 @@ tty_dismiss_nhwindow(winid window)
          */
         tty_curs(BASE_WINDOW, 1, (int) g_uwpDisplay->rows - 1);
         coreWin->m_active = 0;
+        coreWin->m_flags = 0;
         break;
     case NHW_MENU:
     case NHW_TEXT:
@@ -867,9 +885,9 @@ tty_dismiss_nhwindow(winid window)
             }
             coreWin->m_active = 0;
         }
+        coreWin->m_flags = 0;
         break;
     }
-    coreWin->m_flags = 0;
 }
 
 void
