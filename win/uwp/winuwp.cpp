@@ -177,8 +177,6 @@ tty_init_nhwindows(int *, char **)
 
     g_wins[BASE_WINDOW]->m_active = 1;
 
-    g_uwpDisplay->lastwin = WIN_ERR;
-
     tty_clear_nhwindow(BASE_WINDOW);
     tty_display_nhwindow(BASE_WINDOW, FALSE);
 }
@@ -537,10 +535,13 @@ tty_create_nhwindow(int type)
             break;
         }
     }
+
     if (newid == MAXWIN) {
         panic("No window slots!");
         return WIN_ERR;
     }
+
+    coreWin->m_window = newid;
 
     return newid;
 }
@@ -651,45 +652,72 @@ free_window_info(
     }
 }
 
+void MessageWindow::Clear()
+{
+    if (m_mustBeErased) {
+        home();
+        cl_end();
+        if (m_cury)
+            docorner(1, m_cury + 1);
+        m_mustBeErased = false;
+    }
+
+    CoreWindow::Clear();
+}
+
+void StatusWindow::Clear()
+{
+    tty_curs(m_window, 1, 0);
+    cl_end();
+    tty_curs(m_window, 1, 1);
+    cl_end();
+
+    CoreWindow::Clear();
+}
+
+void MapWindow::Clear()
+{
+    context.botlx = 1;
+    clear_screen();
+
+    CoreWindow::Clear();
+}
+
+void BaseWindow::Clear()
+{
+    clear_screen();
+
+    CoreWindow::Clear();
+}
+
+void GenericWindow::Clear()
+{
+    if (m_active)
+        erase_menu_or_text(m_window, this, TRUE);
+
+    free_window_info(this, FALSE);
+
+    CoreWindow::Clear();
+}
+
+void CoreWindow::Clear()
+{
+    m_curx = 0;
+    m_cury = 0;
+}
+
 void
 tty_clear_nhwindow(winid window)
 {
     CoreWindow *coreWin = GetCoreWindow(window);
 
-    g_uwpDisplay->lastwin = window;
-
     switch (coreWin->m_type) {
-    case NHW_MESSAGE:
-    {
-        MessageWindow * msgWin = (MessageWindow *)coreWin;
-        if (msgWin->m_mustBeErased) {
-            home();
-            cl_end();
-            if (msgWin->m_cury)
-                docorner(1, msgWin->m_cury + 1);
-            msgWin->m_mustBeErased = false;
-        }
-        break;
-    }
-    case NHW_STATUS:
-        tty_curs(window, 1, 0);
-        cl_end();
-        tty_curs(window, 1, 1);
-        cl_end();
-        break;
-    case NHW_MAP:
-        /* cheap -- clear the whole thing and tell nethack to redraw botl */
-        context.botlx = 1;
-    /* fall into ... */
-    case NHW_BASE:
-        clear_screen();
-        break;
+    case NHW_MESSAGE: coreWin->Clear(); break;
+    case NHW_STATUS: coreWin->Clear(); break;
+    case NHW_MAP: coreWin->Clear(); break;
+    case NHW_BASE: coreWin->Clear(); break;
     case NHW_MENU:
-    case NHW_TEXT:
-        if (coreWin->m_active)
-            erase_menu_or_text(window, coreWin, TRUE);
-        free_window_info(coreWin, FALSE);
-        break;
+    case NHW_TEXT: coreWin->Clear(); break;
     }
     coreWin->m_curx = coreWin->m_cury = 0;
 }
@@ -705,7 +733,6 @@ tty_display_nhwindow(winid window, boolean blocking)
     if (coreWin->m_flags & WIN_CANCELLED)
         return;
 
-    g_uwpDisplay->lastwin = window;
     g_uwpDisplay->rawprint = 0;
 
     MessageWindow *msgWin = GetMessageWindow();
@@ -871,8 +898,6 @@ tty_curs(winid window, int x, int y)
 {
     CoreWindow *coreWin = GetCoreWindow(window);
 
-    g_uwpDisplay->lastwin = window;
-
 #if defined(USE_TILES) && defined(MSDOS)
     adjust_cursor_flags(coreWin);
 #endif
@@ -943,30 +968,28 @@ compress_str(const char * str)
 void
 tty_putstr(winid window, int attr, const char *str)
 {
-    CoreWindow *coreWin = 0;
+    /* Assume there's a real problem if the window is missing --
+     * probably a panic message
+     */
+    if (window == WIN_ERR || g_wins[window] == NULL) {
+        tty_raw_print(str);
+        return;
+    }
+
+    CoreWindow *coreWin = g_wins[window];
     char *ob;
     const char *nb;
     long i, j, n0;
 
     TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
 
-    /* Assume there's a real problem if the window is missing --
-     * probably a panic message
-     */
-    if (window == WIN_ERR || (coreWin = g_wins[window]) == NULL) {
-        tty_raw_print(str);
-        return;
-    }
-
     GenericWindow * genWin = ToGenericWindow(coreWin);
 
-    if (str == (const char *) 0
-        || ((coreWin->m_flags & WIN_CANCELLED) && (coreWin->m_type != NHW_MESSAGE)))
+    if (str == NULL || ((coreWin->m_flags & WIN_CANCELLED) && (coreWin->m_type != NHW_MESSAGE)))
         return;
+
     if (coreWin->m_type != NHW_MESSAGE)
         str = compress_str(str);
-
-    g_uwpDisplay->lastwin = window;
 
     switch (coreWin->m_type) {
     case NHW_MESSAGE:
@@ -1057,6 +1080,7 @@ tty_putstr(winid window, int attr, const char *str)
         genWin->m_lines[coreWin->m_cury] = line;
         coreWin->m_cury++;
         coreWin->m_rows++;
+        genWin->m_maxrow = coreWin->m_cury;
 
         if (n0 > CO) {
             /* attempt to break the line */

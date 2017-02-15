@@ -26,6 +26,9 @@ struct CoreWindow {
     CoreWindow(int type);
     virtual ~CoreWindow();
 
+    virtual void Clear();
+
+    winid m_window;         /* winid */
     int m_flags;           /* window flags */
     xchar m_type;          /* type of window */
     boolean m_active;      /* true if window is active */
@@ -39,6 +42,8 @@ struct GenericWindow : public CoreWindow
 {
     GenericWindow(int type);
     virtual ~GenericWindow();
+
+    virtual void Clear();
 
     long m_maxrow;
     long m_maxcol; /* the maximum size used -- for MENU wins */
@@ -57,6 +62,8 @@ struct MessageWindow : public CoreWindow {
     MessageWindow();
     virtual ~MessageWindow();
 
+    virtual void Clear();
+
     std::list<std::string> m_msgList;
     std::list<std::string>::iterator m_msgIter;
     bool m_mustBeSeen;       /* message must be seen */
@@ -68,6 +75,8 @@ struct MenuWindow : public GenericWindow {
 
     MenuWindow();
     virtual ~MenuWindow();
+
+    virtual void Clear() { GenericWindow::Clear(); }
 
     tty_menu_item *m_mlist;  /* menu information (MENU) */
     tty_menu_item **m_plist; /* menu page pointers (MENU) */
@@ -81,11 +90,15 @@ struct MenuWindow : public GenericWindow {
 struct BaseWindow : public GenericWindow {
     BaseWindow();
     virtual ~BaseWindow();
+
+    virtual void Clear();
 };
 
 struct StatusWindow : public CoreWindow {
     StatusWindow();
     virtual ~StatusWindow();
+
+    virtual void Clear();
 
     static const int kStatusHeight = 2;
     static const int kStatusWidth = 80;
@@ -98,11 +111,15 @@ struct StatusWindow : public CoreWindow {
 struct MapWindow : public GenericWindow {
     MapWindow();
     virtual ~MapWindow();
+
+    virtual void Clear();
 };
 
 struct TextWindow : public GenericWindow {
     TextWindow();
     virtual ~TextWindow();
+
+    virtual void Clear() { GenericWindow::Clear(); }
 };
 
 extern "C" {
@@ -115,7 +132,6 @@ extern "C" {
 struct DisplayDesc {
     short rows, cols; /* width and height of tty display */
     int rawprint;      /* number of raw_printed lines since synch */
-    winid lastwin;     /* last window used for I/O */
     char dismiss_more; /* extra character accepted at --More-- */
 };
 
