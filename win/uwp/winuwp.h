@@ -27,10 +27,11 @@ struct CoreWindow {
     virtual ~CoreWindow();
 
     virtual void Clear();
-    virtual void Display(bool blocking) { assert(0); }
+    virtual void Display(bool blocking) = 0;
     virtual void Dismiss();
     void Destroy();
     void Curs(int x, int y);
+    virtual void Putstr(int attr, const char *str) = 0;
 
     winid m_window;         /* winid */
     int m_flags;           /* window flags */
@@ -50,6 +51,7 @@ struct GenericWindow : public CoreWindow
     virtual void Clear();
     virtual void Display(bool blocking);
     virtual void Dismiss();
+    virtual void Putstr(int attr, const char *str);
 
     long m_maxrow;
     long m_maxcol; /* the maximum size used -- for MENU wins */
@@ -71,6 +73,7 @@ struct MessageWindow : public CoreWindow {
     virtual void Clear();
     virtual void Display(bool blocking);
     virtual void Dismiss();
+    virtual void Putstr(int attr, const char *str);
 
     std::list<std::string> m_msgList;
     std::list<std::string>::iterator m_msgIter;
@@ -87,6 +90,7 @@ struct MenuWindow : public GenericWindow {
     virtual void Clear() { GenericWindow::Clear(); }
     virtual void Display(bool blocking);
     virtual void Dismiss();
+    virtual void Putstr(int attr, const char *str);
 
     tty_menu_item *m_mlist;  /* menu information (MENU) */
     tty_menu_item **m_plist; /* menu page pointers (MENU) */
@@ -104,6 +108,8 @@ struct BaseWindow : public GenericWindow {
     virtual void Clear();
     virtual void Display(bool blocking);
     virtual void Dismiss();
+    virtual void Putstr(int attr, const char *str);
+
 };
 
 struct StatusWindow : public CoreWindow {
@@ -113,6 +119,7 @@ struct StatusWindow : public CoreWindow {
     virtual void Clear();
     virtual void Display(bool blocking);
     virtual void Dismiss();
+    virtual void Putstr(int attr, const char *str);
 
     static const int kStatusHeight = 2;
     static const int kStatusWidth = 80;
@@ -129,6 +136,8 @@ struct MapWindow : public GenericWindow {
     virtual void Clear();
     virtual void Display(bool blocking);
     virtual void Dismiss();
+    virtual void Putstr(int attr, const char *str);
+
 };
 
 struct TextWindow : public GenericWindow {
@@ -138,6 +147,8 @@ struct TextWindow : public GenericWindow {
     virtual void Clear() { GenericWindow::Clear(); }
     virtual void Display(bool blocking);
     virtual void Dismiss();
+    virtual void Putstr(int attr, const char *str);
+
 };
 
 extern "C" {

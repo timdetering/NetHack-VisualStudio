@@ -1012,6 +1012,141 @@ compress_str(const char * str)
     return str;
 }
 
+void MessageWindow::Putstr(int attr, const char *str)
+{
+    update_topl(str);
+}
+
+void StatusWindow::Putstr(int attr, const char *str)
+{
+    str = compress_str(str);
+
+    char *ob;
+    const char *nb;
+    long i, j, n0;
+
+    ob = &m_statusLines[m_cury][j = m_curx];
+    if (context.botlx)
+        *ob = 0;
+    if (!m_cury && (int)strlen(str) >= CO) {
+        /* the characters before "St:" are unnecessary */
+        nb = index(str, ':');
+        if (nb && nb > str + 2)
+            str = nb - 2;
+    }
+    nb = str;
+    for (i = m_curx + 1, n0 = m_cols; i < n0; i++, nb++) {
+        if (!*nb) {
+            if (*ob || context.botlx) {
+                /* last char printed may be in middle of line */
+                tty_curs(WIN_STATUS, i, m_cury);
+                cl_end();
+            }
+            break;
+        }
+        if (*ob != *nb)
+            tty_putsym(WIN_STATUS, i, m_cury, *nb);
+        if (*ob)
+            ob++;
+    }
+
+    (void)strncpy(&m_statusLines[m_cury][j], str, m_cols - j - 1);
+    m_statusLines[m_cury][m_cols - 1] = '\0'; /* null terminate */
+#ifdef STATUS_VIA_WINDOWPORT
+    if (!iflags.use_status_hilites) {
+#endif
+        m_cury = (m_cury + 1) % 2;
+        m_curx = 0;
+#ifdef STATUS_VIA_WINDOWPORT
+    }
+#endif
+}
+
+void MapWindow::Putstr(int attr, const char *str)
+{
+    str = compress_str(str);
+    TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
+
+    tty_curs(m_window, m_curx + 1, m_cury);
+    win_puts(m_window, str, TextColor::NoColor, useAttribute);
+    m_curx = 0;
+    m_cury++;
+}
+
+void BaseWindow::Putstr(int attr, const char *str)
+{
+    str = compress_str(str);
+    TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
+
+    tty_curs(m_window, m_curx + 1, m_cury);
+    win_puts(m_window, str, TextColor::NoColor, useAttribute);
+    m_curx = 0;
+    m_cury++;
+}
+
+void GenericWindow::Putstr(int attr, const char *str)
+{
+    str = compress_str(str);
+
+    char *ob;
+    const char *nb;
+    long i, j, n0;
+
+#ifdef H2344_BROKEN
+    if (m_type == NHW_TEXT
+        && (m_cury + m_offy) == g_textGrid.GetDimensions().m_y - 1)
+#else
+    if (coreWin->m_type == NHW_TEXT && coreWin->m_cury == g_uwpDisplay->rows - 1)
+#endif
+    {
+        /* not a menu, so save memory and output 1 page at a time */
+        m_maxcol = g_textGrid.GetDimensions().m_x; /* force full-screen mode */
+        tty_display_nhwindow(m_window, TRUE);
+        m_maxrow = m_cury = 0;
+        m_rows = 0;
+        m_lines.resize(0);
+    }
+
+    n0 = (long)strlen(str) + 1L;
+
+    /* TODO(bhoue) bug here ... we really should set maxcol after split*/
+    if (n0 > m_maxcol)
+        m_maxcol = n0;
+
+    std::string line = std::string(1, (char)(attr + 1));
+    line += std::string(str);
+
+    m_lines.resize(m_cury + 1);
+    m_lines[m_cury] = line;
+    m_cury++;
+    m_rows++;
+    m_maxrow = m_cury;
+
+    if (n0 > CO) {
+        /* attempt to break the line */
+        for (i = CO - 1; i && str[i] != ' ' && str[i] != '\n';)
+            i--;
+
+        if (i) {
+            std::string left = line.substr(0, i + 1);
+            std::string right = line.substr(i + 2);
+            m_lines[m_cury - 1] = left;
+            tty_putstr(m_window, attr, right.c_str());
+        }
+        /* TODO(bhouse) bug ... if we failed to split ... we have a line > CO */
+    }
+}
+
+void MenuWindow::Putstr(int attr, const char *str)
+{
+    GenericWindow::Putstr(attr, str);
+}
+
+void TextWindow::Putstr(int attr, const char *str)
+{
+    GenericWindow::Putstr(attr, str);
+}
+
 void
 tty_putstr(winid window, int attr, const char *str)
 {
@@ -1024,130 +1159,11 @@ tty_putstr(winid window, int attr, const char *str)
     }
 
     CoreWindow *coreWin = g_wins[window];
-    char *ob;
-    const char *nb;
-    long i, j, n0;
-
-    TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
-
-    GenericWindow * genWin = ToGenericWindow(coreWin);
 
     if (str == NULL || ((coreWin->m_flags & WIN_CANCELLED) && (coreWin->m_type != NHW_MESSAGE)))
         return;
 
-    if (coreWin->m_type != NHW_MESSAGE)
-        str = compress_str(str);
-
-    switch (coreWin->m_type) {
-    case NHW_MESSAGE:
-        /* really do this later */
-#if defined(USER_SOUNDS) && defined(WIN32CON)
-        play_sound_for_message(str);
-#endif
-        update_topl(str);
-        break;
-
-    case NHW_STATUS:
-    {
-        StatusWindow * statusWin = (StatusWindow *) coreWin;
-
-        ob = &statusWin->m_statusLines[coreWin->m_cury][j = coreWin->m_curx];
-        if (context.botlx)
-            *ob = 0;
-        if (!coreWin->m_cury && (int)strlen(str) >= CO) {
-            /* the characters before "St:" are unnecessary */
-            nb = index(str, ':');
-            if (nb && nb > str + 2)
-                str = nb - 2;
-        }
-        nb = str;
-        for (i = coreWin->m_curx + 1, n0 = coreWin->m_cols; i < n0; i++, nb++) {
-            if (!*nb) {
-                if (*ob || context.botlx) {
-                    /* last char printed may be in middle of line */
-                    tty_curs(WIN_STATUS, i, coreWin->m_cury);
-                    cl_end();
-                }
-                break;
-            }
-            if (*ob != *nb)
-                tty_putsym(WIN_STATUS, i, coreWin->m_cury, *nb);
-            if (*ob)
-                ob++;
-        }
-
-        (void)strncpy(&statusWin->m_statusLines[coreWin->m_cury][j], str, coreWin->m_cols - j - 1);
-        statusWin->m_statusLines[coreWin->m_cury][coreWin->m_cols - 1] = '\0'; /* null terminate */
-#ifdef STATUS_VIA_WINDOWPORT
-        if (!iflags.use_status_hilites) {
-#endif
-            coreWin->m_cury = (coreWin->m_cury + 1) % 2;
-            coreWin->m_curx = 0;
-#ifdef STATUS_VIA_WINDOWPORT
-        }
-#endif
-        break;
-    }
-
-    case NHW_MAP:
-        tty_curs(window, coreWin->m_curx + 1, coreWin->m_cury);
-        win_puts(window, str, TextColor::NoColor, useAttribute);
-        coreWin->m_curx = 0;
-        coreWin->m_cury++;
-        break;
-    case NHW_BASE:
-        tty_curs(window, coreWin->m_curx + 1, coreWin->m_cury);
-        win_puts(window, str, TextColor::NoColor, useAttribute);
-        coreWin->m_curx = 0;
-        coreWin->m_cury++;
-        break;
-    case NHW_MENU:
-    case NHW_TEXT:
-#ifdef H2344_BROKEN
-        if (coreWin->m_type == NHW_TEXT
-            && (coreWin->m_cury + coreWin->m_offy) == g_textGrid.GetDimensions().m_y - 1)
-#else
-        if (coreWin->m_type == NHW_TEXT && coreWin->m_cury == g_uwpDisplay->rows - 1)
-#endif
-        {
-            /* not a menu, so save memory and output 1 page at a time */
-            genWin->m_maxcol = g_textGrid.GetDimensions().m_x; /* force full-screen mode */
-            tty_display_nhwindow(window, TRUE);
-            genWin->m_maxrow = coreWin->m_cury = 0;
-            coreWin->m_rows = 0;
-            genWin->m_lines.resize(0);
-        }
-
-        n0 = (long)strlen(str) + 1L;
-
-        /* TODO(bhoue) bug here ... we really should set maxcol after split*/
-        if (n0 > genWin->m_maxcol)
-            genWin->m_maxcol = n0;
-
-        std::string line = std::string(1, (char)(attr + 1));
-        line += std::string(str);
-
-        genWin->m_lines.resize(coreWin->m_cury + 1);
-        genWin->m_lines[coreWin->m_cury] = line;
-        coreWin->m_cury++;
-        coreWin->m_rows++;
-        genWin->m_maxrow = coreWin->m_cury;
-
-        if (n0 > CO) {
-            /* attempt to break the line */
-            for (i = CO - 1; i && str[i] != ' ' && str[i] != '\n';)
-                i--;
-
-            if (i) {
-                std::string left = line.substr(0, i+1);
-                std::string right = line.substr(i+2);
-                genWin->m_lines[coreWin->m_cury - 1] = left;
-                tty_putstr(window, attr, right.c_str());
-            }
-            /* TODO(bhouse) bug ... if we failed to split ... we have a line > CO */
-        }
-        break;
-    }
+    coreWin->Putstr(attr, str);
 }
 
 void
