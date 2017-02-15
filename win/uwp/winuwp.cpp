@@ -847,47 +847,85 @@ tty_display_nhwindow(winid window, boolean blocking)
     coreWin->Display(blocking != 0);
 }
 
+void CoreWindow::Dismiss()
+{
+    /*
+    * these should only get dismissed when the game is going away
+    * or suspending
+    */
+    tty_curs(BASE_WINDOW, 1, (int)g_uwpDisplay->rows - 1);
+    m_active = 0;
+    m_flags = 0;
+}
+
+void MessageWindow::Dismiss()
+{
+    if (m_mustBeSeen)
+        tty_display_nhwindow(WIN_MESSAGE, TRUE);
+
+    CoreWindow::Dismiss();
+}
+
+void StatusWindow::Dismiss()
+{
+    CoreWindow::Dismiss();
+}
+
+void BaseWindow::Dismiss()
+{
+    CoreWindow::Dismiss();
+}
+
+void MapWindow::Dismiss()
+{
+    CoreWindow::Dismiss();
+}
+
+void GenericWindow::Dismiss()
+{
+    if (m_active) {
+        if (iflags.window_inited) {
+            /* otherwise dismissing the text endwin after other windows
+            * are dismissed tries to redraw the map and panics.  since
+            * the whole reason for dismissing the other windows was to
+            * leave the ending window on the screen, we don't want to
+            * erase it anyway.
+            */
+            erase_menu_or_text(m_window, this, FALSE);
+        }
+        m_active = 0;
+    }
+    m_flags = 0;
+}
+
+void MenuWindow::Dismiss()
+{
+    GenericWindow::Dismiss();
+}
+
+void TextWindow::Dismiss()
+{
+    GenericWindow::Dismiss();
+}
+
 void
 tty_dismiss_nhwindow(winid window)
 {
-    CoreWindow *coreWin = GetCoreWindow(window);
+    GetCoreWindow(window)->Dismiss();
+}
 
-    switch (coreWin->m_type) {
-    case NHW_MESSAGE:
-    {
-        MessageWindow * msgWin = (MessageWindow *)coreWin;
-        if (msgWin->m_mustBeSeen)
-            tty_display_nhwindow(WIN_MESSAGE, TRUE);
-    }
-    /*FALLTHRU*/
-    case NHW_STATUS:
-    case NHW_BASE:
-    case NHW_MAP:
-        /*
-         * these should only get dismissed when the game is going away
-         * or suspending
-         */
-        tty_curs(BASE_WINDOW, 1, (int) g_uwpDisplay->rows - 1);
-        coreWin->m_active = 0;
-        coreWin->m_flags = 0;
-        break;
-    case NHW_MENU:
-    case NHW_TEXT:
-        if (coreWin->m_active) {
-            if (iflags.window_inited) {
-                /* otherwise dismissing the text endwin after other windows
-                 * are dismissed tries to redraw the map and panics.  since
-                 * the whole reason for dismissing the other windows was to
-                 * leave the ending window on the screen, we don't want to
-                 * erase it anyway.
-                 */
-                erase_menu_or_text(window, coreWin, FALSE);
-            }
-            coreWin->m_active = 0;
-        }
-        coreWin->m_flags = 0;
-        break;
-    }
+void CoreWindow::Destroy()
+{
+    if (m_active)
+        tty_dismiss_nhwindow(m_window);
+
+    if (m_type == NHW_MESSAGE)
+        iflags.window_inited = 0;
+
+    if (m_type == NHW_MAP)
+        clear_screen();
+
+    free_window_info(this, TRUE);
 }
 
 void
@@ -895,20 +933,25 @@ tty_destroy_nhwindow(winid window)
 {
     CoreWindow *coreWin = GetCoreWindow(window);
 
-    if (coreWin->m_active)
-        tty_dismiss_nhwindow(window);
-
-    if (coreWin->m_type == NHW_MESSAGE)
-        iflags.window_inited = 0;
-
-    if (coreWin->m_type == NHW_MAP)
-        clear_screen();
-
-    free_window_info(coreWin, TRUE);
-
+    coreWin->Destroy();
     delete coreWin;
 
     g_wins[window] = 0;
+}
+
+void CoreWindow::Curs(int x, int y)
+{
+
+    m_curx = --x; /* column 0 is never used */
+    m_cury = y;
+
+    assert(x >= 0 && x <= m_cols);
+    assert(y >= 0 && y < m_rows);
+
+    x += m_offx;
+    y += m_offy;
+
+    g_textGrid.SetCursor(Int2D(x, y));
 }
 
 void
@@ -916,21 +959,7 @@ tty_curs(winid window, int x, int y)
 {
     CoreWindow *coreWin = GetCoreWindow(window);
 
-#if defined(USE_TILES) && defined(MSDOS)
-    adjust_cursor_flags(coreWin);
-#endif
-
-    coreWin->m_curx = --x; /* column 0 is never used */
-    coreWin->m_cury = y;
-
-    assert(x >= 0 && x <= coreWin->m_cols);
-    assert(y >= 0 && y < coreWin->m_rows);
-
-    x += coreWin->m_offx;
-    y += coreWin->m_offy;
-
-    g_textGrid.SetCursor(Int2D(x, y));
-
+    coreWin->Curs(x, y);
 }
 
 void
@@ -1091,6 +1120,10 @@ tty_putstr(winid window, int attr, const char *str)
 
         n0 = (long)strlen(str) + 1L;
 
+        /* TODO(bhoue) bug here ... we really should set maxcol after split*/
+        if (n0 > genWin->m_maxcol)
+            genWin->m_maxcol = n0;
+
         std::string line = std::string(1, (char)(attr + 1));
         line += std::string(str);
 
@@ -1111,6 +1144,7 @@ tty_putstr(winid window, int attr, const char *str)
                 genWin->m_lines[coreWin->m_cury - 1] = left;
                 tty_putstr(window, attr, right.c_str());
             }
+            /* TODO(bhouse) bug ... if we failed to split ... we have a line > CO */
         }
         break;
     }
