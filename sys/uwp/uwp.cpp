@@ -775,6 +775,31 @@ static bool main_menu(void)
 
     display_gamewindows();
 
+#if 0
+    putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
+    putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
+    putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
+    putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
+    putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
+    winid tmpwin = create_nhwindow(NHW_MENU);
+    for (int i = 0; i < 10; i++)
+    {
+        char line[256];
+        sprintf(line, "Line %d", i);
+        putstr(tmpwin, 0, line);
+
+    }
+    display_nhwindow(tmpwin, TRUE);
+    destroy_nhwindow(tmpwin);
+
+    tmpwin = create_nhwindow(NHW_MENU);
+    putstr(tmpwin, 0, "Test Line 1");
+    putstr(tmpwin, 0, "");
+    putstr(tmpwin, 0, "test Line 3");
+    display_nhwindow(tmpwin, TRUE);
+    destroy_nhwindow(tmpwin);
+#endif
+
     assert(iflags.window_inited);
     if (!iflags.window_inited) {
         uwp_error("Windowing system failed to initialize");
@@ -1046,11 +1071,6 @@ void uwp_main(std::wstring & localDirW, std::wstring & installDirW)
         choose_windows(DEFAULT_WINDOW_SYS);
 
 #if 0
-        for(int i = 0; i < 25; i++)
-            msmsg("%d\n", i);
-        msmsg("abcf");
-        msmsg("\b");
-        msmsg("d");
         while (pgetchar() != '\n') ;
 #endif
 

@@ -757,53 +757,43 @@ void BaseWindow::Display(bool blocking)
 void TextWindow::Display(bool blocking)
 {
     m_maxcol = g_uwpDisplay->cols; /* force full-screen mode */
-    GenericWindow::Display(blocking);
-}
-
-void MenuWindow::Display(bool blocking)
-{
-    GenericWindow::Display(blocking);
-}
-
-void GenericWindow::Display(bool blocking)
-{
-    short s_maxcol;
-
     m_active = 1;
-    /* coreWin->maxcol is a long, but its value is constrained to
-    be <= g_uwpDisplay->cols, so is sure to fit within a short */
-    s_maxcol = (short)m_maxcol;
-#ifdef H2344_BROKEN
-    m_offx = (m_type == NHW_TEXT)
-        ? 0
-        : min(min(82, g_uwpDisplay->cols / 2),
-        g_uwpDisplay->cols - s_maxcol - 1);
-#else
-    /* avoid converting to uchar before calculations are finished */
-    coreWin->m_offx = (uchar)max((int)10,
-        (int)(g_uwpDisplay->cols - s_maxcol - 1));
-#endif
-    if (m_offx < 0)
-        m_offx = 0;
-
-    if (m_type == NHW_MENU)
-        m_offy = 0;
+    m_offx =  0;
 
     MessageWindow * msgWin = GetMessageWindow();
 
     if (msgWin != NULL && msgWin->m_mustBeSeen)
         tty_display_nhwindow(WIN_MESSAGE, TRUE);
 
-#ifdef H2344_BROKEN
-    if (m_maxrow >= (int)g_uwpDisplay->rows
-        || !iflags.menu_overlay)
-#else
-    if (coreWin->m_offx == 10 || coreWin->maxrow >= (int)g_uwpDisplay->rows
-        || !iflags.menu_overlay)
-#endif
+    if (msgWin != NULL)
+        tty_clear_nhwindow(WIN_MESSAGE);
+
+    process_lines();
+
+    m_active = 1;
+}
+
+void MenuWindow::Display(bool blocking)
+{
+    m_active = 1;
+
+    m_offx = m_maxcol < g_uwpDisplay->cols ? g_uwpDisplay->cols - m_maxcol - 1 : 0;
+    m_offx = min(g_uwpDisplay->cols / 2, m_offx);
+
+    m_offy = 0;
+
+    MessageWindow * msgWin = GetMessageWindow();
+
+    if (msgWin != NULL && msgWin->m_mustBeSeen)
+        tty_display_nhwindow(WIN_MESSAGE, TRUE);
+
+    /* if we are going to have more then one page to display the use full screen */
+    /* or if we are not supposed to use menu overlays */
+    if (m_maxrow >= (int)g_uwpDisplay->rows || !iflags.menu_overlay)
     {
         m_offx = 0;
-        if (m_offy || iflags.menu_overlay) {
+        /* TODO(bhouse) why do we test and do something different for overlay? */
+        if (iflags.menu_overlay) {
             tty_curs(m_window, 1, 0);
             cl_eos();
         } else
@@ -816,16 +806,16 @@ void GenericWindow::Display(bool blocking)
         /* TODO(bhouse) why do we have this complexity ... why not just
         * always clear?
         */
-        if (WIN_MESSAGE != WIN_ERR)
+        if (msgWin != NULL)
             tty_clear_nhwindow(WIN_MESSAGE);
     }
 
-    if (m_lines.size() > 0 || !m_maxrow) {
-        process_text_window(m_window, this);
+    if (m_lines.size() > 0) {
+        process_lines();
     } else
-        process_menu_window(m_window, this);
+        process_menu();
 
-    m_active = 1;
+    assert(m_active);
 }
 
 void StatusWindow::Display(bool blocking)
@@ -1092,6 +1082,8 @@ void GenericWindow::Putstr(int attr, const char *str)
     const char *nb;
     long i, j, n0;
 
+#if 0
+
 #ifdef H2344_BROKEN
     if (m_type == NHW_TEXT
         && (m_cury + m_offy) == g_textGrid.GetDimensions().m_y - 1)
@@ -1106,6 +1098,7 @@ void GenericWindow::Putstr(int attr, const char *str)
         m_rows = 0;
         m_lines.resize(0);
     }
+#endif
 
     n0 = (long)strlen(str) + 1L;
 
@@ -1250,7 +1243,7 @@ docorner(
     register CoreWindow *coreWin = g_wins[WIN_MAP];
 
     for (y = 0; y < ymax; y++) {
-        tty_curs(BASE_WINDOW, xmin, y); /* move cursor */
+        tty_curs(BASE_WINDOW, xmin + 1, y); /* move cursor */
         cl_end();                       /* clear to end of line */
 #ifdef CLIPPING
         if (y < (int) coreWin->m_offy || y + clipy > ROWNO)

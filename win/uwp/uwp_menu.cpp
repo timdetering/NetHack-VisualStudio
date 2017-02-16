@@ -182,11 +182,8 @@ invert_all(winid window, tty_menu_item *page_start, tty_menu_item *page_end, cha
     }
 }
 
-void
-process_menu_window(winid window, GenericWindow * genWin)
+void MenuWindow::process_menu()
 {
-    CoreWindow * coreWin = genWin;
-    MenuWindow * menuWin = ToMenuWindow(coreWin);
     tty_menu_item *page_start, *page_end, *curr;
     long count;
     int n, attr_n, curr_page, page_lines, resp_len;
@@ -196,8 +193,8 @@ process_menu_window(winid window, GenericWindow * genWin)
 
     curr_page = page_lines = 0;
     page_start = page_end = 0;
-    msave = coreWin->m_morestr; /* save the morestr */
-    coreWin->m_morestr = morestr = (char *)alloc((unsigned)QBUFSZ);
+    msave = m_morestr; /* save the morestr */
+    m_morestr = morestr = (char *)alloc((unsigned)QBUFSZ);
     counting = FALSE;
     count = 0L;
     reset_count = TRUE;
@@ -207,23 +204,23 @@ process_menu_window(winid window, GenericWindow * genWin)
     for PICK_ONE, only those which match exactly one entry will be
     accepted; for PICK_ANY, those which match any entry are okay */
     gacc[0] = '\0';
-    if (menuWin->m_how != PICK_NONE) {
+    if (m_how != PICK_NONE) {
         int i, gcnt[128];
 #define GSELIDX(c) (c & 127) /* guard against `signed char' */
 
         for (i = 0; i < SIZE(gcnt); i++)
             gcnt[i] = 0;
-        for (n = 0, curr = menuWin->m_mlist; curr; curr = curr->next)
+        for (n = 0, curr = m_mlist; curr; curr = curr->next)
             if (curr->gselector && curr->gselector != curr->selector) {
                 ++n;
                 ++gcnt[GSELIDX(curr->gselector)];
             }
 
         if (n > 0) /* at least one group accelerator found */
-            for (rp = gacc, curr = menuWin->m_mlist; curr; curr = curr->next)
+            for (rp = gacc, curr = m_mlist; curr; curr = curr->next)
                 if (curr->gselector && curr->gselector != curr->selector
                     && !index(gacc, curr->gselector)
-                    && (menuWin->m_how == PICK_ANY
+                    && (m_how == PICK_ANY
                     || gcnt[GSELIDX(curr->gselector)] == 1)) {
                     *rp++ = curr->gselector;
                     *rp = '\0'; /* re-terminate for index() */
@@ -242,13 +239,13 @@ process_menu_window(winid window, GenericWindow * genWin)
 
         if (!page_start) {
             /* new page to be displayed */
-            if (curr_page < 0 || (menuWin->m_npages > 0 && curr_page >= menuWin->m_npages))
+            if (curr_page < 0 || (m_npages > 0 && curr_page >= m_npages))
                 panic("bad menu screen page #%d", curr_page);
 
             /* clear screen */
-            if (!coreWin->m_offx) { /* if not corner, do clearscreen */
-                if (coreWin->m_offy) {
-                    tty_curs(window, 1, 0);
+            if (!m_offx) { /* if not corner, do clearscreen */
+                if (m_offy) {
+                    tty_curs(m_window, 1, 0);
                     cl_eos();
                 }
                 else
@@ -256,10 +253,10 @@ process_menu_window(winid window, GenericWindow * genWin)
             }
 
             rp = resp;
-            if (menuWin->m_npages > 0) {
+            if (m_npages > 0) {
                 /* collect accelerators */
-                page_start = menuWin->m_plist[curr_page];
-                page_end = menuWin->m_plist[curr_page + 1];
+                page_start = m_plist[curr_page];
+                page_end = m_plist[curr_page + 1];
                 for (page_lines = 0, curr = page_start; curr != page_end;
                     page_lines++, curr = curr->next) {
                     int attr, color = NO_COLOR;
@@ -267,14 +264,14 @@ process_menu_window(winid window, GenericWindow * genWin)
                     if (curr->selector)
                         *rp++ = curr->selector;
 
-                    tty_curs(window, 1, page_lines);
-                    if (coreWin->m_offx)
+                    tty_curs(m_window, 1, page_lines);
+                    if (m_offx)
                         cl_end();
 
                     TextColor useColor = TextColor::NoColor;
                     TextAttribute useAttribute = TextAttribute::None;
 
-                    win_putc(window, ' ', useColor, useAttribute);
+                    win_putc(m_window, ' ', useColor, useAttribute);
 
                     if (!iflags.use_menu_color
                         || !get_menu_coloring(curr->str, &color, &attr))
@@ -314,12 +311,12 @@ process_menu_window(winid window, GenericWindow * genWin)
                             && curr->identifier.a_void != 0
                             && curr->selected) {
                             if (curr->count == -1L)
-                                win_putc(window, '+', useColor, useAttribute);
+                                win_putc(m_window, '+', useColor, useAttribute);
                             else
-                                win_putc(window, '#', useColor, useAttribute);
+                                win_putc(m_window, '#', useColor, useAttribute);
                         }
                         else
-                            win_putc(window, *cp, useColor, useAttribute);
+                            win_putc(m_window, *cp, useColor, useAttribute);
                     } /* for *cp */
                 } /* if npages > 0 */
             }
@@ -333,9 +330,9 @@ process_menu_window(winid window, GenericWindow * genWin)
             resp_len = (int)strlen(resp);
 
             /* corner window - clear extra lines from last page */
-            if (coreWin->m_offx) {
-                for (n = page_lines + 1; n < genWin->m_maxrow; n++) {
-                    tty_curs(window, 1, n);
+            if (m_offx) {
+                for (n = page_lines + 1; n < m_maxrow; n++) {
+                    tty_curs(m_window, 1, n);
                     cl_end();
                 }
             }
@@ -347,21 +344,21 @@ process_menu_window(winid window, GenericWindow * genWin)
             Strcat(resp, gacc);                 /* group accelerators */
             Strcat(resp, mapped_menu_cmds);
 
-            if (menuWin->m_npages > 1)
-                Sprintf(coreWin->m_morestr, "(%d of %d)", curr_page + 1,
-                (int)menuWin->m_npages);
+            if (m_npages > 1)
+                Sprintf(m_morestr, "(%d of %d)", curr_page + 1,
+                (int)m_npages);
             else if (msave)
-                Strcpy(coreWin->m_morestr, msave);
+                Strcpy(m_morestr, msave);
             else
-                Strcpy(coreWin->m_morestr, defmorestr);
+                Strcpy(m_morestr, defmorestr);
 
-            tty_curs(window, 1, page_lines);
+            tty_curs(m_window, 1, page_lines);
             cl_end();
-            dmore(coreWin, resp);
+            dmore(this, resp);
         }
         else {
             /* just put the cursor back... */
-            tty_curs(window, (int)strlen(coreWin->m_morestr) + 2, page_lines);
+            tty_curs(m_window, (int)strlen(m_morestr) + 2, page_lines);
             xwaitforspace(resp);
         }
 
@@ -409,11 +406,11 @@ process_menu_window(winid window, GenericWindow * genWin)
         case '\033': /* cancel - from counting or loop */
             if (!counting) {
                 /* deselect everything */
-                for (curr = menuWin->m_mlist; curr; curr = curr->next) {
+                for (curr = m_mlist; curr; curr = curr->next) {
                     curr->selected = FALSE;
                     curr->count = -1L;
                 }
-                coreWin->m_flags |= WIN_CANCELLED;
+                m_flags |= WIN_CANCELLED;
                 finished = TRUE;
             }
             /* else only stop count */
@@ -422,14 +419,14 @@ process_menu_window(winid window, GenericWindow * genWin)
         case '\n':
         case '\r':
             /* only finished if we are actually picking something */
-            if (menuWin->m_how != PICK_NONE) {
+            if (m_how != PICK_NONE) {
                 finished = TRUE;
                 break;
             }
             /* else fall through */
         case ' ':
         case MENU_NEXT_PAGE:
-            if (menuWin->m_npages > 0 && curr_page != menuWin->m_npages - 1) {
+            if (m_npages > 0 && curr_page != m_npages - 1) {
                 curr_page++;
                 page_start = 0;
             }
@@ -439,58 +436,58 @@ process_menu_window(winid window, GenericWindow * genWin)
             }
             break;
         case MENU_PREVIOUS_PAGE:
-            if (menuWin->m_npages > 0 && curr_page != 0) {
+            if (m_npages > 0 && curr_page != 0) {
                 --curr_page;
                 page_start = 0;
             }
             break;
         case MENU_FIRST_PAGE:
-            if (menuWin->m_npages > 0 && curr_page != 0) {
+            if (m_npages > 0 && curr_page != 0) {
                 page_start = 0;
                 curr_page = 0;
             }
             break;
         case MENU_LAST_PAGE:
-            if (menuWin->m_npages > 0 && curr_page != menuWin->m_npages - 1) {
+            if (m_npages > 0 && curr_page != m_npages - 1) {
                 page_start = 0;
-                curr_page = menuWin->m_npages - 1;
+                curr_page = m_npages - 1;
             }
             break;
         case MENU_SELECT_PAGE:
-            if (menuWin->m_how == PICK_ANY)
-                set_all_on_page(window, page_start, page_end);
+            if (m_how == PICK_ANY)
+                set_all_on_page(m_window, page_start, page_end);
             break;
         case MENU_UNSELECT_PAGE:
-            unset_all_on_page(window, page_start, page_end);
+            unset_all_on_page(m_window, page_start, page_end);
             break;
         case MENU_INVERT_PAGE:
-            if (menuWin->m_how == PICK_ANY)
-                invert_all_on_page(window, page_start, page_end, 0);
+            if (m_how == PICK_ANY)
+                invert_all_on_page(m_window, page_start, page_end, 0);
             break;
         case MENU_SELECT_ALL:
-            if (menuWin->m_how == PICK_ANY) {
-                set_all_on_page(window, page_start, page_end);
+            if (m_how == PICK_ANY) {
+                set_all_on_page(m_window, page_start, page_end);
                 /* set the rest */
-                for (curr = menuWin->m_mlist; curr; curr = curr->next)
+                for (curr = m_mlist; curr; curr = curr->next)
                     if (curr->identifier.a_void && !curr->selected)
                         curr->selected = TRUE;
             }
             break;
         case MENU_UNSELECT_ALL:
-            unset_all_on_page(window, page_start, page_end);
+            unset_all_on_page(m_window, page_start, page_end);
             /* unset the rest */
-            for (curr = menuWin->m_mlist; curr; curr = curr->next)
+            for (curr = m_mlist; curr; curr = curr->next)
                 if (curr->identifier.a_void && curr->selected) {
                     curr->selected = FALSE;
                     curr->count = -1;
                 }
             break;
         case MENU_INVERT_ALL:
-            if (menuWin->m_how == PICK_ANY)
-                invert_all(window, page_start, page_end, 0);
+            if (m_how == PICK_ANY)
+                invert_all(m_window, page_start, page_end, 0);
             break;
         case MENU_SEARCH:
-            if (menuWin->m_how == PICK_NONE) {
+            if (m_how == PICK_NONE) {
                 tty_nhbell();
                 break;
             }
@@ -504,7 +501,7 @@ process_menu_window(winid window, GenericWindow * genWin)
                     break;
                 Sprintf(searchbuf, "*%s*", tmpbuf);
 
-                for (curr = menuWin->m_mlist; curr; curr = curr->next) {
+                for (curr = m_mlist; curr; curr = curr->next) {
                     if (on_curr_page)
                         lineno++;
                     if (curr == page_start)
@@ -513,9 +510,9 @@ process_menu_window(winid window, GenericWindow * genWin)
                         on_curr_page = FALSE;
                     if (curr->identifier.a_void
                         && pmatchi(searchbuf, curr->str)) {
-                        toggle_menu_curr(window, curr, lineno, on_curr_page,
+                        toggle_menu_curr(m_window, curr, lineno, on_curr_page,
                             counting, count);
-                        if (menuWin->m_how == PICK_ONE) {
+                        if (m_how == PICK_ONE) {
                             finished = TRUE;
                             break;
                         }
@@ -527,7 +524,7 @@ process_menu_window(winid window, GenericWindow * genWin)
             morc = really_morc;
             /*FALLTHRU*/
         default:
-            if (menuWin->m_how == PICK_NONE || !index(resp, morc)) {
+            if (m_how == PICK_NONE || !index(resp, morc)) {
                 /* unacceptable input received */
                 tty_nhbell();
                 break;
@@ -536,8 +533,8 @@ process_menu_window(winid window, GenericWindow * genWin)
             group_accel:
                 /* group accelerator; for the PICK_ONE case, we know that
                 it matches exactly one item in order to be in gacc[] */
-                invert_all(window, page_start, page_end, morc);
-                if (menuWin->m_how == PICK_ONE)
+                invert_all(m_window, page_start, page_end, morc);
+                if (m_how == PICK_ONE)
                     finished = TRUE;
                 break;
             }
@@ -545,8 +542,8 @@ process_menu_window(winid window, GenericWindow * genWin)
             for (n = 0, curr = page_start; curr != page_end;
                 n++, curr = curr->next)
                 if (morc == curr->selector) {
-                    toggle_menu_curr(window, curr, n, TRUE, counting, count);
-                    if (menuWin->m_how == PICK_ONE)
+                    toggle_menu_curr(m_window, curr, n, TRUE, counting, count);
+                    if (m_how == PICK_ONE)
                         finished = TRUE;
                     break; /* from `for' loop */
                 }
@@ -554,73 +551,122 @@ process_menu_window(winid window, GenericWindow * genWin)
         }
 
     } /* while */
-    coreWin->m_morestr = msave;
+    m_morestr = msave;
     free((genericptr_t)morestr);
 }
 
-void
-process_text_window(winid window, GenericWindow *genWin)
+void TextWindow::process_lines()
 {
     int i, n, attr;
     const char *cp;
-    CoreWindow * coreWin = genWin;
 
-    for (n = 0, i = 0; i < genWin->m_lines.size(); i++) {
-        if (!coreWin->m_offx && (n + coreWin->m_offy == g_textGrid.GetDimensions().m_y - 1)) {
-            tty_curs(window, 1, n);
+    assert(m_offx == 0);
+
+    for (n = 0, i = 0; i < m_lines.size(); i++) {
+
+        /* if we have filled page then stop and ask for more */
+        /* TODO(bhouse) why do we check for !m_offx? */
+        if (n + m_offy == g_textGrid.GetDimensions().m_y - 1) {
+            tty_curs(m_window, 1, n);
             cl_end();
-            dmore(coreWin, quitchars);
+            dmore(this, quitchars);
             if (morc == '\033') {
-                coreWin->m_flags |= WIN_CANCELLED;
+                m_flags |= WIN_CANCELLED;
                 break;
             }
-            if (coreWin->m_offy) {
-                tty_curs(window, 1, 0);
+            if (m_offy) {
+                tty_curs(m_window, 1, 0);
+                cl_eos();
+            } else
+                clear_screen();
+            n = 0;
+        }
+
+        tty_curs(m_window, 1, n++);
+        cl_end();
+
+        if (m_lines[i].size() > 0) {
+            auto & line = m_lines[i];
+            const char * str = line.c_str();
+            attr = str[0] - 1;
+            TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
+            for (cp = &str[1];
+                *cp && g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
+                cp++)
+                win_putc(m_window, *cp, TextColor::NoColor, useAttribute);
+        }
+
+    }
+
+    if (i == m_lines.size()) {
+
+        tty_curs(BASE_WINDOW, 1, m_cury + m_offy + 1);
+        cl_eos();
+
+        tty_curs(BASE_WINDOW, 1, g_textGrid.GetDimensions().m_y - 1);
+        cl_end();
+        m_curx = 0;
+        m_cury = g_textGrid.GetDimensions().m_y - 1;
+        dmore(this, quitchars);
+        if (morc == '\033')
+            m_flags |= WIN_CANCELLED;
+    }
+}
+
+void
+MenuWindow::process_lines()
+{
+    int i, n, attr;
+    const char *cp;
+
+    for (n = 0, i = 0; i < m_lines.size(); i++) {
+
+        /* if we have filled page then stop and ask for more */
+        /* TODO(bhouse) why do we check for !m_offx? */
+        if (!m_offx && (n + m_offy == g_textGrid.GetDimensions().m_y - 1)) {
+            tty_curs(m_window, 1, n);
+            cl_end();
+            dmore(this, quitchars);
+            if (morc == '\033') {
+                m_flags |= WIN_CANCELLED;
+                break;
+            }
+            if (m_offy) {
+                tty_curs(m_window, 1, 0);
                 cl_eos();
             }
             else
                 clear_screen();
             n = 0;
         }
-        tty_curs(window, 1, n++);
 
-#ifdef H2344_BROKEN
+        tty_curs(m_window, 1, n++);
         cl_end();
-#else
-        if (coreWin->m_offx)
-            cl_end();
-#endif
 
-        if (genWin->m_lines[i].size() > 0) {
-            auto & line = genWin->m_lines[i];
+        if (m_lines[i].size() > 0) {
+            auto & line = m_lines[i];
             const char * str = line.c_str();
             attr = str[0] - 1;
-            if (coreWin->m_offx) {
-                win_putc(window, ' ');
+            if (m_offx) {
+                win_putc(m_window, ' ');
             }
             TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
             for (cp = &str[1];
                 *cp && g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
                 cp++)
-                win_putc(window, *cp, TextColor::NoColor, useAttribute);
+                win_putc(m_window, *cp, TextColor::NoColor, useAttribute);
         }
 
     }
-    if (i == genWin->m_lines.size()) {
-#ifdef H2344_BROKEN
-        if (coreWin->m_type == NHW_TEXT) {
-            tty_curs(BASE_WINDOW, 1, coreWin->m_cury + coreWin->m_offy + 1);
-            cl_eos();
-        }
-#endif
-        tty_curs(BASE_WINDOW, (int)coreWin->m_offx + 1,
-            (coreWin->m_type == NHW_TEXT) ? g_textGrid.GetDimensions().m_y - 1 : n);
+
+    if (i == m_lines.size()) {
+        tty_curs(BASE_WINDOW, (int)m_offx + 1, n);
         cl_end();
-        coreWin->m_curx = 0;
-        coreWin->m_cury = (coreWin->m_type == NHW_TEXT) ? g_textGrid.GetDimensions().m_y - 1 : n;
-        dmore(coreWin, quitchars);
+        m_curx = 0;
+        m_cury = n;
+        dmore(this, quitchars);
         if (morc == '\033')
-            coreWin->m_flags |= WIN_CANCELLED;
+            m_flags |= WIN_CANCELLED;
     }
 }
 

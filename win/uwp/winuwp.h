@@ -37,7 +37,7 @@ struct CoreWindow {
     int m_flags;           /* window flags */
     xchar m_type;          /* type of window */
     boolean m_active;      /* true if window is active */
-    short m_offx, m_offy;    /* offset from topleft of display */
+    int m_offx, m_offy;    /* offset from topleft of display */
     long m_rows, m_cols;     /* dimensions */
     long m_curx, m_cury;     /* current cursor position */
     char *m_morestr;         /* string to display instead of default */
@@ -49,7 +49,7 @@ struct GenericWindow : public CoreWindow
     virtual ~GenericWindow();
 
     virtual void Clear();
-    virtual void Display(bool blocking);
+    virtual void Display(bool blocking) = 0;
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
 
@@ -91,6 +91,9 @@ struct MenuWindow : public GenericWindow {
     virtual void Display(bool blocking);
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
+    
+    void process_lines();
+    void process_menu();
 
     tty_menu_item *m_mlist;  /* menu information (MENU) */
     tty_menu_item **m_plist; /* menu page pointers (MENU) */
@@ -149,6 +152,8 @@ struct TextWindow : public GenericWindow {
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
 
+    void process_lines();
+
 };
 
 extern "C" {
@@ -159,7 +164,7 @@ extern "C" {
 
 /* descriptor for tty-based displays -- all the per-display data */
 struct DisplayDesc {
-    short rows, cols; /* width and height of tty display */
+    int rows, cols; /* width and height of tty display */
     int rawprint;      /* number of raw_printed lines since synch */
     char dismiss_more; /* extra character accepted at --More-- */
 };
