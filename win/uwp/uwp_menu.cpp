@@ -616,57 +616,48 @@ void TextWindow::process_lines()
 void
 MenuWindow::process_lines()
 {
-    int i, n, attr;
-    const char *cp;
+    m_offy = 2;
+    assert(m_lines.size() > 0);
 
-    for (n = 0, i = 0; i < m_lines.size(); i++) {
+    auto iter = m_lines.begin();
+    m_rows = g_textGrid.GetDimensions().m_y - m_offy;
+    int row = 0;
 
-        /* if we have filled page then stop and ask for more */
-        /* TODO(bhouse) why do we check for !m_offx? */
-        if (!m_offx && (n + m_offy == g_textGrid.GetDimensions().m_y - 1)) {
-            tty_curs(m_window, 1, n);
-            cl_end();
-            dmore(this, quitchars);
-            if (morc == '\033') {
-                m_flags |= WIN_CANCELLED;
-                break;
-            }
-            if (m_offy) {
-                tty_curs(m_window, 1, 0);
-                cl_eos();
-            }
-            else
-                clear_screen();
-            n = 0;
-        }
+    while(iter != m_lines.end()) {
+        auto line = *iter++;
 
-        tty_curs(m_window, 1, n++);
+        tty_curs(m_window, 1, row++);
         cl_end();
 
-        if (m_lines[i].size() > 0) {
-            auto & line = m_lines[i];
+        if (line.size() > 0) {
             const char * str = line.c_str();
-            attr = str[0] - 1;
+            int attr = str[0] - 1;
             if (m_offx) {
                 win_putc(m_window, ' ');
             }
             TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
+            const char *cp;
+
             for (cp = &str[1];
                 *cp && g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
                 cp++)
                 win_putc(m_window, *cp, TextColor::NoColor, useAttribute);
         }
 
-    }
+        if (row == (m_rows - 1) || iter == m_lines.end()) {
+            tty_curs(m_window, 1, row);
+            cl_end();
+            dmore(this, quitchars);
+            if (morc == '\033') {
+                m_flags |= WIN_CANCELLED;
+                break;
+            }
 
-    if (i == m_lines.size()) {
-        tty_curs(BASE_WINDOW, (int)m_offx + 1, n);
-        cl_end();
-        m_curx = 0;
-        m_cury = n;
-        dmore(this, quitchars);
-        if (morc == '\033')
-            m_flags |= WIN_CANCELLED;
+            tty_curs(m_window, 1, 0);
+            cl_eos();
+            row = 0;
+        }
+
     }
 }
 

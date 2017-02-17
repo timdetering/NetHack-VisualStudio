@@ -781,8 +781,9 @@ static bool main_menu(void)
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
+
     winid tmpwin = create_nhwindow(NHW_MENU);
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 3; i++)
     {
         char line[256];
         sprintf(line, "Line %d", i);
@@ -793,9 +794,12 @@ static bool main_menu(void)
     destroy_nhwindow(tmpwin);
 
     tmpwin = create_nhwindow(NHW_MENU);
-    putstr(tmpwin, 0, "Test Line 1");
-    putstr(tmpwin, 0, "");
-    putstr(tmpwin, 0, "test Line 3");
+    for (int i = 0; i < 25; i++)
+    {
+        char line[256];
+        sprintf(line, "Line %d", i);
+        putstr(tmpwin, 0, line);
+    }
     display_nhwindow(tmpwin, TRUE);
     destroy_nhwindow(tmpwin);
 #endif
