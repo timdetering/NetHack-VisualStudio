@@ -571,16 +571,16 @@ void TextWindow::process_lines()
         tty_curs(m_window, 1, row++);
         cl_end();
 
-        if (line.size() > 0) {
-            const char * str = line.c_str();
-            int attr = str[0] - 1;
+        if (line.second.size() > 0) {
+            const char * str = line.second.c_str();
+            int attr = line.first;
             if (m_offx) {
                 win_putc(m_window, ' ');
             }
             TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
             const char *cp;
 
-            for (cp = &str[1];
+            for (cp = str;
                 *cp && g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
                 cp++)
                 win_putc(m_window, *cp, TextColor::NoColor, useAttribute);
@@ -618,16 +618,16 @@ MenuWindow::process_lines()
         tty_curs(m_window, 1, row++);
         cl_end();
 
-        if (line.size() > 0) {
-            const char * str = line.c_str();
-            int attr = str[0] - 1;
+        if (line.second.size() > 0) {
+            const char * str = line.second.c_str();
+            int attr = line.first;
             if (m_offx) {
                 win_putc(m_window, ' ');
             }
             TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
             const char *cp;
 
-            for (cp = &str[1];
+            for (cp = str;
                 *cp && g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
                 cp++)
                 win_putc(m_window, *cp, TextColor::NoColor, useAttribute);

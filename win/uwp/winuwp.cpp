@@ -1059,15 +1059,14 @@ void GenericWindow::Putstr(int attr, const char *str)
 
     n0 = (long)strlen(str) + 1L;
 
-    /* TODO(bhoue) bug here ... we really should set maxcol after split*/
+    /* TODO(bhouse) bug here ... we really should set maxcol after split*/
     if (n0 > m_cols)
         m_cols = n0;
 
-    std::string line = std::string(1, (char)(attr + 1));
-    line += std::string(str);
+    std::string line = std::string(str);
 
     m_lines.resize(m_cury + 1);
-    m_lines[m_cury] = line;
+    m_lines[m_cury] = std::pair<int, std::string>(attr, line);
     m_cury++;
     m_rows++;
 
@@ -1079,7 +1078,7 @@ void GenericWindow::Putstr(int attr, const char *str)
         if (i) {
             std::string left = line.substr(0, i + 1);
             std::string right = line.substr(i + 2);
-            m_lines[m_cury - 1] = left;
+            m_lines[m_cury - 1] = std::pair<int, std::string>(attr, line);
             tty_putstr(m_window, attr, right.c_str());
         }
         /* TODO(bhouse) bug ... if we failed to split ... we have a line > CO */
