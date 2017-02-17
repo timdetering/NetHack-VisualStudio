@@ -1051,37 +1051,32 @@ void BaseWindow::Putstr(int attr, const char *str)
 
 void GenericWindow::Putstr(int attr, const char *str)
 {
-    str = compress_str(str);
+    std::string input = std::string(compress_str(str));
 
-    char *ob;
-    const char *nb;
-    long i, j, n0;
+    while (input.size() > 0)
+    {
+        std::string line;
 
-    n0 = (long)strlen(str) + 1L;
+        if (input.size() > CO) {
+            int split = input.find_last_of(" \n", CO - 1);
+            if (split == std::string::npos || split == 0)
+                split = CO - 1;
 
-    /* TODO(bhouse) bug here ... we really should set maxcol after split*/
-    if (n0 > m_cols)
-        m_cols = n0;
-
-    std::string line = std::string(str);
-
-    m_lines.resize(m_cury + 1);
-    m_lines[m_cury] = std::pair<int, std::string>(attr, line);
-    m_cury++;
-    m_rows++;
-
-    if (n0 > CO) {
-        /* attempt to break the line */
-        for (i = CO - 1; i && str[i] != ' ' && str[i] != '\n';)
-            i--;
-
-        if (i) {
-            std::string left = line.substr(0, i + 1);
-            std::string right = line.substr(i + 2);
-            m_lines[m_cury - 1] = std::pair<int, std::string>(attr, line);
-            tty_putstr(m_window, attr, right.c_str());
+            line = input.substr(0, split);
+            input = input.substr(split + 1);
+        } else {
+            line = input;
+            input.clear();
         }
-        /* TODO(bhouse) bug ... if we failed to split ... we have a line > CO */
+
+        m_lines.push_back(std::pair<int, std::string>(attr, line));
+
+        /* TODO(bhouse) do we need either of these to be set really? */
+        m_cury = m_lines.size();
+        m_rows = m_lines.size();
+
+        if (line.size() > m_cols)
+            m_cols = line.size();
     }
 }
 

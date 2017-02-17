@@ -53,7 +53,7 @@ struct GenericWindow : public CoreWindow
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
 
-    std::vector<std::pair<int, std::string>> m_lines;
+    std::list<std::pair<int, std::string>> m_lines;
 
 };
 

@@ -780,25 +780,25 @@ static bool main_menu(void)
 
     display_gamewindows();
 
+#if 1
+
 #if 0
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
+#endif
 
-    winid tmpwin = create_nhwindow(NHW_MENU);
-    for (int i = 0; i < 3; i++)
-    {
-        char line[256];
-        sprintf(line, "Line %d", i);
-        putstr(tmpwin, 0, line);
-
-    }
+    winid tmpwin = create_nhwindow(NHW_TEXT);
+    putstr(tmpwin, 0, "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789");
+    putstr(tmpwin, 0, "0123456789012345678901234567890123456789012345678901234567890123456789 0123456789");
+    putstr(tmpwin, 0, "0123456789012345678901234567890123456789012345678901234567890123456789\n0123456789");
     display_nhwindow(tmpwin, TRUE);
     destroy_nhwindow(tmpwin);
 
-    tmpwin = create_nhwindow(NHW_MENU);
+#if 0
+    tmpwin = create_nhwindow(NHW_TEXT);
     for (int i = 0; i < 25; i++)
     {
         char line[256];
@@ -807,6 +807,8 @@ static bool main_menu(void)
     }
     display_nhwindow(tmpwin, TRUE);
     destroy_nhwindow(tmpwin);
+#endif
+
 #endif
 
     assert(iflags.window_inited);
