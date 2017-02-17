@@ -2355,6 +2355,7 @@ ntposkey(int *x, int *y, int * mod)
     if (program_state.done_hup)
         return '\033';
 
+    /* we checking for input -- flush our output */
     g_textGrid.Flush();
 
     Event e;

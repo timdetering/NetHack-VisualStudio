@@ -129,6 +129,7 @@ static void verify_record_file()
  */
 int kbhit(void)
 {
+    /* we checking for input -- flush our output */
     g_textGrid.Flush();
     return !g_eventQueue.Empty();
 }
@@ -359,6 +360,7 @@ int raw_getchar()
     if (program_state.done_hup)
         return ESCAPE;
 
+    /* we checking for input -- flush our output */
     g_textGrid.Flush();
 
     Event e;
