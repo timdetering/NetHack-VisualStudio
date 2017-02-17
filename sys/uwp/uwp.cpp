@@ -787,7 +787,7 @@ static bool main_menu(void)
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
 
-    winid tmpwin = create_nhwindow(NHW_TEXT);
+    winid tmpwin = create_nhwindow(NHW_MENU);
     for (int i = 0; i < 3; i++)
     {
         char line[256];
@@ -798,7 +798,7 @@ static bool main_menu(void)
     display_nhwindow(tmpwin, TRUE);
     destroy_nhwindow(tmpwin);
 
-    tmpwin = create_nhwindow(NHW_TEXT);
+    tmpwin = create_nhwindow(NHW_MENU);
     for (int i = 0; i < 25; i++)
     {
         char line[256];

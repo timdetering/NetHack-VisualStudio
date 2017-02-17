@@ -53,11 +53,6 @@ struct GenericWindow : public CoreWindow
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
 
-    long m_maxrow;
-    long m_maxcol; /* the maximum size used -- for MENU wins */
-                         /* maxcol is also used by WIN_MESSAGE for */
-                         /* tracking the ^P command */
-
     std::vector<std::string> m_lines;
 
 };
@@ -102,6 +97,7 @@ struct MenuWindow : public GenericWindow {
     long m_nitems;           /* total number of items (MENU) */
     short m_how;             /* menu mode - pick 1 or N (MENU) */
     char m_menu_ch;          /* menu char (MENU) */
+
 };
 
 struct BaseWindow : public GenericWindow {

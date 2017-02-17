@@ -380,11 +380,8 @@ MenuWindow::MenuWindow() : GenericWindow(NHW_MENU)
     m_offx = 0;
     m_offy = 0;
     m_rows = 0;
-    m_cols = g_uwpDisplay->cols;
+    m_cols = 0;
 
-    // gen
-    m_maxrow = 0;
-    m_maxcol = 0;
 }
 
 MenuWindow::~MenuWindow()
@@ -399,9 +396,6 @@ BaseWindow::BaseWindow() : GenericWindow(NHW_BASE)
     m_rows = g_uwpDisplay->rows;
     m_cols = g_uwpDisplay->cols;
 
-    // gen
-    m_maxrow = 0;
-    m_maxcol = 0;
 }
 
 BaseWindow::~BaseWindow()
@@ -434,9 +428,6 @@ MapWindow::MapWindow() : GenericWindow(NHW_MAP)
     m_rows = ROWNO;
     m_cols = COLNO;
 
-    // gen
-    m_maxrow = 0; /* no buffering done -- let gbuf do it */
-    m_maxcol = 0;
 }
 
 MapWindow::~MapWindow()
@@ -453,10 +444,6 @@ TextWindow::TextWindow() : GenericWindow(NHW_TEXT)
     m_offy = 0;
     m_rows = 0;
     m_cols = g_uwpDisplay->cols;
-
-    // gen
-    m_maxrow = 0;
-    m_maxcol = 0;
 }
 
 TextWindow::~TextWindow()
@@ -612,8 +599,6 @@ free_window_info(
     if (msgWin != NULL) {
         msgWin->m_msgList.clear();
         msgWin->m_msgIter = msgWin->m_msgList.end();
-    } else if(genWin != NULL) {
-        genWin->m_maxrow = genWin->m_maxcol = 0;
     }
 
     if (menuWin != NULL)
@@ -746,7 +731,7 @@ void BaseWindow::Display(bool blocking)
 
 void TextWindow::Display(bool blocking)
 {
-    m_maxcol = g_uwpDisplay->cols; /* force full-screen mode */
+    m_cols = g_uwpDisplay->cols; /* force full-screen mode */
     m_active = 1;
     m_offx =  0;
 
@@ -767,7 +752,7 @@ void MenuWindow::Display(bool blocking)
 {
     m_active = 1;
 
-    m_offx = m_maxcol < g_uwpDisplay->cols ? g_uwpDisplay->cols - m_maxcol - 1 : 0;
+    m_offx = m_cols < g_uwpDisplay->cols ? g_uwpDisplay->cols - m_cols - 1 : 0;
     m_offx = min(g_uwpDisplay->cols / 2, m_offx);
 
     m_offy = 0;
@@ -778,8 +763,8 @@ void MenuWindow::Display(bool blocking)
         tty_display_nhwindow(WIN_MESSAGE, TRUE);
 
     /* if we are going to have more then one page to display the use full screen */
-    /* or if we are not supposed to use menu overlays */
-    if (m_maxrow >= (int)g_uwpDisplay->rows || !iflags.menu_overlay)
+    /* or if we are not supposed to use menu overlays */;
+    if (m_rows >= (int)g_uwpDisplay->rows || !iflags.menu_overlay)
     {
         m_offx = 0;
         /* TODO(bhouse) why do we test and do something different for overlay? */
@@ -1075,8 +1060,8 @@ void GenericWindow::Putstr(int attr, const char *str)
     n0 = (long)strlen(str) + 1L;
 
     /* TODO(bhoue) bug here ... we really should set maxcol after split*/
-    if (n0 > m_maxcol)
-        m_maxcol = n0;
+    if (n0 > m_cols)
+        m_cols = n0;
 
     std::string line = std::string(1, (char)(attr + 1));
     line += std::string(str);
@@ -1085,7 +1070,6 @@ void GenericWindow::Putstr(int attr, const char *str)
     m_lines[m_cury] = line;
     m_cury++;
     m_rows++;
-    m_maxrow = m_cury;
 
     if (n0 > CO) {
         /* attempt to break the line */

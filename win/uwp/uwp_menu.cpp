@@ -331,7 +331,7 @@ void MenuWindow::process_menu()
 
             /* corner window - clear extra lines from last page */
             if (m_offx) {
-                for (n = page_lines + 1; n < m_maxrow; n++) {
+                for (n = page_lines + 1; n < m_rows; n++) {
                     tty_curs(m_window, 1, n);
                     cl_end();
                 }
@@ -828,16 +828,14 @@ tty_end_menu(
     if (len > coreWin->m_cols)
         coreWin->m_cols = len;
 
-    genWin->m_maxcol = coreWin->m_cols;
-
     /*
     * The number of lines in the first page plus the morestr will be the
     * maximum size of the window.
     */
     if (menuWin->m_npages > 1)
-        genWin->m_maxrow = coreWin->m_rows = lmax + 1;
+        coreWin->m_rows = lmax + 1;
     else
-        genWin->m_maxrow = coreWin->m_rows = menuWin->m_nitems + 1;
+        coreWin->m_rows = menuWin->m_nitems + 1;
 }
 
 int
