@@ -153,6 +153,12 @@ namespace Nethack
         void SetPaletteDefault(int i);
         void SetDefaultPalette();
 
+        void Flush() {
+            m_cellsLock.AcquireExclusive();
+            m_flush = true;
+            m_cellsLock.ReleaseExclusive();
+        }
+
     private:
 
         void UpdateVertcies(void);
@@ -173,6 +179,7 @@ namespace Nethack
         bool    m_cursorBlink;
         int64   m_cursorBlinkTicks;
 
+        bool m_flush;
         bool m_dirty;
         int m_vertexCount;
         int m_normalVertexCount;

@@ -469,7 +469,7 @@ namespace Nethack
     {
         m_cellsLock.AcquireExclusive();
 
-        if (m_dirty)
+        if (m_dirty && m_flush)
         {
             m_normalVertexCount = 0;
             m_boldVertexCount = 0;
@@ -643,6 +643,7 @@ namespace Nethack
             v++;
 
             m_dirty = false;
+            m_flush = false;
         }
 
         m_cellsLock.ReleaseExclusive();

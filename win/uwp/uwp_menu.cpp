@@ -616,7 +616,6 @@ void TextWindow::process_lines()
 void
 MenuWindow::process_lines()
 {
-    m_offy = 2;
     assert(m_lines.size() > 0);
 
     auto iter = m_lines.begin();

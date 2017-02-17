@@ -592,20 +592,10 @@ MenuWindow * ToMenuWindow(CoreWindow * coreWin)
 STATIC_OVL void
 erase_menu_or_text(winid window, CoreWindow * coreWin, boolean clear)
 {
-    GenericWindow * genWin = ToGenericWindow(coreWin);
-
-    if (coreWin->m_offx == 0)
-        if (coreWin->m_offy) {
-            tty_curs(window, 1, 0);
-            cl_eos();
-        } else if (clear)
-            clear_screen();
-        else
-            docrt();
-    else {
-        assert(genWin->m_type == NHW_MENU || genWin->m_type == NHW_TEXT);
-        docorner((int)coreWin->m_offx, genWin->m_maxrow + 1);
-    }
+    if (clear)
+        clear_screen();
+    else
+        docrt();
 }
 
 STATIC_OVL void
@@ -2364,6 +2354,8 @@ ntposkey(int *x, int *y, int * mod)
 
     if (program_state.done_hup)
         return '\033';
+
+    g_textGrid.Flush();
 
     Event e;
 
