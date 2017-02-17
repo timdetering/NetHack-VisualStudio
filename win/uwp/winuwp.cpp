@@ -1072,24 +1072,6 @@ void GenericWindow::Putstr(int attr, const char *str)
     const char *nb;
     long i, j, n0;
 
-#if 0
-
-#ifdef H2344_BROKEN
-    if (m_type == NHW_TEXT
-        && (m_cury + m_offy) == g_textGrid.GetDimensions().m_y - 1)
-#else
-    if (coreWin->m_type == NHW_TEXT && coreWin->m_cury == g_uwpDisplay->rows - 1)
-#endif
-    {
-        /* not a menu, so save memory and output 1 page at a time */
-        m_maxcol = g_textGrid.GetDimensions().m_x; /* force full-screen mode */
-        tty_display_nhwindow(m_window, TRUE);
-        m_maxrow = m_cury = 0;
-        m_rows = 0;
-        m_lines.resize(0);
-    }
-#endif
-
     n0 = (long)strlen(str) + 1L;
 
     /* TODO(bhoue) bug here ... we really should set maxcol after split*/
