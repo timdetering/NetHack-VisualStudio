@@ -113,7 +113,6 @@ STATIC_DCL void NDECL(getret);
 #endif
 STATIC_DCL void FDECL(erase_menu_or_text,
                       (winid, CoreWindow *, BOOLEAN_P));
-STATIC_DCL void FDECL(free_window_info, (CoreWindow *, BOOLEAN_P));
 STATIC_DCL void FDECL(set_item_state, (winid, int, tty_menu_item *));
 STATIC_DCL void FDECL(set_all_on_page, (winid, tty_menu_item *,
                                         tty_menu_item *));
@@ -289,8 +288,8 @@ tty_exit_nhwindows(const char *str)
             continue; /* handle g_wins[BASE_WINDOW] last */
         if (g_wins[i]) {
 #ifdef FREE_ALL_MEMORY
-            free_window_info(g_wins[i], TRUE);
-            free((genericptr_t) g_wins[i]);
+            g_wins[i]->free_window_info(TRUE);
+            delete g_wins[i];
 #endif
             g_wins[i] = NULL;
         }
@@ -301,8 +300,8 @@ tty_exit_nhwindows(const char *str)
 #endif
 #ifdef FREE_ALL_MEMORY
     if (BASE_WINDOW != WIN_ERR && g_wins[BASE_WINDOW]) {
-        free_window_info(g_wins[BASE_WINDOW], TRUE);
-        free((genericptr_t) g_wins[BASE_WINDOW]);
+        g_wins[BASE_WINDOW]->free_window_info(TRUE);
+        delete g_wins[BASE_WINDOW];
         g_wins[BASE_WINDOW] = NULL;
     }
     free((genericptr_t) g_uwpDisplay);
@@ -310,19 +309,6 @@ tty_exit_nhwindows(const char *str)
 #endif
 
     iflags.window_inited = 0;
-}
-
-CoreWindow::CoreWindow(int inType) : m_type(inType)
-{
-    m_flags = 0;
-    m_active = FALSE;
-    m_curx = 0;
-    m_cury = 0;
-    m_morestr = 0;
-}
-
-CoreWindow::~CoreWindow()
-{
 }
 
 MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE)
@@ -540,47 +526,6 @@ erase_menu_or_text(winid window, CoreWindow * coreWin, boolean clear)
         docrt();
 }
 
-STATIC_OVL void
-free_window_info(
-    CoreWindow *coreWin,
-    boolean free_data)
-{
-    int i;
-
-    MessageWindow * msgWin = ToMessageWindow(coreWin);
-    MenuWindow * menuWin = ToMenuWindow(coreWin);
-
-    if (msgWin != NULL) {
-        msgWin->m_msgList.clear();
-        msgWin->m_msgIter = msgWin->m_msgList.end();
-    }
-
-    if (menuWin != NULL)
-    {
-        if (menuWin->m_mlist) {
-            tty_menu_item *temp;
-
-            while ((temp = menuWin->m_mlist) != 0) {
-                menuWin->m_mlist = menuWin->m_mlist->next;
-                if (temp->str)
-                    free((genericptr_t)temp->str);
-                free((genericptr_t)temp);
-            }
-        }
-        if (menuWin->m_plist) {
-            free((genericptr_t)menuWin->m_plist);
-            menuWin->m_plist = 0;
-        }
-
-        menuWin->m_plist_size = menuWin->m_npages = menuWin->m_nitems = menuWin->m_how = 0;
-    }
-
-    if (coreWin->m_morestr) {
-        free((genericptr_t)coreWin->m_morestr);
-        coreWin->m_morestr = 0;
-    }
-}
-
 void MessageWindow::Clear()
 {
     if (m_mustBeErased) {
@@ -617,22 +562,6 @@ void BaseWindow::Clear()
     clear_screen();
 
     CoreWindow::Clear();
-}
-
-void MenuWindow::Clear()
-{
-    if (m_active)
-        erase_menu_or_text(m_window, this, TRUE);
-
-    free_window_info(this, FALSE);
-
-    CoreWindow::Clear();
-}
-
-void CoreWindow::Clear()
-{
-    m_curx = 0;
-    m_cury = 0;
 }
 
 void
@@ -747,17 +676,6 @@ tty_display_nhwindow(winid window, boolean blocking)
     coreWin->Display(blocking != 0);
 }
 
-void CoreWindow::Dismiss()
-{
-    /*
-    * these should only get dismissed when the game is going away
-    * or suspending
-    */
-    tty_curs(BASE_WINDOW, 1, (int)g_uwpDisplay->rows - 1);
-    m_active = 0;
-    m_flags = 0;
-}
-
 void MessageWindow::Dismiss()
 {
     if (m_mustBeSeen)
@@ -805,19 +723,7 @@ tty_dismiss_nhwindow(winid window)
     GetCoreWindow(window)->Dismiss();
 }
 
-void CoreWindow::Destroy()
-{
-    if (m_active)
-        tty_dismiss_nhwindow(m_window);
 
-    if (m_type == NHW_MESSAGE)
-        iflags.window_inited = 0;
-
-    if (m_type == NHW_MAP)
-        clear_screen();
-
-    free_window_info(this, TRUE);
-}
 
 void
 tty_destroy_nhwindow(winid window)
@@ -830,20 +736,6 @@ tty_destroy_nhwindow(winid window)
     g_wins[window] = 0;
 }
 
-void CoreWindow::Curs(int x, int y)
-{
-
-    m_curx = --x; /* column 0 is never used */
-    m_cury = y;
-
-    assert(x >= 0 && x <= m_cols);
-    assert(y >= 0 && y < m_rows);
-
-    x += m_offx;
-    y += m_offy;
-
-    g_textGrid.SetCursor(Int2D(x, y));
-}
 
 void
 tty_curs(winid window, int x, int y)

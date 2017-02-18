@@ -409,6 +409,15 @@
     <ClCompile Include="..\..\..\win\uwp\uwp_text_win.cpp">
       <Filter>win\uwp</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\win\uwp\uwp_core_win.cpp">
+      <Filter>win\uwp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\win\uwp\uwp_message_win.cpp">
+      <Filter>win\uwp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\win\uwp\uwp_menu_win.cpp">
+      <Filter>win\uwp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="$(SysDir)uwp\assets\StoreLogo.png">

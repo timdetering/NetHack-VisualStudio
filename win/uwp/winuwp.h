@@ -33,6 +33,8 @@ struct CoreWindow {
     void Curs(int x, int y);
     virtual void Putstr(int attr, const char *str) = 0;
 
+    virtual void free_window_info(BOOLEAN_P);
+
     winid m_window;         /* winid */
     int m_flags;           /* window flags */
     xchar m_type;          /* type of window */
@@ -57,6 +59,9 @@ struct MessageWindow : public CoreWindow {
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
 
+    virtual void free_window_info(BOOLEAN_P);
+
+
     std::list<std::string> m_msgList;
     std::list<std::string>::iterator m_msgIter;
     bool m_mustBeSeen;       /* message must be seen */
@@ -73,7 +78,10 @@ struct MenuWindow : public CoreWindow {
     virtual void Display(bool blocking);
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
-    
+
+    virtual void free_window_info(BOOLEAN_P);
+
+
     void process_lines();
     void process_menu();
 
@@ -137,7 +145,7 @@ struct TextWindow : public CoreWindow {
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
 
-    std::list<std::pair<int, std::string>> m_lines;
+    std::list<std::pair<Nethack::TextAttribute, std::string>> m_lines;
 
 };
 
