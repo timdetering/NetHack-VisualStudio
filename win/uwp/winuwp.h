@@ -35,8 +35,8 @@ struct CoreWindow {
     void Curs(int x, int y);
     virtual void Putstr(int attr, const char *str) = 0;
 
-    void core_putc(char ch, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
-    void core_puts(const char *s, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
+    void core_putc(char ch, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
+    void core_puts(const char *s, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
 
     virtual void free_window_info(boolean);
     void dmore(const char *s); /* valid responses */

@@ -604,16 +604,16 @@ void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute
 {
     switch (c) {
     case '\b':
-        win_putc(WIN_MESSAGE, '\b');
+        core_putc('\b');
         return;
     case '\n':
         cl_end();
-        win_putc(WIN_MESSAGE, '\n');
+        core_putc('\n');
         break;
     default:
         if (m_curx + m_offx == CO - 1)
             topl_putsym('\n', TextColor::NoColor, TextAttribute::None); /* 1 <= curx < CO; avoid CO */
-        win_putc(WIN_MESSAGE, c);
+        core_putc(c);
     }
 
     if (m_curx == 0)

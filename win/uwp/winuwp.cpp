@@ -390,7 +390,7 @@ tty_putsym(winid window, int x, int y, char ch)
     case NHW_MAP:
     case NHW_BASE:
         tty_curs(window, x, y);
-        win_putc(window, ch);
+        coreWin->core_putc(ch);
         break;
     case NHW_MESSAGE:
     case NHW_MENU:
@@ -489,8 +489,6 @@ tty_display_file(const char *fname, boolean complain)
                 (void) tabexpand(buf);
             empty = FALSE;
             tty_putstr(datawin, 0, buf);
-            if (g_wins[datawin]->m_flags & WIN_CANCELLED)
-                break;
         }
         if (!empty)
             tty_display_nhwindow(datawin, FALSE);
@@ -548,8 +546,10 @@ tty_print_glyph(
     /* map glyph to character and color */
     (void) mapglyph(glyph, &ch, &color, &special, x, y);
 
+    CoreWindow * coreWin = GetCoreWindow(window);
+
     /* Move the cursor. */
-    tty_curs(window, x, y);
+    coreWin->Curs(x, y);
 
     /* must be after color check; term_end_color may turn off inverse too */
     if (((special & MG_PET) && iflags.hilite_pet)
@@ -559,8 +559,7 @@ tty_print_glyph(
         reverse_on = TRUE;
     }
 
-    win_putc(window, ch, (TextColor)color, reverse_on ? TextAttribute::Inverse : TextAttribute::None);
-
+    coreWin->core_putc(ch, (TextColor)color, reverse_on ? TextAttribute::Inverse : TextAttribute::None);
 }
 
 void
@@ -594,15 +593,9 @@ tty_raw_print_bold(const char *str)
 #endif
 }
 
-void really_move_cursor()
-{
-    // do nothing
-}
-
 int
 tgetch()
 {
-    really_move_cursor();
     char c = raw_getchar();
 
     if (c == EOF)
@@ -881,7 +874,6 @@ void
 tty_end_screen()
 {
     clear_screen();
-    really_move_cursor();
 }
 
 void
@@ -894,8 +886,6 @@ tty_delay_output()
 int
 ntposkey(int *x, int *y, int * mod)
 {
-    really_move_cursor();
-
     if (program_state.done_hup)
         return '\033';
 
@@ -956,12 +946,12 @@ VA_DECL(const char *, fmt)
     Vsprintf(buf, fmt, VA_ARGS);
 
     if (g_wins[BASE_WINDOW])
-        win_puts(BASE_WINDOW, buf);
+        g_wins[BASE_WINDOW]->core_puts(buf, TextColor::NoColor, TextAttribute::None);
     else
         g_textGrid.Putstr(TextColor::NoColor, TextAttribute::None, buf);
 
     if (g_uwpDisplay)
-        curs(BASE_WINDOW, g_textGrid.GetCursor().m_x + 1, g_textGrid.GetCursor().m_y);
+        g_wins[BASE_WINDOW]->Curs(g_textGrid.GetCursor().m_x + 1, g_textGrid.GetCursor().m_y);
 
     VA_END();
     return;
@@ -977,12 +967,12 @@ VA_DECL(const char *, fmt)
     Vsprintf(buf, fmt, VA_ARGS);
 
     if (g_wins[BASE_WINDOW])
-        win_puts(BASE_WINDOW, buf, TextColor::NoColor, TextAttribute::Bold);
+        g_wins[BASE_WINDOW]->core_puts(buf, TextColor::NoColor, TextAttribute::Bold);
     else
         g_textGrid.Putstr(TextColor::NoColor, TextAttribute::Bold, buf);
 
     if (g_uwpDisplay)
-        curs(BASE_WINDOW, g_textGrid.GetCursor().m_x + 1, g_textGrid.GetCursor().m_y);
+        g_wins[BASE_WINDOW]->Curs(g_textGrid.GetCursor().m_x + 1, g_textGrid.GetCursor().m_y);
 
     VA_END();
     return;

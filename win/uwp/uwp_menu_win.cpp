@@ -267,7 +267,7 @@ void MenuWindow::process_menu()
                     TextColor useColor = TextColor::NoColor;
                     TextAttribute useAttribute = TextAttribute::None;
 
-                    win_putc(m_window, ' ', useColor, useAttribute);
+                    core_putc(' ', useColor, useAttribute);
 
                     if (!iflags.use_menu_color
                         || !get_menu_coloring(curr->str, &color, &attr))
@@ -307,11 +307,11 @@ void MenuWindow::process_menu()
                             && curr->identifier.a_void != 0
                             && curr->selected) {
                             if (curr->count == -1L)
-                                win_putc(m_window, '+', useColor, useAttribute);
+                                core_putc('+', useColor, useAttribute);
                             else
-                                win_putc(m_window, '#', useColor, useAttribute);
+                                core_putc('#', useColor, useAttribute);
                         } else
-                            win_putc(m_window, *cp, useColor, useAttribute);
+                            core_putc(*cp, useColor, useAttribute);
                     } /* for *cp */
                 } /* if npages > 0 */
             } else {
@@ -564,7 +564,7 @@ MenuWindow::process_lines()
             const char * str = line.second.c_str();
             int attr = line.first;
             if (m_offx) {
-                win_putc(m_window, ' ');
+                core_putc(' ');
             }
             TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
             const char *cp;
@@ -572,7 +572,7 @@ MenuWindow::process_lines()
             for (cp = str;
                 *cp && g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
                 cp++)
-                win_putc(m_window, *cp, TextColor::NoColor, useAttribute);
+                core_putc(*cp, TextColor::NoColor, useAttribute);
         }
 
         if (row == (m_rows - 1) || iter == m_lines.end()) {
@@ -721,7 +721,7 @@ MenuWindow::set_item_state(
     char ch = item->selected ? (item->count == -1L ? '+' : '#') : '-';
 
     tty_curs(m_window, 4, lineno);
-    win_putc(m_window, ch, TextColor::NoColor, (TextAttribute)(item->attr != 0 ? 1 << item->attr : 0));
+    core_putc(ch, TextColor::NoColor, (TextAttribute)(item->attr != 0 ? 1 << item->attr : 0));
 
 }
 

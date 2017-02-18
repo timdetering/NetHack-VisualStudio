@@ -112,7 +112,7 @@ void BaseWindow::tty_askname()
                 continue;
             }
             if (ct < (int)(sizeof plname) - 1) {
-                win_putc(BASE_WINDOW, c);
+                core_putc(c);
                 plname[ct++] = c;
             }
         }
