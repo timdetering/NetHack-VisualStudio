@@ -79,8 +79,14 @@ struct MenuWindow : public CoreWindow {
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
 
-    virtual void free_window_info(BOOLEAN_P);
+    virtual void free_window_info(boolean);
 
+    void set_all_on_page(winid window, tty_menu_item *page_start, tty_menu_item *page_end);
+    void unset_all_on_page( winid window, tty_menu_item *page_start, tty_menu_item *page_end);
+    void invert_all_on_page(winid window, tty_menu_item *page_start, tty_menu_item *page_end, char acc);
+    void invert_all(winid window, tty_menu_item *page_start, tty_menu_item *page_end, char acc);
+    boolean toggle_menu_curr(winid window, tty_menu_item *curr, int lineno, boolean in_view, boolean counting, long count);
+    void set_item_state(int lineno, tty_menu_item *item);
 
     void process_lines();
     void process_menu();

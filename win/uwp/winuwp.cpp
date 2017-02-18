@@ -111,18 +111,6 @@ static const char to_continue[] = "to continue";
 #else
 STATIC_DCL void NDECL(getret);
 #endif
-STATIC_DCL void FDECL(erase_menu_or_text,
-                      (winid, CoreWindow *, BOOLEAN_P));
-STATIC_DCL void FDECL(set_item_state, (winid, int, tty_menu_item *));
-STATIC_DCL void FDECL(set_all_on_page, (winid, tty_menu_item *,
-                                        tty_menu_item *));
-STATIC_DCL void FDECL(unset_all_on_page, (winid, tty_menu_item *,
-                                          tty_menu_item *));
-STATIC_DCL void FDECL(invert_all_on_page, (winid, tty_menu_item *,
-                                           tty_menu_item *, CHAR_P));
-STATIC_DCL void FDECL(invert_all, (winid, tty_menu_item *,
-                                   tty_menu_item *, CHAR_P));
-STATIC_DCL void FDECL(toggle_menu_attr, (BOOLEAN_P, int, int));
 STATIC_DCL tty_menu_item *FDECL(reverse, (tty_menu_item *));
 STATIC_DCL void FDECL(bail, (const char *)); /* __attribute__((noreturn)) */
 STATIC_DCL void FDECL(setup_rolemenu, (winid, BOOLEAN_P, int, int, int));
@@ -339,30 +327,6 @@ MessageWindow::~MessageWindow()
 {
 }
 
-MenuWindow::MenuWindow() : CoreWindow(NHW_MENU)
-{
-    // menu
-    m_mlist = (tty_menu_item *)0;
-    m_plist = (tty_menu_item **)0;
-    m_npages = 0;
-    m_plist_size = 0;
-    m_nitems = 0;
-    m_how = 0;
-
-    // core
-    /* inventory/menu window, variable length, full width, top of screen
-    */
-    /* help window, the same, different semantics for display, etc */
-    m_offx = 0;
-    m_offy = 0;
-    m_rows = 0;
-    m_cols = 0;
-
-}
-
-MenuWindow::~MenuWindow()
-{
-}
 
 BaseWindow::BaseWindow() : CoreWindow(NHW_BASE)
 {
@@ -517,15 +481,6 @@ MenuWindow * ToMenuWindow(CoreWindow * coreWin)
     return NULL;
 }
 
-STATIC_OVL void
-erase_menu_or_text(winid window, CoreWindow * coreWin, boolean clear)
-{
-    if (clear)
-        clear_screen();
-    else
-        docrt();
-}
-
 void MessageWindow::Clear()
 {
     if (m_mustBeErased) {
@@ -612,50 +567,7 @@ void BaseWindow::Display(bool blocking)
     m_active = 1;
 }
 
-void MenuWindow::Display(bool blocking)
-{
-    m_active = 1;
 
-    m_offx = m_cols < g_uwpDisplay->cols ? g_uwpDisplay->cols - m_cols - 1 : 0;
-    m_offx = min(g_uwpDisplay->cols / 2, m_offx);
-
-    m_offy = 0;
-
-    MessageWindow * msgWin = GetMessageWindow();
-
-    if (msgWin != NULL && msgWin->m_mustBeSeen)
-        tty_display_nhwindow(WIN_MESSAGE, TRUE);
-
-    /* if we are going to have more then one page to display the use full screen */
-    /* or if we are not supposed to use menu overlays */;
-    if (m_rows >= (int)g_uwpDisplay->rows || !iflags.menu_overlay)
-    {
-        m_offx = 0;
-        /* TODO(bhouse) why do we test and do something different for overlay? */
-        if (iflags.menu_overlay) {
-            tty_curs(m_window, 1, 0);
-            cl_eos();
-        } else
-            clear_screen();
-
-        /* we just cleared the message area so we no longer need to erase */
-        if (msgWin != NULL)
-            msgWin->m_mustBeErased = false;
-    } else {
-        /* TODO(bhouse) why do we have this complexity ... why not just
-        * always clear?
-        */
-        if (msgWin != NULL)
-            tty_clear_nhwindow(WIN_MESSAGE);
-    }
-
-    if (m_lines.size() > 0) {
-        process_lines();
-    } else
-        process_menu();
-
-    assert(m_active);
-}
 
 void StatusWindow::Display(bool blocking)
 {
@@ -698,24 +610,6 @@ void MapWindow::Dismiss()
 {
     CoreWindow::Dismiss();
 }
-
-void MenuWindow::Dismiss()
-{
-    if (m_active) {
-        if (iflags.window_inited) {
-            /* otherwise dismissing the text endwin after other windows
-            * are dismissed tries to redraw the map and panics.  since
-            * the whole reason for dismissing the other windows was to
-            * leave the ending window on the screen, we don't want to
-            * erase it anyway.
-            */
-            erase_menu_or_text(m_window, this, FALSE);
-        }
-        m_active = 0;
-    }
-    m_flags = 0;
-}
-
 
 void
 tty_dismiss_nhwindow(winid window)
@@ -866,37 +760,6 @@ void BaseWindow::Putstr(int attr, const char *str)
     m_curx = 0;
     m_cury++;
 }
-
-void MenuWindow::Putstr(int attr, const char *str)
-{
-    std::string input = std::string(compress_str(str));
-
-    do {
-        std::string line;
-
-        if (input.size() > CO) {
-            int split = input.find_last_of(" \n", CO - 1);
-            if (split == std::string::npos || split == 0)
-                split = CO - 1;
-
-            line = input.substr(0, split);
-            input = input.substr(split + 1);
-        } else {
-            line = input;
-            input.clear();
-        }
-
-        m_lines.push_back(std::pair<int, std::string>(attr, line));
-
-        /* TODO(bhouse) do we need either of these to be set really? */
-        m_cury = m_lines.size();
-        m_rows = m_lines.size();
-
-        if (line.size() > m_cols)
-            m_cols = line.size();
-    } while (input.size() > 0);
-}
-
 
 void
 tty_putstr(winid window, int attr, const char *str)

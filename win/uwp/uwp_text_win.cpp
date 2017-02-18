@@ -86,8 +86,6 @@ void TextWindow::Display(bool blocking)
     if (msgWin != NULL)
         tty_clear_nhwindow(WIN_MESSAGE);
 
-    /* this is nearly identcial to MenuWindow::process_lines except for where
-    the more is placed and how we clear */
     assert(m_lines.size() > 0);
 
     auto iter = m_lines.begin();
