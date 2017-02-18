@@ -43,19 +43,6 @@ struct CoreWindow {
     char *m_morestr;         /* string to display instead of default */
 };
 
-struct GenericWindow : public CoreWindow
-{
-    GenericWindow(int type);
-    virtual ~GenericWindow();
-
-    virtual void Clear();
-    virtual void Display(bool blocking) = 0;
-    virtual void Dismiss();
-    virtual void Putstr(int attr, const char *str);
-
-    std::list<std::pair<int, std::string>> m_lines;
-
-};
 
 static const int kMaxMessageHistoryLength = 60;
 static const int kMinMessageHistoryLength = 20;
@@ -77,18 +64,20 @@ struct MessageWindow : public CoreWindow {
     bool m_nextIsPrompt;     /* next output message is a prompt */
 };
 
-struct MenuWindow : public GenericWindow {
+struct MenuWindow : public CoreWindow {
 
     MenuWindow();
     virtual ~MenuWindow();
 
-    virtual void Clear() { GenericWindow::Clear(); }
+    virtual void Clear();
     virtual void Display(bool blocking);
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
     
     void process_lines();
     void process_menu();
+
+    std::list<std::pair<int, std::string>> m_lines;
 
     tty_menu_item *m_mlist;  /* menu information (MENU) */
     tty_menu_item **m_plist; /* menu page pointers (MENU) */
@@ -100,7 +89,7 @@ struct MenuWindow : public GenericWindow {
 
 };
 
-struct BaseWindow : public GenericWindow {
+struct BaseWindow : public CoreWindow {
     BaseWindow();
     virtual ~BaseWindow();
 
@@ -128,7 +117,7 @@ struct StatusWindow : public CoreWindow {
     char m_statusLines[kStatusHeight][kStatusWidth];
 };
 
-struct MapWindow : public GenericWindow {
+struct MapWindow : public CoreWindow {
     MapWindow();
     virtual ~MapWindow();
 
@@ -139,16 +128,16 @@ struct MapWindow : public GenericWindow {
 
 };
 
-struct TextWindow : public GenericWindow {
+struct TextWindow : public CoreWindow {
     TextWindow();
     virtual ~TextWindow();
 
-    virtual void Clear() { GenericWindow::Clear(); }
+    virtual void Clear();
     virtual void Display(bool blocking);
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
 
-    void process_lines();
+    std::list<std::pair<int, std::string>> m_lines;
 
 };
 
@@ -190,10 +179,6 @@ extern char morc;         /* last character typed to xwaitforspace */
 extern char defmorestr[]; /* default --more-- prompt */
 
 /* port specific external function references */
-
-void process_text_window(winid window, GenericWindow * cw);
-void process_menu_window(winid window, GenericWindow * cw);
-
 
 /* ### getline.c ### */
 extern void FDECL(xwaitforspace, (const char *));
@@ -336,10 +321,11 @@ void win_puts(
     Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
 
 CoreWindow * GetCoreWindow(winid window);
-GenericWindow * GetGenericWindow(winid window);
 MessageWindow * GetMessageWindow();
 MessageWindow * ToMessageWindow(CoreWindow * coreWin);
-GenericWindow * ToGenericWindow(CoreWindow * coreWin);
 MenuWindow * ToMenuWindow(CoreWindow * coreWin);
+
+const char * compress_str(const char * str);
+void dmore(CoreWindow *, const char *);
 
 }

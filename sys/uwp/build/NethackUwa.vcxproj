@@ -274,6 +274,7 @@
     <ClCompile Include="$(SysDir)uwp\uwp.cpp" />
     <ClCompile Include="..\..\..\win\uwp\uwp_menu.cpp" />
     <ClCompile Include="..\..\..\win\uwp\uwp_player_selection.cpp" />
+    <ClCompile Include="..\..\..\win\uwp\uwp_text_win.cpp" />
     <ClCompile Include="..\..\..\win\uwp\winuwp.cpp" />
     <ClCompile Include="..\..\share\nhlan.c">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsWinRT>

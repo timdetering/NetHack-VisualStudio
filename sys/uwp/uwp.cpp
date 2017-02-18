@@ -780,7 +780,7 @@ static bool main_menu(void)
 
     display_gamewindows();
 
-#if 1
+#if 0
 
 #if 0
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");

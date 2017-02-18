@@ -24,7 +24,7 @@ static const char default_menu_cmds[] = {
     MENU_INVERT_PAGE,   MENU_SEARCH,      0 /* null terminator */
 };
 
-STATIC_OVL void
+void
 dmore(
     CoreWindow *coreWin,
     const char *s) /* valid responses */
@@ -555,54 +555,6 @@ void MenuWindow::process_menu()
     free((genericptr_t)morestr);
 }
 
-void TextWindow::process_lines()
-{
-    /* this is nearly identcial to MenuWindow::process_lines except for where
-       the more is placed and how we clear */
-    assert(m_lines.size() > 0);
-
-    auto iter = m_lines.begin();
-    m_rows = g_textGrid.GetDimensions().m_y - m_offy;
-    int row = 0;
-
-    while (iter != m_lines.end()) {
-        auto line = *iter++;
-
-        tty_curs(m_window, 1, row++);
-        cl_end();
-
-        if (line.second.size() > 0) {
-            const char * str = line.second.c_str();
-            int attr = line.first;
-            if (m_offx) {
-                win_putc(m_window, ' ');
-            }
-            TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
-            const char *cp;
-
-            for (cp = str;
-                *cp && g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
-                cp++)
-                win_putc(m_window, *cp, TextColor::NoColor, useAttribute);
-        }
-
-        if (row == (m_rows - 1) || iter == m_lines.end()) {
-            tty_curs(m_window, 1, row);
-            cl_eos();
-            tty_curs(m_window, 1, m_rows - 1);
-            dmore(this, quitchars);
-            if (morc == '\033') {
-                m_flags |= WIN_CANCELLED;
-                break;
-            }
-
-            tty_curs(m_window, 1, 0);
-            cl_eos();
-            row = 0;
-        }
-    }
-}
-
 void
 MenuWindow::process_lines()
 {
@@ -742,7 +694,6 @@ tty_end_menu(
     const char *prompt) /* prompt to for menu */
 {
     CoreWindow *coreWin = GetCoreWindow(window);
-    GenericWindow * genWin = ToGenericWindow(coreWin);
     MenuWindow *menuWin = ToMenuWindow(coreWin);
     tty_menu_item *curr;
     short len;

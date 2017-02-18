@@ -114,7 +114,6 @@ STATIC_DCL void NDECL(getret);
 STATIC_DCL void FDECL(erase_menu_or_text,
                       (winid, CoreWindow *, BOOLEAN_P));
 STATIC_DCL void FDECL(free_window_info, (CoreWindow *, BOOLEAN_P));
-STATIC_DCL void FDECL(dmore, (CoreWindow *, const char *));
 STATIC_DCL void FDECL(set_item_state, (winid, int, tty_menu_item *));
 STATIC_DCL void FDECL(set_all_on_page, (winid, tty_menu_item *,
                                         tty_menu_item *));
@@ -126,7 +125,6 @@ STATIC_DCL void FDECL(invert_all, (winid, tty_menu_item *,
                                    tty_menu_item *, CHAR_P));
 STATIC_DCL void FDECL(toggle_menu_attr, (BOOLEAN_P, int, int));
 STATIC_DCL tty_menu_item *FDECL(reverse, (tty_menu_item *));
-STATIC_DCL const char *FDECL(compress_str, (const char *));
 STATIC_DCL void FDECL(bail, (const char *)); /* __attribute__((noreturn)) */
 STATIC_DCL void FDECL(setup_rolemenu, (winid, BOOLEAN_P, int, int, int));
 STATIC_DCL void FDECL(setup_racemenu, (winid, BOOLEAN_P, int, int, int));
@@ -327,14 +325,6 @@ CoreWindow::~CoreWindow()
 {
 }
 
-GenericWindow::GenericWindow(int inType) : CoreWindow(inType)
-{
-}
-
-GenericWindow::~GenericWindow()
-{
-}
-
 MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE)
 {
     // msg
@@ -363,7 +353,7 @@ MessageWindow::~MessageWindow()
 {
 }
 
-MenuWindow::MenuWindow() : GenericWindow(NHW_MENU)
+MenuWindow::MenuWindow() : CoreWindow(NHW_MENU)
 {
     // menu
     m_mlist = (tty_menu_item *)0;
@@ -388,7 +378,7 @@ MenuWindow::~MenuWindow()
 {
 }
 
-BaseWindow::BaseWindow() : GenericWindow(NHW_BASE)
+BaseWindow::BaseWindow() : CoreWindow(NHW_BASE)
 {
     // core
     m_offx = 0;
@@ -419,7 +409,7 @@ StatusWindow::~StatusWindow()
 {
 }
 
-MapWindow::MapWindow() : GenericWindow(NHW_MAP)
+MapWindow::MapWindow() : CoreWindow(NHW_MAP)
 {
     // core
     /* map window, ROWNO lines long, full width, below message window */
@@ -434,22 +424,6 @@ MapWindow::~MapWindow()
 {
 }
 
-TextWindow::TextWindow() : GenericWindow(NHW_TEXT)
-{
-    // core
-    /* inventory/menu window, variable length, full width, top of screen
-    */
-    /* help window, the same, different semantics for display, etc */
-    m_offx = 0;
-    m_offy = 0;
-    m_rows = 0;
-    m_cols = g_uwpDisplay->cols;
-}
-
-TextWindow::~TextWindow()
-{
-}
-
 winid
 tty_create_nhwindow(int type)
 {
@@ -460,7 +434,6 @@ tty_create_nhwindow(int type)
         return WIN_ERR;
 
     CoreWindow *coreWin = NULL;
-    GenericWindow * genWin = NULL;
 
     switch (type) {
     case NHW_BASE:
@@ -468,8 +441,7 @@ tty_create_nhwindow(int type)
         if (g_wins[BASE_WINDOW] != NULL) return WIN_ERR;
 
         BaseWindow * baseWin = new BaseWindow();
-        genWin = baseWin;
-        coreWin = genWin;
+        coreWin = baseWin;
 
         /* base window, used for absolute movement on the screen */
         break;
@@ -491,24 +463,21 @@ tty_create_nhwindow(int type)
     case NHW_MAP:
     {
         MapWindow * mapWin = new MapWindow();
-        genWin = mapWin;
-        coreWin = genWin;
+        coreWin = mapWin;
 
         break;
     }
     case NHW_MENU:
     {
         MenuWindow * menuWin = new MenuWindow();
-        genWin = menuWin;
-        coreWin = genWin;
+        coreWin = menuWin;
 
         break;
     }
     case NHW_TEXT:
     {
         TextWindow * textWin = new TextWindow();
-        genWin = textWin;
-        coreWin = genWin;
+        coreWin = textWin;
         break;
     }
     default:
@@ -548,24 +517,10 @@ MessageWindow * GetMessageWindow()
     return NULL;
 }
 
-GenericWindow * GetGenericWindow(winid window)
-{
-    if (window != WIN_ERR)
-        return (GenericWindow *)g_wins[window];
-    return NULL;
-}
-
 MessageWindow * ToMessageWindow(CoreWindow * coreWin)
 {
     if (coreWin->m_type == NHW_MESSAGE)
         return (MessageWindow *)coreWin;
-    return NULL;
-}
-
-GenericWindow * ToGenericWindow(CoreWindow * coreWin)
-{
-    if (coreWin->m_type != NHW_MESSAGE && coreWin->m_type != NHW_STATUS)
-        return (GenericWindow *)coreWin;
     return NULL;
 }
 
@@ -593,7 +548,6 @@ free_window_info(
     int i;
 
     MessageWindow * msgWin = ToMessageWindow(coreWin);
-    GenericWindow * genWin = ToGenericWindow(coreWin);
     MenuWindow * menuWin = ToMenuWindow(coreWin);
 
     if (msgWin != NULL) {
@@ -665,7 +619,7 @@ void BaseWindow::Clear()
     CoreWindow::Clear();
 }
 
-void GenericWindow::Clear()
+void MenuWindow::Clear()
 {
     if (m_active)
         erase_menu_or_text(m_window, this, TRUE);
@@ -726,25 +680,6 @@ void MapWindow::Display(bool blocking)
 
 void BaseWindow::Display(bool blocking)
 {
-    m_active = 1;
-}
-
-void TextWindow::Display(bool blocking)
-{
-    m_cols = g_uwpDisplay->cols; /* force full-screen mode */
-    m_active = 1;
-    m_offx =  0;
-
-    MessageWindow * msgWin = GetMessageWindow();
-
-    if (msgWin != NULL && msgWin->m_mustBeSeen)
-        tty_display_nhwindow(WIN_MESSAGE, TRUE);
-
-    if (msgWin != NULL)
-        tty_clear_nhwindow(WIN_MESSAGE);
-
-    process_lines();
-
     m_active = 1;
 }
 
@@ -846,7 +781,7 @@ void MapWindow::Dismiss()
     CoreWindow::Dismiss();
 }
 
-void GenericWindow::Dismiss()
+void MenuWindow::Dismiss()
 {
     if (m_active) {
         if (iflags.window_inited) {
@@ -863,15 +798,6 @@ void GenericWindow::Dismiss()
     m_flags = 0;
 }
 
-void MenuWindow::Dismiss()
-{
-    GenericWindow::Dismiss();
-}
-
-void TextWindow::Dismiss()
-{
-    GenericWindow::Dismiss();
-}
 
 void
 tty_dismiss_nhwindow(winid window)
@@ -947,7 +873,7 @@ tty_putsym(winid window, int x, int y, char ch)
     }
 }
 
-STATIC_OVL const char *
+const char *
 compress_str(const char * str)
 {
     static char cbuf[BUFSZ];
@@ -1049,12 +975,11 @@ void BaseWindow::Putstr(int attr, const char *str)
     m_cury++;
 }
 
-void GenericWindow::Putstr(int attr, const char *str)
+void MenuWindow::Putstr(int attr, const char *str)
 {
     std::string input = std::string(compress_str(str));
 
-    while (input.size() > 0)
-    {
+    do {
         std::string line;
 
         if (input.size() > CO) {
@@ -1077,18 +1002,9 @@ void GenericWindow::Putstr(int attr, const char *str)
 
         if (line.size() > m_cols)
             m_cols = line.size();
-    }
+    } while (input.size() > 0);
 }
 
-void MenuWindow::Putstr(int attr, const char *str)
-{
-    GenericWindow::Putstr(attr, str);
-}
-
-void TextWindow::Putstr(int attr, const char *str)
-{
-    GenericWindow::Putstr(attr, str);
-}
 
 void
 tty_putstr(winid window, int attr, const char *str)
