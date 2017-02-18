@@ -104,7 +104,7 @@ void TextWindow::Display(bool blocking)
             tty_curs(m_window, 1, row);
             cl_eos();
             tty_curs(m_window, 1, m_rows - 1);
-            dmore(this, quitchars);
+            dmore(quitchars);
             if (morc == '\033') {
                 m_flags |= WIN_CANCELLED;
                 break;

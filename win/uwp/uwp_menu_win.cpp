@@ -348,7 +348,7 @@ void MenuWindow::process_menu()
 
             tty_curs(m_window, 1, page_lines);
             cl_end();
-            dmore(this, resp);
+            dmore(resp);
         } else {
             /* just put the cursor back... */
             tty_curs(m_window, (int)strlen(m_morestr) + 2, page_lines);
@@ -578,7 +578,7 @@ MenuWindow::process_lines()
         if (row == (m_rows - 1) || iter == m_lines.end()) {
             tty_curs(m_window, 1, row);
             cl_end();
-            dmore(this, quitchars);
+            dmore(quitchars);
             if (morc == '\033') {
                 m_flags |= WIN_CANCELLED;
                 break;
@@ -724,3 +724,188 @@ MenuWindow::set_item_state(
     win_putc(m_window, ch, TextColor::NoColor, (TextAttribute)(item->attr != 0 ? 1 << item->attr : 0));
 
 }
+
+int MenuWindow::tty_select_menu(
+    int how,
+    menu_item **menu_list)
+{
+    tty_menu_item *curr;
+    menu_item *mi;
+    int n, cancelled;
+
+    *menu_list = (menu_item *)0;
+    m_how = (short)how;
+    morc = 0;
+    tty_display_nhwindow(m_window, TRUE);
+    cancelled = !!(m_flags & WIN_CANCELLED);
+    tty_dismiss_nhwindow(m_window); /* does not destroy window data */
+
+    if (cancelled) {
+        n = -1;
+    } else {
+        for (n = 0, curr = m_mlist; curr; curr = curr->next)
+            if (curr->selected)
+                n++;
+    }
+
+    if (n > 0) {
+        *menu_list = (menu_item *)alloc(n * sizeof(menu_item));
+        for (mi = *menu_list, curr = m_mlist; curr; curr = curr->next)
+            if (curr->selected) {
+                mi->item = curr->identifier;
+                mi->count = curr->count;
+                mi++;
+            }
+    }
+
+    return n;
+}
+
+void MenuWindow::tty_add_menu(
+    const anything *identifier, /* what to return if selected */
+    char ch,                    /* keyboard accelerator (0 = pick our own) */
+    char gch,                   /* group accelerator (0 = no group) */
+    int attr,                   /* attribute for string (like tty_putstr()) */
+    const char *str,            /* menu string */
+    boolean preselected)        /* item is marked as selected */
+{
+    tty_menu_item *item;
+    const char *newstr;
+    char buf[4 + BUFSZ];
+
+    if (str == (const char *)0)
+        return;
+
+    m_nitems++;
+    if (identifier->a_void) {
+        int len = strlen(str);
+
+        if (len >= BUFSZ) {
+            /* We *think* everything's coming in off at most BUFSZ bufs... */
+            impossible("Menu item too long (%d).", len);
+            len = BUFSZ - 1;
+        }
+        Sprintf(buf, "%c - ", ch ? ch : '?');
+        (void)strncpy(buf + 4, str, len);
+        buf[4 + len] = '\0';
+        newstr = buf;
+    } else
+        newstr = str;
+
+    item = (tty_menu_item *)alloc(sizeof(tty_menu_item));
+    item->identifier = *identifier;
+    item->count = -1L;
+    item->selected = preselected;
+    item->selector = ch;
+    item->gselector = gch;
+    item->attr = attr;
+    item->str = dupstr(newstr ? newstr : "");
+
+    item->next = m_mlist;
+    m_mlist = item;
+}
+
+void MenuWindow::tty_end_menu(
+    const char *prompt) /* prompt to for menu */
+{
+    tty_menu_item *curr;
+    short len;
+    int lmax, n;
+    char menu_ch;
+
+    /* Reverse the list so that items are in correct order. */
+    m_mlist = reverse(m_mlist);
+
+    /* Put the prompt at the beginning of the menu. */
+    if (prompt) {
+        anything any;
+
+        any = zeroany; /* not selectable */
+        tty_add_menu(&any, 0, 0, ATR_NONE, "", MENU_UNSELECTED);
+        tty_add_menu(&any, 0, 0, ATR_NONE, prompt, MENU_UNSELECTED);
+    }
+
+    /* XXX another magic number? 52 */
+    lmax = min(52, (int)g_uwpDisplay->rows - 1);    /* # lines per page */
+    m_npages = (m_nitems + (lmax - 1)) / lmax; /* # of pages */
+                                                                 /* make sure page list is large enough */
+    if (m_plist_size < m_npages + 1 /*need 1 slot beyond last*/) {
+        if (m_plist)
+            free((genericptr_t)m_plist);
+        m_plist_size = m_npages + 1;
+        m_plist = (tty_menu_item **)alloc(m_plist_size
+            * sizeof(tty_menu_item *));
+    }
+
+    m_cols = 0;  /* cols is set when the win is initialized... (why?) */
+    menu_ch = '?'; /* lint suppression */
+    for (n = 0, curr = m_mlist; curr; n++, curr = curr->next) {
+        /* set page boundaries and character accelerators */
+        if ((n % lmax) == 0) {
+            menu_ch = 'a';
+            m_plist[n / lmax] = curr;
+        }
+        if (curr->identifier.a_void && !curr->selector) {
+            curr->str[0] = curr->selector = menu_ch;
+            if (menu_ch++ == 'z')
+                menu_ch = 'A';
+        }
+
+        /* cut off any lines that are too long */
+        len = strlen(curr->str) + 2; /* extra space at beg & end */
+        if (len > (int)g_uwpDisplay->cols) {
+            curr->str[g_uwpDisplay->cols - 2] = 0;
+            len = g_uwpDisplay->cols;
+        }
+        if (len > m_cols)
+            m_cols = len;
+    }
+    m_plist[m_npages] = 0; /* plist terminator */
+
+                                             /*
+                                             * If greater than 1 page, morestr is "(x of y) " otherwise, "(end) "
+                                             */
+    if (m_npages > 1) {
+        char buf[QBUFSZ];
+        /* produce the largest demo string */
+        Sprintf(buf, "(%ld of %ld) ", m_npages, m_npages);
+        len = strlen(buf);
+        m_morestr = dupstr("");
+    } else {
+        m_morestr = dupstr("(end) ");
+        len = strlen(m_morestr);
+    }
+
+    if (len > (int)g_uwpDisplay->cols) {
+        /* truncate the prompt if it's too long for the screen */
+        if (m_npages <= 1) /* only str in single page case */
+            m_morestr[g_uwpDisplay->cols] = 0;
+        len = g_uwpDisplay->cols;
+    }
+    if (len > m_cols)
+        m_cols = len;
+
+    /*
+    * The number of lines in the first page plus the morestr will be the
+    * maximum size of the window.
+    */
+    if (m_npages > 1)
+        m_rows = lmax + 1;
+    else
+        m_rows = m_nitems + 1;
+}
+
+/* Invert the given list, can handle NULL as an input. */
+tty_menu_item * MenuWindow::reverse(tty_menu_item *curr)
+{
+    tty_menu_item *next, *head = 0;
+
+    while (curr) {
+        next = curr->next;
+        curr->next = head;
+        head = curr;
+        curr = next;
+    }
+    return head;
+}
+

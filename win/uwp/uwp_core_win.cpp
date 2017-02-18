@@ -76,3 +76,47 @@ void CoreWindow::free_window_info(
         m_morestr = 0;
     }
 }
+
+void CoreWindow::dmore(
+    const char *s) /* valid responses */
+{
+    const char *prompt = m_morestr ? m_morestr : defmorestr;
+    int offset = (m_type == NHW_TEXT) ? 1 : 2;
+
+    tty_curs(BASE_WINDOW, (int)m_curx + m_offx + offset, (int)m_cury + m_offy);
+
+    win_puts(BASE_WINDOW, prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
+
+    xwaitforspace(s);
+}
+
+void
+CoreWindow::xwaitforspace(
+    register const char *s) /* chars allowed besides return */
+{
+    register int c, x = g_uwpDisplay ? (int)g_uwpDisplay->dismiss_more : '\n';
+
+    morc = 0;
+    while (
+#ifdef HANGUPHANDLING
+        !program_state.done_hup &&
+#endif
+        (c = tty_nhgetch()) != EOF) {
+        if (c == '\n')
+            break;
+
+        if (iflags.cbreak) {
+            if (c == '\033') {
+                if (g_uwpDisplay)
+                    g_uwpDisplay->dismiss_more = 1;
+                morc = '\033';
+                break;
+            }
+            if ((s && index(s, c)) || c == x) {
+                morc = (char)c;
+                break;
+            }
+            tty_nhbell();
+        }
+    }
+}

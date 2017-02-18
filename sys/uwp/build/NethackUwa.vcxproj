@@ -272,11 +272,14 @@
     <ClCompile Include="$(SysDir)uwp\uwpdeviceresources.cpp" />
     <ClCompile Include="$(SysDir)uwp\uwpnethackmain.cpp" />
     <ClCompile Include="$(SysDir)uwp\uwp.cpp" />
+    <ClCompile Include="..\..\..\win\uwp\uwp_base_win.cpp" />
     <ClCompile Include="..\..\..\win\uwp\uwp_core_win.cpp" />
+    <ClCompile Include="..\..\..\win\uwp\uwp_map_win.cpp" />
     <ClCompile Include="..\..\..\win\uwp\uwp_menu.cpp" />
     <ClCompile Include="..\..\..\win\uwp\uwp_menu_win.cpp" />
     <ClCompile Include="..\..\..\win\uwp\uwp_message_win.cpp" />
     <ClCompile Include="..\..\..\win\uwp\uwp_player_selection.cpp" />
+    <ClCompile Include="..\..\..\win\uwp\uwp_status_win.cpp" />
     <ClCompile Include="..\..\..\win\uwp\uwp_text_win.cpp" />
     <ClCompile Include="..\..\..\win\uwp\winuwp.cpp" />
     <ClCompile Include="..\..\share\nhlan.c">

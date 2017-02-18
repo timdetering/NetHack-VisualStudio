@@ -14,8 +14,6 @@
 #error TEXTCOLOR must be defined
 #endif
 
-#define NEWAUTOCOMP
-
 using namespace Nethack;
 
 extern "C" {
@@ -299,34 +297,6 @@ tty_exit_nhwindows(const char *str)
     iflags.window_inited = 0;
 }
 
-MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE)
-{
-    // msg
-    m_mustBeSeen = false;
-    m_mustBeErased = false;
-    m_nextIsPrompt = false;
-
-    m_msgIter = m_msgList.end();
-
-    // core
-    /* message window, 1 line long, very wide, top of screen */
-    m_offx = 0;
-    m_offy = 0;
-
-    /* sanity check */
-    if (iflags.msg_history < kMinMessageHistoryLength)
-        iflags.msg_history = kMinMessageHistoryLength;
-    else if (iflags.msg_history > kMaxMessageHistoryLength)
-        iflags.msg_history = kMaxMessageHistoryLength;
-
-    m_rows = iflags.msg_history;
-    m_cols = 0;
-}
-
-MessageWindow::~MessageWindow()
-{
-}
-
 
 BaseWindow::BaseWindow() : CoreWindow(NHW_BASE)
 {
@@ -339,38 +309,6 @@ BaseWindow::BaseWindow() : CoreWindow(NHW_BASE)
 }
 
 BaseWindow::~BaseWindow()
-{
-}
-
-StatusWindow::StatusWindow() : CoreWindow(NHW_STATUS)
-{
-    assert(kStatusWidth == g_uwpDisplay->cols);
-
-    // core
-    /* status window, 2 lines long, full width, bottom of screen */
-    m_offx = 0;
-    m_offy = min((int)g_uwpDisplay->rows - kStatusHeight, ROWNO + 1);
-    m_rows = kStatusHeight;
-    m_cols = kStatusWidth;
-
-}
-
-StatusWindow::~StatusWindow()
-{
-}
-
-MapWindow::MapWindow() : CoreWindow(NHW_MAP)
-{
-    // core
-    /* map window, ROWNO lines long, full width, below message window */
-    m_offx = 0;
-    m_offy = 1;
-    m_rows = ROWNO;
-    m_cols = COLNO;
-
-}
-
-MapWindow::~MapWindow()
 {
 }
 
@@ -481,97 +419,10 @@ MenuWindow * ToMenuWindow(CoreWindow * coreWin)
     return NULL;
 }
 
-void MessageWindow::Clear()
-{
-    if (m_mustBeErased) {
-        home();
-        cl_end();
-        if (m_cury)
-            docorner(1, m_cury + 1);
-        m_mustBeErased = false;
-    }
-
-    CoreWindow::Clear();
-}
-
-void StatusWindow::Clear()
-{
-    tty_curs(m_window, 1, 0);
-    cl_end();
-    tty_curs(m_window, 1, 1);
-    cl_end();
-
-    CoreWindow::Clear();
-}
-
-void MapWindow::Clear()
-{
-    context.botlx = 1;
-    clear_screen();
-
-    CoreWindow::Clear();
-}
-
-void BaseWindow::Clear()
-{
-    clear_screen();
-
-    CoreWindow::Clear();
-}
-
 void
 tty_clear_nhwindow(winid window)
 {
     GetCoreWindow(window)->Clear();
-}
-
-void MessageWindow::Display(bool blocking)
-{
-    if (m_mustBeSeen) {
-        more();
-        assert(!m_mustBeSeen);
-
-        if (m_mustBeErased)
-            tty_clear_nhwindow(m_window);
-    }
-
-    m_curx = 0;
-    m_cury = 0;
-
-    if (!m_active)
-        iflags.window_inited = TRUE;
-
-    m_active = 1;
-}
-
-void MapWindow::Display(bool blocking)
-{
-    if (blocking) {
-        MessageWindow * msgWin = GetMessageWindow();
-        /* blocking map (i.e. ask user to acknowledge it as seen) */
-        if (msgWin != NULL && !msgWin->m_mustBeSeen)
-        {
-            msgWin->m_mustBeSeen = true;
-            msgWin->m_mustBeErased = true;
-        }
-
-        tty_display_nhwindow(WIN_MESSAGE, TRUE);
-        return;
-    }
-    
-    m_active = 1;
-}
-
-void BaseWindow::Display(bool blocking)
-{
-    m_active = 1;
-}
-
-
-
-void StatusWindow::Display(bool blocking)
-{
-    m_active = 1;
 }
 
 /*ARGSUSED*/
@@ -588,28 +439,6 @@ tty_display_nhwindow(winid window, boolean blocking)
     coreWin->Display(blocking != 0);
 }
 
-void MessageWindow::Dismiss()
-{
-    if (m_mustBeSeen)
-        tty_display_nhwindow(WIN_MESSAGE, TRUE);
-
-    CoreWindow::Dismiss();
-}
-
-void StatusWindow::Dismiss()
-{
-    CoreWindow::Dismiss();
-}
-
-void BaseWindow::Dismiss()
-{
-    CoreWindow::Dismiss();
-}
-
-void MapWindow::Dismiss()
-{
-    CoreWindow::Dismiss();
-}
 
 void
 tty_dismiss_nhwindow(winid window)
@@ -687,78 +516,6 @@ compress_str(const char * str)
         str = cbuf;
     }
     return str;
-}
-
-void MessageWindow::Putstr(int attr, const char *str)
-{
-    update_topl(str);
-}
-
-void StatusWindow::Putstr(int attr, const char *str)
-{
-    str = compress_str(str);
-
-    char *ob;
-    const char *nb;
-    long i, j, n0;
-
-    ob = &m_statusLines[m_cury][j = m_curx];
-    if (context.botlx)
-        *ob = 0;
-    if (!m_cury && (int)strlen(str) >= CO) {
-        /* the characters before "St:" are unnecessary */
-        nb = index(str, ':');
-        if (nb && nb > str + 2)
-            str = nb - 2;
-    }
-    nb = str;
-    for (i = m_curx + 1, n0 = m_cols; i < n0; i++, nb++) {
-        if (!*nb) {
-            if (*ob || context.botlx) {
-                /* last char printed may be in middle of line */
-                tty_curs(WIN_STATUS, i, m_cury);
-                cl_end();
-            }
-            break;
-        }
-        if (*ob != *nb)
-            tty_putsym(WIN_STATUS, i, m_cury, *nb);
-        if (*ob)
-            ob++;
-    }
-
-    (void)strncpy(&m_statusLines[m_cury][j], str, m_cols - j - 1);
-    m_statusLines[m_cury][m_cols - 1] = '\0'; /* null terminate */
-#ifdef STATUS_VIA_WINDOWPORT
-    if (!iflags.use_status_hilites) {
-#endif
-        m_cury = (m_cury + 1) % 2;
-        m_curx = 0;
-#ifdef STATUS_VIA_WINDOWPORT
-    }
-#endif
-}
-
-void MapWindow::Putstr(int attr, const char *str)
-{
-    str = compress_str(str);
-    TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
-
-    tty_curs(m_window, m_curx + 1, m_cury);
-    win_puts(m_window, str, TextColor::NoColor, useAttribute);
-    m_curx = 0;
-    m_cury++;
-}
-
-void BaseWindow::Putstr(int attr, const char *str)
-{
-    str = compress_str(str);
-    TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
-
-    tty_curs(m_window, m_curx + 1, m_cury);
-    win_puts(m_window, str, TextColor::NoColor, useAttribute);
-    m_curx = 0;
-    m_cury++;
 }
 
 void
@@ -1056,10 +813,6 @@ tty_nh_poskey(int *x, int *y, int *mod)
 char morc = 0; /* tell the outside world what char you chose */
 STATIC_DCL boolean FDECL(ext_cmd_getlin_hook, (char *));
 
-typedef boolean FDECL((*getlin_hook_proc), (char *));
-
-STATIC_DCL void FDECL(hooked_tty_getlin,
-(const char *, char *, getlin_hook_proc));
 extern int NDECL(extcmd_via_menu); /* cmd.c */
 
 extern char erase_char, kill_char; /* from appropriate tty.c file */
@@ -1075,192 +828,7 @@ tty_getlin(
     const char *query,
     char *bufp)
 {
-    hooked_tty_getlin(query, bufp, (getlin_hook_proc)0);
-}
-
-STATIC_OVL void
-hooked_tty_getlin(
-    const char *query,
-    char *bufp,
-    getlin_hook_proc hook)
-{
-    register char *obufp = bufp;
-    register int c;
-    MessageWindow *msgWin = GetMessageWindow();
-    CoreWindow * coreWin = (CoreWindow *)msgWin;
-    boolean doprev = 0;
-
-    if (msgWin->m_mustBeSeen && !(msgWin->m_flags & WIN_STOP))
-        more();
-    coreWin->m_flags &= ~WIN_STOP;
-
-    msgWin->m_nextIsPrompt = true;
-    pline("%s ", query);
-    assert(!msgWin->m_nextIsPrompt);
-    *obufp = 0;
-    for (;;) {
-        strncpy(toplines, query, sizeof(toplines) - 1);
-        strncat(toplines, " ", sizeof(toplines) - strlen(toplines) - 1);
-        strncat(toplines, obufp, sizeof(toplines) - strlen(toplines) - 1);
-        c = pgetchar();
-        if (c == '\033' || c == EOF) {
-            if (c == '\033' && obufp[0] != '\0') {
-                obufp[0] = '\0';
-                bufp = obufp;
-                tty_clear_nhwindow(WIN_MESSAGE);
-                msgWin->m_msgIter = msgWin->m_msgList.end();
-                addtopl(query);
-                addtopl(" ");
-                addtopl(obufp);
-            }
-            else {
-                obufp[0] = '\033';
-                obufp[1] = '\0';
-                break;
-            }
-        }
-        if (c == '\020') { /* ctrl-P */
-            if (iflags.prevmsg_window != 's') {
-                (void)tty_doprev_message();
-                tty_clear_nhwindow(WIN_MESSAGE);
-                msgWin->m_msgIter = msgWin->m_msgList.end();
-                addtopl(query);
-                addtopl(" ");
-                *bufp = 0;
-                addtopl(obufp);
-            }
-            else {
-                if (!doprev)
-                    (void) tty_doprev_message(); /* need two initially */
-                (void)tty_doprev_message();
-                doprev = 1;
-                continue;
-            }
-        }
-        else if (doprev && iflags.prevmsg_window == 's') {
-            tty_clear_nhwindow(WIN_MESSAGE);
-            msgWin->m_msgIter = msgWin->m_msgList.end();
-            doprev = 0;
-            addtopl(query);
-            addtopl(" ");
-            *bufp = 0;
-            addtopl(obufp);
-        }
-        if (c == erase_char || c == '\b') {
-            if (bufp != obufp) {
-#ifdef NEWAUTOCOMP
-                char *i;
-
-#endif /* NEWAUTOCOMP */
-                bufp--;
-#ifndef NEWAUTOCOMP
-                putsyms("\b \b", TextColor::NoColor, TextAttribute::None); /* putsym converts \b */
-#else                             /* NEWAUTOCOMP */
-                putsyms("\b", TextColor::NoColor, TextAttribute::None);
-                for (i = bufp; *i; ++i)
-                    putsyms(" ", TextColor::NoColor, TextAttribute::None);
-                for (; i > bufp; --i)
-                    putsyms("\b", TextColor::NoColor, TextAttribute::None);
-                *bufp = 0;
-#endif                            /* NEWAUTOCOMP */
-            }
-            else
-                tty_nhbell();
-#if defined(apollo)
-        }
-        else if (c == '\n' || c == '\r') {
-#else
-        }
-        else if (c == '\n') {
-#endif
-#ifndef NEWAUTOCOMP
-            *bufp = 0;
-#endif /* not NEWAUTOCOMP */
-            break;
-        }
-        else if (' ' <= (unsigned char)c && c != '\177'
-            && (bufp - obufp < BUFSZ - 1 && bufp - obufp < COLNO)) {
-            /* avoid isprint() - some people don't have it
-            ' ' is not always a printing char */
-#ifdef NEWAUTOCOMP
-            char *i = eos(bufp);
-
-#endif /* NEWAUTOCOMP */
-            *bufp = c;
-            bufp[1] = 0;
-            putsyms(bufp, TextColor::NoColor, TextAttribute::None);
-            bufp++;
-            if (hook && (*hook)(obufp)) {
-                putsyms(bufp, TextColor::NoColor, TextAttribute::None);
-#ifndef NEWAUTOCOMP
-                bufp = eos(bufp);
-#else  /* NEWAUTOCOMP */
-                /* pointer and cursor left where they were */
-                for (i = bufp; *i; ++i)
-                    putsyms("\b", TextColor::NoColor, TextAttribute::None);
-            }
-            else if (i > bufp) {
-                char *s = i;
-
-                /* erase rest of prior guess */
-                for (; i > bufp; --i)
-                    putsyms(" ", TextColor::NoColor, TextAttribute::None);
-                for (; s > bufp; --s)
-                    putsyms("\b", TextColor::NoColor, TextAttribute::None);
-#endif /* NEWAUTOCOMP */
-            }
-        }
-        else if (c == kill_char || c == '\177') { /* Robert Viduya */
-                                                  /* this test last - @ might be the kill_char */
-#ifndef NEWAUTOCOMP
-            while (bufp != obufp) {
-                bufp--;
-                putsyms("\b \b");
-            }
-#else  /* NEWAUTOCOMP */
-            for (; *bufp; ++bufp)
-                putsyms(" ", TextColor::NoColor, TextAttribute::None);
-            for (; bufp != obufp; --bufp)
-                putsyms("\b \b", TextColor::NoColor, TextAttribute::None);
-            *bufp = 0;
-#endif /* NEWAUTOCOMP */
-        }
-        else
-            tty_nhbell();
-    }
-    msgWin->m_mustBeSeen = false;
-    clear_nhwindow(WIN_MESSAGE); /* clean up after ourselves */
-}
-
-void
-xwaitforspace(
-    register const char *s) /* chars allowed besides return */
-{
-    register int c, x = g_uwpDisplay ? (int)g_uwpDisplay->dismiss_more : '\n';
-
-    morc = 0;
-    while (
-#ifdef HANGUPHANDLING
-        !program_state.done_hup &&
-#endif
-        (c = tty_nhgetch()) != EOF) {
-        if (c == '\n')
-            break;
-
-        if (iflags.cbreak) {
-            if (c == '\033') {
-                if (g_uwpDisplay)
-                    g_uwpDisplay->dismiss_more = 1;
-                morc = '\033';
-                break;
-            }
-            if ((s && index(s, c)) || c == x) {
-                morc = (char)c;
-                break;
-            }
-            tty_nhbell();
-        }
-    }
+    GetMessageWindow()->hooked_tty_getlin(query, bufp, (getlin_hook_proc)0);
 }
 
 /*
@@ -1315,7 +883,7 @@ tty_get_ext_cmd()
     /* maybe a runtime option? */
     /* hooked_tty_getlin("#", buf, flags.cmd_comp ? ext_cmd_getlin_hook :
     * (getlin_hook_proc) 0); */
-    hooked_tty_getlin("#", buf, in_doagain ? (getlin_hook_proc)0
+    GetMessageWindow()->hooked_tty_getlin("#", buf, in_doagain ? (getlin_hook_proc)0
         : ext_cmd_getlin_hook);
     (void)mungspaces(buf);
     if (buf[0] == 0 || buf[0] == '\033')
@@ -1344,311 +912,12 @@ tty_get_ext_cmd()
 #define C(c) (0x1f & (c))
 #endif
 
-STATIC_DCL void FDECL(redotoplin, (const char *));
-static void topl_putsym(char c, TextColor color, TextAttribute attribute);
-STATIC_DCL void NDECL(remember_topl);
-STATIC_DCL void FDECL(removetopl, (int));
 STATIC_DCL void FDECL(msghistory_snapshot, (BOOLEAN_P));
 
 int
 tty_doprev_message()
 {
-    MessageWindow *msgWin = GetMessageWindow();
-    CoreWindow *coreWin = msgWin;
-
-    winid prevmsg_win;
-    int i;
-    if (iflags.prevmsg_window != 's') {           /* not single */
-        if (iflags.prevmsg_window == 'f') { /* full */
-            prevmsg_win = create_nhwindow(NHW_MENU);
-            putstr(prevmsg_win, 0, "Message History");
-            putstr(prevmsg_win, 0, "");
-
-            msgWin->m_msgIter = msgWin->m_msgList.end();
-
-            for (auto & msg : msgWin->m_msgList)
-                putstr(prevmsg_win, 0, msg.c_str());
-
-            putstr(prevmsg_win, 0, toplines);
-            display_nhwindow(prevmsg_win, TRUE);
-            destroy_nhwindow(prevmsg_win);
-        }
-        else if (iflags.prevmsg_window == 'c') { /* combination */
-            do {
-                morc = 0;
-                if (msgWin->m_msgIter == msgWin->m_msgList.end()) {
-                    g_uwpDisplay->dismiss_more = C('p'); /* ^P ok at --More-- */
-                    redotoplin(toplines);
-
-                    if (msgWin->m_msgIter != msgWin->m_msgList.begin())
-                        msgWin->m_msgIter--;
-
-                } else {
-                    auto iter = msgWin->m_msgIter;
-                    iter++;
-
-                    if (iter == msgWin->m_msgList.end()) {
-                        g_uwpDisplay->dismiss_more = C('p'); /* ^P ok at --More-- */
-                        redotoplin(iter->c_str());
-
-                        if (msgWin->m_msgIter != msgWin->m_msgList.begin())
-                            msgWin->m_msgIter--;
-                        else
-                            msgWin->m_msgIter = msgWin->m_msgList.end();
-
-                    } else {
-                        prevmsg_win = create_nhwindow(NHW_MENU);
-                        putstr(prevmsg_win, 0, "Message History");
-                        putstr(prevmsg_win, 0, "");
-
-                        msgWin->m_msgIter = msgWin->m_msgList.end();
-
-                        for (auto & msg : msgWin->m_msgList)
-                            putstr(prevmsg_win, 0, msg.c_str());
-
-                        putstr(prevmsg_win, 0, toplines);
-                        display_nhwindow(prevmsg_win, TRUE);
-                        destroy_nhwindow(prevmsg_win);
-                    }
-                }
-
-            } while (morc == C('p'));
-            g_uwpDisplay->dismiss_more = 0;
-        }
-        else { /* reversed */
-            morc = 0;
-            prevmsg_win = create_nhwindow(NHW_MENU);
-            putstr(prevmsg_win, 0, "Message History");
-            putstr(prevmsg_win, 0, "");
-            putstr(prevmsg_win, 0, toplines);
-
-            auto & iter = msgWin->m_msgList.end();
-            while (iter != msgWin->m_msgList.begin())
-            {
-                putstr(prevmsg_win, 0, iter->c_str());
-                iter--;
-            }
-
-            display_nhwindow(prevmsg_win, TRUE);
-            destroy_nhwindow(prevmsg_win);
-            msgWin->m_msgIter = msgWin->m_msgList.end();
-            g_uwpDisplay->dismiss_more = 0;
-        }
-    }
-    else if (iflags.prevmsg_window == 's') { /* single */
-        g_uwpDisplay->dismiss_more = C('p'); /* <ctrl/P> allowed at --More-- */
-        do {
-            morc = 0;
-            if (msgWin->m_msgIter == msgWin->m_msgList.end()) {
-                redotoplin(toplines);
-            } else {
-                redotoplin(msgWin->m_msgIter->c_str());
-            }
-
-            if (msgWin->m_msgIter != msgWin->m_msgList.begin())
-                msgWin->m_msgIter--;
-            else
-                msgWin->m_msgIter = msgWin->m_msgList.end();
-
-        } while (morc == C('p'));
-        g_uwpDisplay->dismiss_more = 0;
-    }
-    return 0;
-}
-
-STATIC_OVL void
-redotoplin(
-    const char *str)
-{
-    MessageWindow *msgWin = GetMessageWindow();
-    CoreWindow * coreWin = msgWin;
-
-    assert(coreWin != NULL);
-
-    home();
-
-    coreWin->m_curx = 0;
-    coreWin->m_cury = 0;
-
-    putsyms(str, TextColor::NoColor, TextAttribute::None);
-    cl_end();
-    msgWin->m_mustBeSeen = true;
-    msgWin->m_mustBeErased = true;
-
-    if (msgWin->m_nextIsPrompt) {
-        msgWin->m_nextIsPrompt = false;
-    } else if (coreWin->m_cury != 0)
-        more();
-
-}
-
-STATIC_OVL void
-remember_topl()
-{
-    MessageWindow *msgWin = GetMessageWindow();
-    CoreWindow *coreWin = msgWin;
-
-    if (!*toplines)
-        return;
-
-    msgWin->m_msgList.push_back(std::string(toplines));
-    while (msgWin->m_msgList.size() > coreWin->m_rows)
-        msgWin->m_msgList.pop_front();
-    *toplines = '\0';
-    msgWin->m_msgIter = msgWin->m_msgList.end();
-}
-
-void
-addtopl(
-    const char *s)
-{
-    MessageWindow *msgWin = GetMessageWindow();
-    CoreWindow *coreWin = msgWin;
-
-    tty_curs(BASE_WINDOW, coreWin->m_curx + 1, coreWin->m_cury);
-    putsyms(s, TextColor::NoColor, TextAttribute::None);
-    cl_end();
-    msgWin->m_mustBeSeen = true;
-    msgWin->m_mustBeErased = true;
-}
-
-void
-more()
-{
-    MessageWindow *msgWin = GetMessageWindow();
-    CoreWindow *coreWin = msgWin;
-
-    assert(!msgWin->m_nextIsPrompt);
-
-    if (msgWin->m_mustBeErased) {
-        tty_curs(BASE_WINDOW, coreWin->m_curx + 1, coreWin->m_cury);
-        if (coreWin->m_curx >= CO - 8)
-            topl_putsym('\n', TextColor::NoColor, TextAttribute::None);
-    }
-
-    putsyms(defmorestr, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
-
-    xwaitforspace("\033 ");
-
-    if (morc == '\033')
-        coreWin->m_flags |= WIN_STOP;
-
-    /* if the message is more then one line then erase the entire message */
-    if (msgWin->m_mustBeErased && coreWin->m_cury) {
-        docorner(1, coreWin->m_cury + 1);
-        coreWin->m_curx = coreWin->m_cury = 0;
-        home();
-        msgWin->m_mustBeErased = false;
-    }
-    /* if the single line message was cancelled then erase the message */
-    else if (morc == '\033') {
-        coreWin->m_curx = coreWin->m_cury = 0;
-        home();
-        cl_end();
-        msgWin->m_mustBeErased = false;
-    }
-    /* otherwise we have left the message visible */
-
-    msgWin->m_mustBeSeen = false;
-}
-
-/* add to the top line */
-void
-update_topl(
-    const char *bp)
-{
-    register char *tl, *otl;
-    register int n0;
-    int notdied = 1;
-    MessageWindow *msgWin = GetMessageWindow();
-    CoreWindow *coreWin = msgWin;
-
-    /* If there is room on the line, print message on same line */
-    /* But messages like "You die..." deserve their own line */
-    n0 = strlen(bp);
-    if ((msgWin->m_mustBeSeen || (coreWin->m_flags & WIN_STOP)) && coreWin->m_cury == 0
-        && n0 + (int)strlen(toplines) + 3 < CO - 8 /* room for --More-- */
-        && (notdied = strncmp(bp, "You die", 7)) != 0) {
-        strncat(toplines, "  ", sizeof(toplines) - strlen(toplines) - 1);
-        strncat(toplines, bp, sizeof(toplines) - strlen(toplines) - 1);
-        coreWin->m_curx += 2;
-        if (!(coreWin->m_flags & WIN_STOP))
-            addtopl(bp);
-        return;
-    }
-    else if (!(coreWin->m_flags & WIN_STOP)) {
-        if (msgWin->m_mustBeSeen) {
-            more();
-        }
-        else if (coreWin->m_cury) { /* for when flags.toplin == 2 && cury > 1 */
-            docorner(1, coreWin->m_cury + 1); /* reset cury = 0 if redraw screen */
-            coreWin->m_curx = coreWin->m_cury = 0;   /* from home--cls() & docorner(1,n) */
-        }
-    }
-    remember_topl();
-    strncpy(toplines, bp, TBUFSZ - 1);
-
-    for (tl = toplines; n0 >= CO; ) {
-        otl = tl;
-        for (tl += CO - 1; tl != otl; --tl)
-            if (*tl == ' ')
-                break;
-        if (tl == otl) {
-            /* Eek!  A huge token.  Try splitting after it. */
-            tl = index(otl, ' ');
-            if (!tl)
-                break; /* No choice but to spit it out whole. */
-        }
-        *tl++ = '\n';
-        n0 = strlen(tl);
-    }
-    if (!notdied)
-        coreWin->m_flags &= ~WIN_STOP;
-    if (!(coreWin->m_flags & WIN_STOP))
-        redotoplin(toplines);
-}
-
-STATIC_OVL
-void
-topl_putsym(char c, TextColor color, TextAttribute attribute)
-{
-    MessageWindow *msgWin = GetMessageWindow();
-    CoreWindow *coreWin = msgWin;
-
-    if (coreWin == NULL)
-        panic("Putsym window MESSAGE nonexistant");
-
-    switch (c) {
-    case '\b':
-        win_putc(WIN_MESSAGE, '\b');
-        return;
-    case '\n':
-        cl_end();
-        win_putc(WIN_MESSAGE, '\n');
-        break;
-    default:
-        if (coreWin->m_curx + coreWin->m_offx == CO - 1)
-            topl_putsym('\n', TextColor::NoColor, TextAttribute::None); /* 1 <= curx < CO; avoid CO */
-        win_putc(WIN_MESSAGE, c);
-    }
-
-    if (coreWin->m_curx == 0)
-        cl_end();
-}
-
-void
-putsyms(const char *str, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute)
-{
-    while (*str)
-        topl_putsym(*str++, textColor, textAttribute);
-}
-
-STATIC_OVL void
-removetopl(
-    int n)
-{
-    while (n-- > 0)
-        putsyms("\b \b", TextColor::NoColor, TextAttribute::None);
+    return GetMessageWindow()->doprev_message();
 }
 
 extern char erase_char; /* from xxxtty.c; don't need kill_char */
@@ -1670,173 +939,7 @@ tty_yn_function(
 *   be shown in the prompt to the user but will be acceptable as input.
 */
 {
-    register char q;
-    char rtmp[40];
-    boolean digit_ok, allow_num, preserve_case = FALSE;
-    MessageWindow *msgWin = GetMessageWindow();
-    CoreWindow *coreWin = msgWin;
-    boolean doprev = 0;
-    char prompt[BUFSZ];
-
-    if (msgWin->m_mustBeSeen && !(coreWin->m_flags & WIN_STOP))
-        more();
-
-    coreWin->m_flags &= ~WIN_STOP;
-    msgWin->m_nextIsPrompt = true;
-    if (resp) {
-        char *rb, respbuf[QBUFSZ];
-
-        allow_num = (index(resp, '#') != 0);
-        Strcpy(respbuf, resp);
-        /* normally we force lowercase, but if any uppercase letters
-        are present in the allowed response, preserve case;
-        check this before stripping the hidden choices */
-        for (rb = respbuf; *rb; ++rb)
-            if ('A' <= *rb && *rb <= 'Z') {
-                preserve_case = TRUE;
-                break;
-            }
-        /* any acceptable responses that follow <esc> aren't displayed */
-        if ((rb = index(respbuf, '\033')) != 0)
-            *rb = '\0';
-        (void)strncpy(prompt, query, QBUFSZ - 1);
-        prompt[QBUFSZ - 1] = '\0';
-        Sprintf(eos(prompt), " [%s]", respbuf);
-        if (def)
-            Sprintf(eos(prompt), " (%c)", def);
-        /* not pline("%s ", prompt);
-        trailing space is wanted here in case of reprompt */
-        Strcat(prompt, " ");
-        pline("%s", prompt);
-        assert(!msgWin->m_nextIsPrompt);
-    }
-    else {
-        /* no restriction on allowed response, so always preserve case */
-        /* preserve_case = TRUE; -- moot since we're jumping to the end */
-        pline("%s ", query);
-        assert(!msgWin->m_nextIsPrompt);
-
-        q = readchar();
-        goto clean_up;
-    }
-
-    do { /* loop until we get valid input */
-        q = readchar();
-        if (!preserve_case)
-            q = lowc(q);
-        if (q == '\020') { /* ctrl-P */
-            if (iflags.prevmsg_window != 's') {
-                (void)tty_doprev_message();
-                tty_clear_nhwindow(WIN_MESSAGE);
-                msgWin->m_msgIter = msgWin->m_msgList.end();
-                addtopl(prompt);
-            }
-            else {
-                if (!doprev)
-                    (void) tty_doprev_message(); /* need two initially */
-                (void)tty_doprev_message();
-                doprev = 1;
-            }
-            q = '\0'; /* force another loop iteration */
-            continue;
-        }
-        else if (doprev) {
-            /* BUG[?]: this probably ought to check whether the
-            character which has just been read is an acceptable
-            response; if so, skip the reprompt and use it. */
-            tty_clear_nhwindow(WIN_MESSAGE);
-            msgWin->m_msgIter = msgWin->m_msgList.end();
-            doprev = 0;
-            addtopl(prompt);
-            q = '\0'; /* force another loop iteration */
-            continue;
-        }
-        digit_ok = allow_num && digit(q);
-        if (q == '\033') {
-            if (index(resp, 'q'))
-                q = 'q';
-            else if (index(resp, 'n'))
-                q = 'n';
-            else
-                q = def;
-            break;
-        }
-        else if (index(quitchars, q)) {
-            q = def;
-            break;
-        }
-        if (!index(resp, q) && !digit_ok) {
-            tty_nhbell();
-            q = (char)0;
-        }
-        else if (q == '#' || digit_ok) {
-            char z, digit_string[2];
-            int n_len = 0;
-            long value = 0;
-            addtopl("#"), n_len++;
-            digit_string[1] = '\0';
-            if (q != '#') {
-                digit_string[0] = q;
-                addtopl(digit_string), n_len++;
-                value = q - '0';
-                q = '#';
-            }
-            do { /* loop until we get a non-digit */
-                z = readchar();
-                if (!preserve_case)
-                    z = lowc(z);
-                if (digit(z)) {
-                    value = (10 * value) + (z - '0');
-                    if (value < 0)
-                        break; /* overflow: try again */
-                    digit_string[0] = z;
-                    addtopl(digit_string), n_len++;
-                }
-                else if (z == 'y' || index(quitchars, z)) {
-                    if (z == '\033')
-                        value = -1; /* abort */
-                    z = '\n';       /* break */
-                }
-                else if (z == erase_char || z == '\b') {
-                    if (n_len <= 1) {
-                        value = -1;
-                        break;
-                    }
-                    else {
-                        value /= 10;
-                        removetopl(1);
-                        n_len--;
-                    }
-                }
-                else {
-                    value = -1; /* abort */
-                    tty_nhbell();
-                    break;
-                }
-            } while (z != '\n');
-            if (value > 0)
-                yn_number = value;
-            else if (value == 0)
-                q = 'n'; /* 0 => "no" */
-            else {       /* remove number from top line, then try again */
-                removetopl(n_len);
-                n_len = 0;
-                q = '\0';
-            }
-        }
-    } while (!q);
-
-    if (q != '#') {
-        Sprintf(rtmp, "%c", q);
-        addtopl(rtmp);
-    }
-clean_up:
-    msgWin->m_mustBeSeen = false;
-
-    if (coreWin->m_cury)
-        tty_clear_nhwindow(WIN_MESSAGE);
-
-    return q;
+    return GetMessageWindow()->yn_function(query, resp, def);
 }
 
 /* shared by tty_getmsghistory() and tty_putmsghistory() */
@@ -1855,7 +958,7 @@ msghistory_snapshot(
         return;
 
     /* flush toplines[], moving most recent message to history */
-    remember_topl();
+    msgWin->remember_topl();
 
     s_snapshot_msgList = msgWin->m_msgList;
 
@@ -1917,6 +1020,8 @@ tty_putmsghistory(
     static boolean initd = FALSE;
     int idx;
 
+    MessageWindow * msgWin = GetMessageWindow();
+
     if (restoring_msghist && !initd) {
         /* we're restoring history from the previous session, but new
         messages have already been issued this session ("Restoring...",
@@ -1930,13 +1035,13 @@ tty_putmsghistory(
     if (msg) {
         /* move most recent message to history, make this become most recent
         */
-        remember_topl();
+        msgWin->remember_topl();
         strncpy(toplines, msg, sizeof(toplines) - 1);
     } else {
 
         assert(initd);
         for (auto msg : s_snapshot_msgList) {
-            remember_topl();
+            msgWin->remember_topl();
             strncpy(toplines, msg.c_str(), sizeof(toplines) - 1);
         }
 

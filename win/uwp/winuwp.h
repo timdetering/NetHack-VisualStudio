@@ -8,6 +8,8 @@
 #error UWP_GRAPHICS must be defined
 #endif
 
+#define NEWAUTOCOMP
+
 /* menu structure */
 typedef struct tty_mi {
     struct tty_mi *next;
@@ -33,7 +35,9 @@ struct CoreWindow {
     void Curs(int x, int y);
     virtual void Putstr(int attr, const char *str) = 0;
 
-    virtual void free_window_info(BOOLEAN_P);
+    virtual void free_window_info(boolean);
+    void dmore(const char *s); /* valid responses */
+    void xwaitforspace(register const char *s);
 
     winid m_window;         /* winid */
     int m_flags;           /* window flags */
@@ -49,6 +53,8 @@ struct CoreWindow {
 static const int kMaxMessageHistoryLength = 60;
 static const int kMinMessageHistoryLength = 20;
 
+typedef boolean FDECL((*getlin_hook_proc), (char *));
+
 struct MessageWindow : public CoreWindow {
 
     MessageWindow();
@@ -59,8 +65,20 @@ struct MessageWindow : public CoreWindow {
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
 
-    virtual void free_window_info(BOOLEAN_P);
+    virtual void free_window_info(boolean);
 
+    char yn_function(const char *query, const char *resp, char def);
+    void removetopl(int n);
+    int doprev_message();
+    void redotoplin(const char *str);
+    void update_topl(const char *bp);
+    void hooked_tty_getlin(const char *, char *, getlin_hook_proc);
+    void putsyms(const char *str, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
+    void topl_putsym(char c, Nethack::TextColor color, Nethack::TextAttribute attribute);
+    void remember_topl();
+    void addtopl(const char *s);
+    void more();
+    char tty_message_menu(char let, int how, const char *mesg);
 
     std::list<std::string> m_msgList;
     std::list<std::string>::iterator m_msgIter;
@@ -90,6 +108,13 @@ struct MenuWindow : public CoreWindow {
 
     void process_lines();
     void process_menu();
+
+    tty_menu_item *reverse(tty_menu_item *curr);
+
+    int tty_select_menu(int how, menu_item **menu_list);
+    void tty_add_menu(const anything *identifier, char ch, char gch, int attr, const char *str, boolean preselected);
+    void tty_end_menu(const char *prompt);
+
 
     std::list<std::pair<int, std::string>> m_lines;
 
@@ -194,9 +219,6 @@ extern char defmorestr[]; /* default --more-- prompt */
 
 /* port specific external function references */
 
-/* ### getline.c ### */
-extern void FDECL(xwaitforspace, (const char *));
-
 /* ### termcap.c, video.c ### */
 
 extern void FDECL(tty_startup, (int *, int *));
@@ -233,10 +255,7 @@ extern void NDECL(cl_eos);
 
 /* ### topl.c ### */
 
-extern void FDECL(addtopl, (const char *));
 extern void NDECL(more);
-extern void FDECL(update_topl, (const char *));
-void putsyms(const char * str, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
 
 /* ### wintty.c ### */
 #ifdef CLIPPING
@@ -341,5 +360,7 @@ MenuWindow * ToMenuWindow(CoreWindow * coreWin);
 
 const char * compress_str(const char * str);
 void dmore(CoreWindow *, const char *);
+
+extern char erase_char, kill_char;
 
 }
