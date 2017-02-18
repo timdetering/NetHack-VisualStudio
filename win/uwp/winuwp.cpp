@@ -818,33 +818,6 @@ tty_yn_function(
     return GetMessageWindow()->yn_function(query, resp, def);
 }
 
-/* shared by tty_getmsghistory() and tty_putmsghistory() */
-static std::list<std::string> s_snapshot_msgList;
-
-/* collect currently available message history data into a sequential array;
-optionally, purge that data from the active circular buffer set as we go */
-STATIC_OVL void
-msghistory_snapshot(
-    boolean purge) /* clear message history buffer as we copy it */
-{
-    MessageWindow *msgWin = GetMessageWindow();
-
-    /* paranoia (too early or too late panic save attempt?) */
-    if (msgWin == NULL)
-        return;
-
-    /* flush toplines[], moving most recent message to history */
-    msgWin->remember_topl();
-
-    s_snapshot_msgList = msgWin->m_msgList;
-
-    /* for a destructive snapshot, history is now completely empty */
-    if (purge) {
-        msgWin->m_msgList.clear();
-        msgWin->m_msgIter = msgWin->m_msgList.end();
-    }
-}
-
 /*
 * This is called by the core save routines.
 * Each time we are called, we return one string from the
@@ -858,17 +831,7 @@ msghistory_snapshot(
 char *
 tty_getmsghistory(boolean init)
 {
-    static std::list<std::string>::iterator iter;
-
-    if (init) {
-        msghistory_snapshot(FALSE);
-        iter = s_snapshot_msgList.begin();
-    }
-
-    if (iter == s_snapshot_msgList.end())
-        return NULL;
-    
-    return (char *) (iter++)->c_str();
+    return GetMessageWindow()->uwp_getmsghistory(init);
 }
 
 /*
@@ -893,37 +856,7 @@ tty_putmsghistory(
     const char *msg,
     boolean restoring_msghist)
 {
-    static boolean initd = FALSE;
-    int idx;
-
-    MessageWindow * msgWin = GetMessageWindow();
-
-    if (restoring_msghist && !initd) {
-        /* we're restoring history from the previous session, but new
-        messages have already been issued this session ("Restoring...",
-        for instance); collect current history (ie, those new messages),
-        and also clear it out so that nothing will be present when the
-        restored ones are being put into place */
-        msghistory_snapshot(TRUE);
-        initd = TRUE;
-    }
-
-    if (msg) {
-        /* move most recent message to history, make this become most recent
-        */
-        msgWin->remember_topl();
-        strncpy(toplines, msg, sizeof(toplines) - 1);
-    } else {
-
-        assert(initd);
-        for (auto msg : s_snapshot_msgList) {
-            msgWin->remember_topl();
-            strncpy(toplines, msg.c_str(), sizeof(toplines) - 1);
-        }
-
-        /* now release the snapshot */
-        initd = FALSE; /* reset */
-    }
+    GetMessageWindow()->uwp_putmsghistory(msg, restoring_msghist);
 }
 
 void tty_number_pad(int state)
@@ -934,8 +867,7 @@ void tty_number_pad(int state)
 void
 tty_start_screen()
 {
-    if (iflags.num_pad)
-        tty_number_pad(1); /* make keypad send digits */
+    // do nothing for now
 }
 
 void

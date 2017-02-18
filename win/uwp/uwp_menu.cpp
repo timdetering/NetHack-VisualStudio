@@ -43,7 +43,7 @@ tty_add_menu(
     if (menuWin == NULL)
         panic(winpanicstr, window);
 
-    return menuWin->tty_add_menu(identifier, ch, gch, attr, str, preselected);
+    return menuWin->uwp_add_menu(identifier, ch, gch, attr, str, preselected);
 }
 
 /*
@@ -62,7 +62,7 @@ tty_end_menu(
     if (menuWin == NULL)
         panic(winpanicstr, window);
 
-    menuWin->tty_end_menu(prompt);
+    menuWin->uwp_end_menu(prompt);
 }
 
 int
@@ -76,12 +76,12 @@ tty_select_menu(
     if (menuWin == NULL)
         panic(winpanicstr, window);
 
-    return menuWin->tty_select_menu(how, menu_list);
+    return menuWin->uwp_select_menu(how, menu_list);
 }
 
 char tty_message_menu(char let, int how, const char *mesg)
 {
-    return GetMessageWindow()->tty_message_menu(let, how, mesg);
+    return GetMessageWindow()->uwp_message_menu(let, how, mesg);
 }
 
 } /* extern "C" */

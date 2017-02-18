@@ -81,9 +81,14 @@ struct MessageWindow : public CoreWindow {
     void remember_topl();
     void addtopl(const char *s);
     void more();
-    char tty_message_menu(char let, int how, const char *mesg);
+    char uwp_message_menu(char let, int how, const char *mesg);
     void docorner(int xmin, int ymax);
 
+    void uwp_putmsghistory(const char *msg, boolean restoring_msghist);
+    char *uwp_getmsghistory(boolean init);
+    void msghistory_snapshot(boolean purge);
+
+    std::list<std::string> m_snapshot_msgList;
     std::list<std::string> m_msgList;
     std::list<std::string>::iterator m_msgIter;
     bool m_mustBeSeen;       /* message must be seen */
@@ -115,9 +120,9 @@ struct MenuWindow : public CoreWindow {
 
     tty_menu_item *reverse(tty_menu_item *curr);
 
-    int tty_select_menu(int how, menu_item **menu_list);
-    void tty_add_menu(const anything *identifier, char ch, char gch, int attr, const char *str, boolean preselected);
-    void tty_end_menu(const char *prompt);
+    int uwp_select_menu(int how, menu_item **menu_list);
+    void uwp_add_menu(const anything *identifier, char ch, char gch, int attr, const char *str, boolean preselected);
+    void uwp_end_menu(const char *prompt);
 
 
     std::list<std::pair<int, std::string>> m_lines;

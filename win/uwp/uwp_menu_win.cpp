@@ -725,7 +725,7 @@ MenuWindow::set_item_state(
 
 }
 
-int MenuWindow::tty_select_menu(
+int MenuWindow::uwp_select_menu(
     int how,
     menu_item **menu_list)
 {
@@ -761,7 +761,7 @@ int MenuWindow::tty_select_menu(
     return n;
 }
 
-void MenuWindow::tty_add_menu(
+void MenuWindow::uwp_add_menu(
     const anything *identifier, /* what to return if selected */
     char ch,                    /* keyboard accelerator (0 = pick our own) */
     char gch,                   /* group accelerator (0 = no group) */
@@ -805,7 +805,7 @@ void MenuWindow::tty_add_menu(
     m_mlist = item;
 }
 
-void MenuWindow::tty_end_menu(
+void MenuWindow::uwp_end_menu(
     const char *prompt) /* prompt to for menu */
 {
     tty_menu_item *curr;
@@ -821,8 +821,8 @@ void MenuWindow::tty_end_menu(
         anything any;
 
         any = zeroany; /* not selectable */
-        tty_add_menu(&any, 0, 0, ATR_NONE, "", MENU_UNSELECTED);
-        tty_add_menu(&any, 0, 0, ATR_NONE, prompt, MENU_UNSELECTED);
+        uwp_add_menu(&any, 0, 0, ATR_NONE, "", MENU_UNSELECTED);
+        uwp_add_menu(&any, 0, 0, ATR_NONE, prompt, MENU_UNSELECTED);
     }
 
     /* XXX another magic number? 52 */

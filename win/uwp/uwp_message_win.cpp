@@ -666,7 +666,7 @@ void MessageWindow::more()
 }
 
 /* special hack for treating top line --More-- as a one item menu */
-char MessageWindow::tty_message_menu(char let, int how, const char *mesg)
+char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
 {
     /* "menu" without selection; use ordinary pline, no more() */
     if (how == PICK_NONE) {
@@ -717,3 +717,74 @@ void MessageWindow::docorner(int xmin, int ymax)
         bot();
     }
 }
+
+void
+MessageWindow::uwp_putmsghistory(
+    const char *msg,
+    boolean restoring_msghist)
+{
+    static boolean initd = FALSE;
+    int idx;
+
+    if (restoring_msghist && !initd) {
+        /* we're restoring history from the previous session, but new
+        messages have already been issued this session ("Restoring...",
+        for instance); collect current history (ie, those new messages),
+        and also clear it out so that nothing will be present when the
+        restored ones are being put into place */
+        msghistory_snapshot(TRUE);
+        initd = TRUE;
+    }
+
+    if (msg) {
+        /* move most recent message to history, make this become most recent
+        */
+        remember_topl();
+        strncpy(toplines, msg, sizeof(toplines) - 1);
+    } else {
+
+        assert(initd);
+        for (auto msg : m_snapshot_msgList) {
+            remember_topl();
+            strncpy(toplines, msg.c_str(), sizeof(toplines) - 1);
+        }
+
+        /* now release the snapshot */
+        initd = FALSE; /* reset */
+    }
+}
+
+char *
+MessageWindow::uwp_getmsghistory(boolean init)
+{
+    static std::list<std::string>::iterator iter;
+
+    if (init) {
+        msghistory_snapshot(FALSE);
+        iter = m_snapshot_msgList.begin();
+    }
+
+    if (iter == m_snapshot_msgList.end())
+        return NULL;
+
+    return (char *)(iter++)->c_str();
+}
+
+/* collect currently available message history data into a sequential array;
+optionally, purge that data from the active circular buffer set as we go */
+void
+MessageWindow::msghistory_snapshot(
+    boolean purge) /* clear message history buffer as we copy it */
+{
+    /* flush toplines[], moving most recent message to history */
+    remember_topl();
+
+    m_snapshot_msgList = m_msgList;
+
+    /* for a destructive snapshot, history is now completely empty */
+    if (purge) {
+        m_msgList.clear();
+        m_msgIter = m_msgList.end();
+    }
+}
+
