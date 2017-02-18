@@ -35,6 +35,9 @@ struct CoreWindow {
     void Curs(int x, int y);
     virtual void Putstr(int attr, const char *str) = 0;
 
+    void core_putc(char ch, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
+    void core_puts(const char *s, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
+
     virtual void free_window_info(boolean);
     void dmore(const char *s); /* valid responses */
     void xwaitforspace(register const char *s);
@@ -79,6 +82,7 @@ struct MessageWindow : public CoreWindow {
     void addtopl(const char *s);
     void more();
     char tty_message_menu(char let, int how, const char *mesg);
+    void docorner(int xmin, int ymax);
 
     std::list<std::string> m_msgList;
     std::list<std::string>::iterator m_msgIter;
@@ -136,6 +140,9 @@ struct BaseWindow : public CoreWindow {
     virtual void Display(bool blocking);
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
+
+    void tty_askname();
+    void bail(const char *mesg);
 
 };
 
@@ -258,11 +265,6 @@ extern void NDECL(cl_eos);
 extern void NDECL(more);
 
 /* ### wintty.c ### */
-#ifdef CLIPPING
-extern void NDECL(setclipped);
-#endif
-extern void FDECL(docorner, (int, int));
-void g_putch( int in_ch , Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
 extern void FDECL(win_tty_init, (int));
 
 /* external declarations */

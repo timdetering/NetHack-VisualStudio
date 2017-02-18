@@ -696,3 +696,24 @@ char MessageWindow::tty_message_menu(char let, int how, const char *mesg)
 
     return ((how == PICK_ONE && morc == let) || morc == '\033') ? morc : '\0';
 }
+
+void MessageWindow::docorner(int xmin, int ymax)
+{
+    register int y;
+    MapWindow *mapWin = (MapWindow *)g_wins[WIN_MAP];
+    StatusWindow * statusWin = (StatusWindow *)g_wins[WIN_STATUS];
+
+    for (y = 0; y < ymax; y++) {
+        tty_curs(BASE_WINDOW, xmin + 1, y); /* move cursor */
+        cl_end();                       /* clear to end of line */
+        if (y < mapWin->m_offy || y > ROWNO)
+            continue; /* only refresh board  */
+        row_refresh(xmin - (int)mapWin->m_offx, COLNO - 1, y - (int)mapWin->m_offy);
+    }
+
+    if (ymax >= (int)statusWin->m_offy) {
+        /* we have wrecked the bottom line */
+        context.botlx = 1;
+        bot();
+    }
+}

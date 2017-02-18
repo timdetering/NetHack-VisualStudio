@@ -120,3 +120,28 @@ CoreWindow::xwaitforspace(
         }
     }
 }
+
+void CoreWindow::core_putc(char ch, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute)
+{
+    int x = m_curx + m_offx;
+    int y = m_cury + m_offy;
+
+    g_textGrid.Put(x, y, ch, textColor, textAttribute);
+
+    m_curx = g_textGrid.GetCursor().m_x - m_offx;
+    m_cury = g_textGrid.GetCursor().m_y - m_offy;
+}
+
+void CoreWindow::core_puts(
+    const char *s,
+    TextColor textColor,
+    TextAttribute textAttribute)
+{
+    int x = m_curx + m_offx;
+    int y = m_cury + m_offy;
+
+    g_textGrid.Putstr(textColor, textAttribute, s);
+
+    m_curx = g_textGrid.GetCursor().m_x - m_offx;
+    m_cury = g_textGrid.GetCursor().m_y - m_offy;
+}

@@ -110,22 +110,11 @@ static const char to_continue[] = "to continue";
 STATIC_DCL void NDECL(getret);
 #endif
 STATIC_DCL tty_menu_item *FDECL(reverse, (tty_menu_item *));
-STATIC_DCL void FDECL(bail, (const char *)); /* __attribute__((noreturn)) */
 STATIC_DCL void FDECL(setup_rolemenu, (winid, BOOLEAN_P, int, int, int));
 STATIC_DCL void FDECL(setup_racemenu, (winid, BOOLEAN_P, int, int, int));
 STATIC_DCL void FDECL(setup_gendmenu, (winid, BOOLEAN_P, int, int, int));
 STATIC_DCL void FDECL(setup_algnmenu, (winid, BOOLEAN_P, int, int, int));
 STATIC_DCL boolean NDECL(reset_role_filtering);
-
-/* clean up and quit */
-STATIC_OVL void
-bail(const char *mesg)
-{
-    clearlocks();
-    tty_exit_nhwindows(mesg);
-    terminate(EXIT_SUCCESS);
-    /*NOTREACHED*/
-}
 
 /*ARGSUSED*/
 void
@@ -173,70 +162,8 @@ tty_init_nhwindows(int *, char **)
 void
 tty_askname()
 {
-    static const char who_are_you[] = "Who are you? ";
-    register int c, ct, tryct = 0;
-
-#ifdef SELECTSAVED
-    if (iflags.wc2_selectsaved && !iflags.renameinprogress)
-        switch (restore_menu(BASE_WINDOW)) {
-        case -1:
-            bail("Until next time then..."); /* quit */
-            /*NOTREACHED*/
-        case 0:
-            break; /* no game chosen; start new game */
-        case 1:
-            return; /* plname[] has been set */
-        }
-#endif /* SELECTSAVED */
-
-    int startLine = g_wins[BASE_WINDOW]->m_cury;
-
-    do {
-        if (++tryct > 1) {
-            if (tryct > 10)
-                bail("Giving up after 10 tries.\n");
-            tty_curs(BASE_WINDOW, 1, startLine);
-            win_puts(BASE_WINDOW, "Enter a name for your character...");
-        }
-
-        tty_curs(BASE_WINDOW, 1, startLine + 1), cl_end();
-
-        win_puts(BASE_WINDOW, who_are_you);
-
-        ct = 0;
-        while ((c = tty_nhgetch()) != '\n') {
-            if (c == EOF)
-                c = '\033';
-            if (c == '\033') {
-                ct = 0;
-                break;
-            } /* continue outer loop */
-#if defined(WIN32CON)
-            if (c == '\003')
-                bail("^C abort.\n");
-#endif
-            /* some people get confused when their erase char is not ^H */
-            if (c == '\b' || c == '\177') {
-                if (ct) {
-                    ct--;
-                    win_puts(BASE_WINDOW, "\b \b");
-                }
-                continue;
-            }
-            if (ct < (int) (sizeof plname) - 1) {
-                win_putc(BASE_WINDOW, c);
-                plname[ct++] = c;
-            }
-        }
-        plname[ct] = 0;
-    } while (ct == 0);
-
-    /* move to next line to simulate echo of user's <return> */
-    tty_curs(BASE_WINDOW, 1, g_wins[BASE_WINDOW]->m_cury + 1);
-
-    /* since we let user pick an arbitrary name now, he/she can pick
-       another one during role selection */
-    iflags.renameallowed = TRUE;
+    BaseWindow * baseWin = (BaseWindow *) g_wins[BASE_WINDOW];
+    baseWin->tty_askname();
 }
 
 void
@@ -295,21 +222,6 @@ tty_exit_nhwindows(const char *str)
 #endif
 
     iflags.window_inited = 0;
-}
-
-
-BaseWindow::BaseWindow() : CoreWindow(NHW_BASE)
-{
-    // core
-    m_offx = 0;
-    m_offy = 0;
-    m_rows = g_uwpDisplay->rows;
-    m_cols = g_uwpDisplay->cols;
-
-}
-
-BaseWindow::~BaseWindow()
-{
 }
 
 winid
@@ -609,42 +521,6 @@ tty_wait_synch()
             g_uwpDisplay->rawprint = 0;
     } else {
         tty_display_nhwindow(WIN_MAP, FALSE);
-    }
-}
-
-void
-docorner(
-    int xmin, 
-    int ymax)
-{
-    register int y;
-    register CoreWindow *coreWin = g_wins[WIN_MAP];
-
-    for (y = 0; y < ymax; y++) {
-        tty_curs(BASE_WINDOW, xmin + 1, y); /* move cursor */
-        cl_end();                       /* clear to end of line */
-#ifdef CLIPPING
-        if (y < (int) coreWin->m_offy || y + clipy > ROWNO)
-            continue; /* only refresh board */
-#if defined(USE_TILES) && defined(MSDOS)
-        if (iflags.tile_view)
-            row_refresh((xmin / 2) + clipx - ((int) coreWin->m_offx / 2), COLNO - 1,
-                        y + clipy - (int) coreWin->m_offy);
-        else
-#endif
-            row_refresh(xmin + clipx - (int) coreWin->m_offx, COLNO - 1,
-                        y + clipy - (int) coreWin->m_offy);
-#else
-        if (y < coreWin->m_offy || y > ROWNO)
-            continue; /* only refresh board  */
-        row_refresh(xmin - (int) coreWin->m_offx, COLNO - 1, y - (int) coreWin->m_offy);
-#endif
-    }
-
-    if (ymax >= (int) g_wins[WIN_STATUS]->m_offy) {
-        /* we have wrecked the bottom line */
-        context.botlx = 1;
-        bot();
     }
 }
 
@@ -1217,7 +1093,8 @@ void clear_screen(void)
 
 void uwp_puts(const char *s)
 {
-    win_puts(BASE_WINDOW, s);
+    assert(g_wins[BASE_WINDOW] != NULL);
+    g_wins[BASE_WINDOW]->core_puts(s, TextColor::NoColor, TextAttribute::None);
 }
 
 void win_putc(
@@ -1226,18 +1103,8 @@ void win_putc(
     Nethack::TextColor textColor,
     Nethack::TextAttribute textAttribute)
 {
-    CoreWindow *coreWin = g_wins[window];
-
-    assert(coreWin != NULL);
-
-    int x = coreWin->m_curx + coreWin->m_offx;
-    int y = coreWin->m_cury + coreWin->m_offy;
-
-    g_textGrid.Put(x, y, ch, textColor, textAttribute);
-
-    coreWin->m_curx = g_textGrid.GetCursor().m_x - coreWin->m_offx;
-    coreWin->m_cury = g_textGrid.GetCursor().m_y - coreWin->m_offy;
-
+    assert(g_wins[window] != NULL);
+    g_wins[window]->core_putc(ch, textColor, textAttribute);
 }
 
 void win_puts(
@@ -1246,17 +1113,8 @@ void win_puts(
     TextColor textColor,
     TextAttribute textAttribute)
 {
-    CoreWindow *coreWin = g_wins[window];
-
-    assert(coreWin != NULL);
-
-    int x = coreWin->m_curx + coreWin->m_offx;
-    int y = coreWin->m_cury + coreWin->m_offy;
-
-    g_textGrid.Putstr(textColor, textAttribute, s);
-
-    coreWin->m_curx = g_textGrid.GetCursor().m_x - coreWin->m_offx;
-    coreWin->m_cury = g_textGrid.GetCursor().m_y - coreWin->m_offy;
+    assert(g_wins[window] != NULL);
+    g_wins[window]->core_puts(s, textColor, textAttribute);
 }
 
 } /* extern "C" */
