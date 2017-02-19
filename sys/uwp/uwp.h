@@ -115,6 +115,8 @@ extern"C" {
     void uwp_warn(const char * s, ...);
     void uwp_error(const char * s, ...);
 
+    void uwp_wait_for_return();
+
     static const winid BASE_WINDOW = 0;
 
 }

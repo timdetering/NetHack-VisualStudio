@@ -145,3 +145,33 @@ void CoreWindow::core_puts(
     m_curx = g_textGrid.GetCursor().m_x - m_offx;
     m_cury = g_textGrid.GetCursor().m_y - m_offy;
 }
+
+const char *
+CoreWindow::compress_str(const char * str)
+{
+    static char cbuf[BUFSZ];
+
+    /* compress out consecutive spaces if line is too long;
+    topline wrapping converts space at wrap point into newline,
+    we reverse that here */
+    if ((int)strlen(str) >= CO || index(str, '\n')) {
+        const char *in_str = str;
+        char c, *outstr = cbuf, *outend = &cbuf[sizeof cbuf - 1];
+        boolean was_space = TRUE; /* True discards all leading spaces;
+                                  False would retain one if present */
+
+        while ((c = *in_str++) != '\0' && outstr < outend) {
+            if (c == '\n')
+                c = ' ';
+            if (was_space && c == ' ')
+                continue;
+            *outstr++ = c;
+            was_space = (c == ' ');
+        }
+        if ((was_space && outstr > cbuf) || outstr == outend)
+            --outstr; /* remove trailing space or make room for terminator */
+        *outstr = '\0';
+        str = cbuf;
+    }
+    return str;
+}

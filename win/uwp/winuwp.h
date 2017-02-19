@@ -42,6 +42,8 @@ struct CoreWindow {
     void dmore(const char *s); /* valid responses */
     void xwaitforspace(register const char *s);
 
+    const char *compress_str(const char *);
+
     winid m_window;         /* winid */
     int m_flags;           /* window flags */
     xchar m_type;          /* type of window */
@@ -365,7 +367,6 @@ MessageWindow * GetMessageWindow();
 MessageWindow * ToMessageWindow(CoreWindow * coreWin);
 MenuWindow * ToMenuWindow(CoreWindow * coreWin);
 
-const char * compress_str(const char * str);
 void dmore(CoreWindow *, const char *);
 
 extern char erase_char, kill_char;

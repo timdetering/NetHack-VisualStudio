@@ -154,9 +154,6 @@ tty_init_nhwindows(int *, char **)
 }
 
 /*
- * plname is filled either by an option (-u Player  or  -uPlayer) or
- * explicitly (by being the wizard) or by askname.
- * It may still contain a suffix denoting the role, etc.
  * Always called after init_nhwindows() and before display_gamewindows().
  */
 void
@@ -198,7 +195,7 @@ tty_exit_nhwindows(const char *str)
     free_pickinv_cache(); /* reset its state as well as tear down window */
     for (i = 0; i < MAXWIN; i++) {
         if (i == BASE_WINDOW)
-            continue; /* handle g_wins[BASE_WINDOW] last */
+            continue; /* handle BASE_WINDOW last */
         if (g_wins[i]) {
 #ifdef FREE_ALL_MEMORY
             g_wins[i]->free_window_info(TRUE);
@@ -389,7 +386,7 @@ tty_putsym(winid window, int x, int y, char ch)
     case NHW_STATUS:
     case NHW_MAP:
     case NHW_BASE:
-        tty_curs(window, x, y);
+        coreWin->Curs(x, y);
         coreWin->core_putc(ch);
         break;
     case NHW_MESSAGE:
@@ -400,39 +397,13 @@ tty_putsym(winid window, int x, int y, char ch)
     }
 }
 
-const char *
-compress_str(const char * str)
-{
-    static char cbuf[BUFSZ];
-
-    /* compress out consecutive spaces if line is too long;
-       topline wrapping converts space at wrap point into newline,
-       we reverse that here */
-    if ((int) strlen(str) >= CO || index(str, '\n')) {
-        const char *in_str = str;
-        char c, *outstr = cbuf, *outend = &cbuf[sizeof cbuf - 1];
-        boolean was_space = TRUE; /* True discards all leading spaces;
-                                     False would retain one if present */
-
-        while ((c = *in_str++) != '\0' && outstr < outend) {
-            if (c == '\n')
-                c = ' ';
-            if (was_space && c == ' ')
-                continue;
-            *outstr++ = c;
-            was_space = (c == ' ');
-        }
-        if ((was_space && outstr > cbuf) || outstr == outend)
-            --outstr; /* remove trailing space or make room for terminator */
-        *outstr = '\0';
-        str = cbuf;
-    }
-    return str;
-}
-
 void
 tty_putstr(winid window, int attr, const char *str)
 {
+    assert(str != NULL);
+    if (str == NULL)
+        return;
+
     /* Assume there's a real problem if the window is missing --
      * probably a panic message
      */
@@ -441,12 +412,7 @@ tty_putstr(winid window, int attr, const char *str)
         return;
     }
 
-    CoreWindow *coreWin = g_wins[window];
-
-    if (str == NULL || ((coreWin->m_flags & WIN_CANCELLED) && (coreWin->m_type != NHW_MESSAGE)))
-        return;
-
-    coreWin->Putstr(attr, str);
+    GetCoreWindow(window)->Putstr(attr, str);
 }
 
 void
@@ -514,7 +480,11 @@ tty_wait_synch()
 {
     /* we just need to make sure all windows are synch'd */
     if (!g_uwpDisplay || g_uwpDisplay->rawprint) {
-        getret();
+        while (1) {
+            int c = tty_nhgetch();
+            if (c == '\n' || c == ESCAPE) 
+                break;
+        }
         if (g_uwpDisplay)
             g_uwpDisplay->rawprint = 0;
     } else {
@@ -568,11 +538,7 @@ tty_raw_print(const char *str)
     if (g_uwpDisplay)
         g_uwpDisplay->rawprint++;
 
-#if defined(MICRO) || defined(WIN32CON)
     msmsg("%s\n", str);
-#else
-    xputs(str);
-#endif
 }
 
 void
@@ -581,16 +547,8 @@ tty_raw_print_bold(const char *str)
     if (g_uwpDisplay)
         g_uwpDisplay->rawprint++;
 
-#if defined(MICRO) || defined(WIN32CON)
     msmsg_bold("%s", str);
-#else
-    (void) fputs(str, stdout);
-#endif
-#if defined(MICRO) || defined(WIN32CON)
     msmsg("\n");
-#else
-    xputs("");
-#endif
 }
 
 int
@@ -922,16 +880,6 @@ ntposkey(int *x, int *y, int * mod)
         assert(e.m_type == Event::Type::ScanCode);
         return MapScanCode(e);
     }
-}
-
-
-void getreturn(const char * str)
-{
-    msmsg("Hit <Enter> %s.", str);
-
-    while (pgetchar() != '\n')
-        ;
-    return;
 }
 
 /* this is used as a printf() replacement when the window

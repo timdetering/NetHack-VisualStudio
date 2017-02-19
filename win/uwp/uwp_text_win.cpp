@@ -52,6 +52,10 @@ void TextWindow::Dismiss()
 
 void TextWindow::Putstr(int attr, const char *str)
 {
+    /* TODO(bhouse) can this window type get cancelled? */
+    if (m_flags & WIN_CANCELLED)
+        return;
+
     std::string input = std::string(compress_str(str));
 
     do {

@@ -158,8 +158,7 @@ void nethack_exit(int result)
             raw_printf("Hit <ENTER> to exit.");
         }
 
-        while(pgetchar() != '\n')
-            ;
+        uwp_wait_for_return();
     }
 
     longjmp(g_mainLoopJmpBuf, -1);
@@ -434,9 +433,7 @@ void uwp_warn(const char * s, ...)
     }
 
     va_end(the_args);
-
-    while (pgetchar() != '\n')
-        ;
+    uwp_wait_for_return();
 }
 
 /* check whether a given file exits */
@@ -767,7 +764,9 @@ static void reset_defaults_file(void)
 {
     copy_to_local(g_defaultsFileName, false);
     clear_nhwindow(BASE_WINDOW);
-    getreturn("Reset complete");
+
+    puts("Reset complete. Hit <Enter>");
+    uwp_wait_for_return();
 }
 
 /* using the windowing system, show a menu that allows the player
@@ -1082,10 +1081,6 @@ void uwp_main(std::wstring & localDirW, std::wstring & installDirW)
          */
         choose_windows(DEFAULT_WINDOW_SYS);
 
-#if 0
-        while (pgetchar() != '\n') ;
-#endif
-
         uwp_one_time_init(localDirW, installDirW);
 
         /* set engine initialization state */
@@ -1114,6 +1109,17 @@ void uwp_main(std::wstring & localDirW, std::wstring & installDirW)
     }
 
     final_cleanup();
+}
+
+void uwp_wait_for_return()
+{
+    while (1)
+    {
+        char c = pgetchar();
+
+        if (c == ESCAPE || c == '\n')
+            break;
+    }
 }
 
 } // extern "C"

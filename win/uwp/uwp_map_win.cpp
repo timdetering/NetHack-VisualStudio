@@ -57,6 +57,10 @@ void MapWindow::Dismiss()
 
 void MapWindow::Putstr(int attr, const char *str)
 {
+    /* TODO(bhouse) can this window type get cancelled? */
+    if (m_flags & WIN_CANCELLED)
+        return;
+
     str = compress_str(str);
     TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
 
