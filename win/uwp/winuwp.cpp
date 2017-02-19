@@ -538,7 +538,7 @@ tty_raw_print(const char *str)
     if (g_uwpDisplay)
         g_uwpDisplay->rawprint++;
 
-    msmsg("%s\n", str);
+    uwp_raw_printf(TextAttribute::None, "%s\n", str);
 }
 
 void
@@ -547,8 +547,7 @@ tty_raw_print_bold(const char *str)
     if (g_uwpDisplay)
         g_uwpDisplay->rawprint++;
 
-    msmsg_bold("%s", str);
-    msmsg("\n");
+    uwp_raw_printf(TextAttribute::Bold, "%s\n", str);
 }
 
 int
@@ -827,45 +826,22 @@ tty_delay_output()
 /* this is used as a printf() replacement when the window
 * system isn't initialized yet
 */
-void msmsg
-VA_DECL(const char *, fmt)
+void uwp_raw_printf(TextAttribute textAttribute, const char * fmt, ...)
 {
+    va_list the_args;
     char buf[ROWNO * COLNO]; /* worst case scenario */
-    VA_START(fmt);
-    VA_INIT(fmt, const char *);
-    Vsprintf(buf, fmt, VA_ARGS);
+    va_start(the_args, fmt);
+    vsprintf(buf, fmt, the_args);
 
     if (g_wins[BASE_WINDOW])
-        g_wins[BASE_WINDOW]->core_puts(buf, TextColor::NoColor, TextAttribute::None);
+        g_wins[BASE_WINDOW]->core_puts(buf, TextColor::NoColor, textAttribute);
     else
-        g_textGrid.Putstr(TextColor::NoColor, TextAttribute::None, buf);
+        g_textGrid.Putstr(TextColor::NoColor, textAttribute, buf);
 
     if (g_uwpDisplay)
         g_wins[BASE_WINDOW]->Curs(g_textGrid.GetCursor().m_x + 1, g_textGrid.GetCursor().m_y);
 
-    VA_END();
-    return;
-}
-
-/* This should probably be removed (replaced) since it is used in only one spot */
-void msmsg_bold
-VA_DECL(const char *, fmt)
-{
-    char buf[ROWNO * COLNO]; /* worst case scenario */
-    VA_START(fmt);
-    VA_INIT(fmt, const char *);
-    Vsprintf(buf, fmt, VA_ARGS);
-
-    if (g_wins[BASE_WINDOW])
-        g_wins[BASE_WINDOW]->core_puts(buf, TextColor::NoColor, TextAttribute::Bold);
-    else
-        g_textGrid.Putstr(TextColor::NoColor, TextAttribute::Bold, buf);
-
-    if (g_uwpDisplay)
-        g_wins[BASE_WINDOW]->Curs(g_textGrid.GetCursor().m_x + 1, g_textGrid.GetCursor().m_y);
-
-    VA_END();
-    return;
+    va_end(the_args);
 }
 
 void

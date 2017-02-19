@@ -343,7 +343,7 @@ extern void FDECL(genl_outrip, (winid, int, time_t));
 extern char *FDECL(tty_getmsghistory, (BOOLEAN_P));
 extern void FDECL(tty_putmsghistory, (const char *, BOOLEAN_P));
 
-void msmsg_bold(const char *, ...);
+void uwp_raw_printf(Nethack::TextAttribute textAttribute, const char *, ...);
 
 /* New window output functions.
  * These window based output functions use the window cursor position
