@@ -552,45 +552,12 @@ tty_raw_print_bold(const char *str)
 }
 
 int
-tgetch()
-{
-    char c = raw_getchar();
-
-    if (c == EOF)
-    {
-        hangup(0);
-        c = '\033';
-    }
-
-    return c;
-}
-
-int
 tty_nhgetch()
 {
-    int i;
+    int i, x, y, mod;
 
-    MessageWindow *msgWin = NULL;
-    
-    if (WIN_MESSAGE != WIN_ERR)
-        msgWin = (MessageWindow *) g_wins[WIN_MESSAGE];
-
-    /* Note: if raw_print() and wait_synch() get called to report terminal
-     * initialization problems, then g_wins[] and g_uwpDisplay might not be
-     * available yet.  Such problems will probably be fatal before we get
-     * here, but validate those pointers just in case...
-     */
-    if (msgWin != NULL)
-        msgWin->m_flags &= ~WIN_STOP;
-
-    i = tgetch();
-    if (!i)
-        i = '\033'; /* map NUL to ESC since nethack doesn't expect NUL */
-    else if (i == EOF)
-        i = '\033'; /* same for EOF */
-
-    if (msgWin != NULL)
-        msgWin->m_mustBeSeen = false;
+    while ((i = tty_nh_poskey(&x, &y, &mod)) == 0)
+        ; // throw away mouse clicks
 
     return i;
 }
@@ -604,37 +571,53 @@ tty_nhgetch()
 int
 tty_nh_poskey(int *x, int *y, int *mod)
 {
-#if defined(WIN32CON)
     int i;
+
+    if (program_state.done_hup) {
+        i = ESCAPE;
+    } else {
+
+        /* we checking for input -- flush our output */
+        g_textGrid.Flush();
+
+        Event e;
+
+        while (e.m_type == Event::Type::Undefined ||
+            (e.m_type == Event::Type::Mouse && !iflags.wc_mouse_support) ||
+            (e.m_type == Event::Type::ScanCode && MapScanCode(e) == 0))
+            e = g_eventQueue.PopFront();
+
+        if (e.m_type == Event::Type::Char) {
+            if (e.m_char == EOF) {
+                hangup(0);
+                e.m_char = ESCAPE;
+            }
+
+            i = e.m_char;
+        } else if (e.m_type == Event::Type::Mouse) {
+            *x = e.m_pos.m_x;
+            *y = e.m_pos.m_y;
+            *mod = (e.m_tap == Event::Tap::Left ? CLICK_1 : CLICK_2);
+
+            i = 0;
+        } else {
+            assert(e.m_type == Event::Type::ScanCode);
+            i = MapScanCode(e);
+        }
+    }
 
     MessageWindow *msgWin = NULL;
 
-    if (WIN_MESSAGE != WIN_ERR)
-        msgWin = (MessageWindow *) g_wins[WIN_MESSAGE];
+    if (WIN_MESSAGE != WIN_ERR) {
+        msgWin = (MessageWindow *)g_wins[WIN_MESSAGE];
 
-    /* Note: if raw_print() and wait_synch() get called to report terminal
-     * initialization problems, then g_wins[] and g_uwpDisplay might not be
-     * available yet.  Such problems will probably be fatal before we get
-     * here, but validate those pointers just in case...
-     */
-    if (msgWin != NULL)
-        msgWin->m_flags &= ~WIN_STOP;
-
-    i = ntposkey(x, y, mod);
-    if (!i && mod && (*mod == 0 || *mod == EOF))
-        i = '\033'; /* map NUL or EOF to ESC, nethack doesn't expect either */
-
-    if (msgWin != NULL)
-        msgWin->m_mustBeSeen = false;
+        if (msgWin != NULL) {
+            msgWin->m_flags &= ~WIN_STOP;
+            msgWin->m_mustBeSeen = false;
+        }
+    }
 
     return i;
-#else /* !WIN32CON */
-    nhUse(x);
-    nhUse(y);
-    nhUse(mod);
-
-    return tty_nhgetch();
-#endif /* ?WIN32CON */
 }
 
 char morc = 0; /* tell the outside world what char you chose */
@@ -839,47 +822,6 @@ tty_delay_output()
 {
     // Delay 50ms
     Sleep(50);
-}
-
-int
-ntposkey(int *x, int *y, int * mod)
-{
-    if (program_state.done_hup)
-        return '\033';
-
-    /* we checking for input -- flush our output */
-    g_textGrid.Flush();
-
-    Event e;
-
-    while (e.m_type == Event::Type::Undefined ||
-        (e.m_type == Event::Type::Mouse && !iflags.wc_mouse_support) ||
-        (e.m_type == Event::Type::ScanCode && MapScanCode(e) == 0))
-        e = g_eventQueue.PopFront();
-
-    if (e.m_type == Event::Type::Char)
-    {
-        if (e.m_char == EOF)
-        {
-            hangup(0);
-            e.m_char = '\033';
-        }
-
-        return e.m_char;
-    }
-    else if (e.m_type == Event::Type::Mouse)
-    {
-        *x = e.m_pos.m_x;
-        *y = e.m_pos.m_y;
-        *mod = (e.m_tap == Event::Tap::Left ? CLICK_1 : CLICK_2);
-
-        return 0;
-    }
-    else
-    {
-        assert(e.m_type == Event::Type::ScanCode);
-        return MapScanCode(e);
-    }
 }
 
 /* this is used as a printf() replacement when the window
