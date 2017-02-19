@@ -97,6 +97,7 @@ struct MessageWindow : public CoreWindow {
     bool m_mustBeSeen;       /* message must be seen */
     bool m_mustBeErased;     /* message must be erased */
     bool m_nextIsPrompt;     /* next output message is a prompt */
+    bool m_stop;
 };
 
 struct MenuWindow : public CoreWindow {
@@ -137,6 +138,8 @@ struct MenuWindow : public CoreWindow {
     long m_nitems;           /* total number of items (MENU) */
     short m_how;             /* menu mode - pick 1 or N (MENU) */
     char m_menu_ch;          /* menu char (MENU) */
+
+    bool m_cancelled;
 
 };
 
@@ -192,6 +195,8 @@ struct TextWindow : public CoreWindow {
     virtual void Putstr(int attr, const char *str);
 
     std::list<std::pair<Nethack::TextAttribute, std::string>> m_lines;
+
+    bool m_cancelled;
 
 };
 

@@ -15,6 +15,7 @@ TextWindow::TextWindow() : CoreWindow(NHW_TEXT)
     m_offy = 0;
     m_rows = kScreenHeight;
     m_cols = kScreenWidth;
+    m_cancelled = false;
 }
 
 TextWindow::~TextWindow()
@@ -48,12 +49,13 @@ void TextWindow::Dismiss()
         m_active = 0;
     }
     m_flags = 0;
+    m_cancelled = false;
 }
 
 void TextWindow::Putstr(int attr, const char *str)
 {
     /* TODO(bhouse) can this window type get cancelled? */
-    if (m_flags & WIN_CANCELLED)
+    if (m_cancelled)
         return;
 
     std::string input = std::string(compress_str(str));
@@ -80,6 +82,11 @@ void TextWindow::Putstr(int attr, const char *str)
 
 void TextWindow::Display(bool blocking)
 {
+    if (m_cancelled)
+        return;
+
+    g_rawprint = 0;
+
     assert(m_offx == 0);
 
     MessageWindow * msgWin = GetMessageWindow();
@@ -110,7 +117,7 @@ void TextWindow::Display(bool blocking)
             tty_curs(m_window, 1, m_rows - 1);
             dmore(quitchars);
             if (morc == '\033') {
-                m_flags |= WIN_CANCELLED;
+                m_cancelled = true;
                 break;
             }
 

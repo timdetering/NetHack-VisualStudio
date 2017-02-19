@@ -322,10 +322,6 @@ tty_display_nhwindow(winid window, boolean blocking)
 {
     CoreWindow *coreWin = GetCoreWindow(window);
 
-    if (coreWin->m_flags & WIN_CANCELLED)
-        return;
-
-    g_rawprint = 0;
     coreWin->Display(blocking != 0);
 }
 
@@ -575,7 +571,7 @@ tty_nh_poskey(int *x, int *y, int *mod)
         msgWin = (MessageWindow *)g_wins[WIN_MESSAGE];
 
         if (msgWin != NULL) {
-            msgWin->m_flags &= ~WIN_STOP;
+            msgWin->m_stop = false;
             msgWin->m_mustBeSeen = false;
         }
     }

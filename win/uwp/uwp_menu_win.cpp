@@ -43,6 +43,7 @@ MenuWindow::MenuWindow() : CoreWindow(NHW_MENU)
     m_rows = 0;
     m_cols = 0;
 
+    m_cancelled = false;
 }
 
 MenuWindow::~MenuWindow()
@@ -51,6 +52,11 @@ MenuWindow::~MenuWindow()
 
 void MenuWindow::Display(bool blocking)
 {
+    if (m_cancelled)
+        return;
+
+    g_rawprint = 0;
+
     m_active = 1;
 
     int screenWidth = kScreenWidth;
@@ -112,12 +118,12 @@ void MenuWindow::Dismiss()
         m_active = 0;
     }
     m_flags = 0;
+    m_cancelled = false;
 }
 
 void MenuWindow::Putstr(int attr, const char *str)
 {
-    /* TODO(bhouse) can this window type get cancelled? */
-    if (m_flags & WIN_CANCELLED)
+    if (m_cancelled)
         return;
 
     std::string input = std::string(compress_str(str));
@@ -409,7 +415,7 @@ void MenuWindow::process_menu()
                     curr->selected = FALSE;
                     curr->count = -1L;
                 }
-                m_flags |= WIN_CANCELLED;
+                m_cancelled = true;
                 finished = TRUE;
             }
             /* else only stop count */
@@ -586,7 +592,7 @@ MenuWindow::process_lines()
             cl_end();
             dmore(quitchars);
             if (morc == '\033') {
-                m_flags |= WIN_CANCELLED;
+                m_cancelled = true;
                 break;
             }
 
@@ -737,16 +743,15 @@ int MenuWindow::uwp_select_menu(
 {
     tty_menu_item *curr;
     menu_item *mi;
-    int n, cancelled;
+    int n;
 
     *menu_list = (menu_item *)0;
     m_how = (short)how;
     morc = 0;
     tty_display_nhwindow(m_window, TRUE);
-    cancelled = !!(m_flags & WIN_CANCELLED);
     tty_dismiss_nhwindow(m_window); /* does not destroy window data */
 
-    if (cancelled) {
+    if (m_cancelled) {
         n = -1;
     } else {
         for (n = 0, curr = m_mlist; curr; curr = curr->next)

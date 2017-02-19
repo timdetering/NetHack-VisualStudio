@@ -40,6 +40,7 @@ MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE)
 
     m_rows = iflags.msg_history;
     m_cols = 0;
+    m_stop = false;
 }
 
 MessageWindow::~MessageWindow()
@@ -61,6 +62,11 @@ void MessageWindow::Clear()
 
 void MessageWindow::Display(bool blocking)
 {
+    if (m_stop)
+        return;
+
+    g_rawprint = 0;
+
     if (m_mustBeSeen) {
         more();
         assert(!m_mustBeSeen);
@@ -84,6 +90,7 @@ void MessageWindow::Dismiss()
         tty_display_nhwindow(WIN_MESSAGE, TRUE);
 
     CoreWindow::Dismiss();
+    m_stop = false;
 }
 
 void MessageWindow::Putstr(int attr, const char *str)
@@ -237,10 +244,10 @@ char MessageWindow::yn_function(
     boolean doprev = 0;
     char prompt[BUFSZ];
 
-    if (m_mustBeSeen && !(m_flags & WIN_STOP))
+    if (m_mustBeSeen && !m_stop)
         more();
 
-    m_flags &= ~WIN_STOP;
+    m_stop = false;
     m_nextIsPrompt = true;
 
     if (resp) {
@@ -396,27 +403,25 @@ void MessageWindow::update_topl(const char *bp)
     register char *tl, *otl;
     register int n0;
     int notdied = 1;
-    MessageWindow *msgWin = GetMessageWindow();
-    CoreWindow *coreWin = msgWin;
 
     /* If there is room on the line, print message on same line */
     /* But messages like "You die..." deserve their own line */
     n0 = strlen(bp);
-    if ((msgWin->m_mustBeSeen || (coreWin->m_flags & WIN_STOP)) && coreWin->m_cury == 0
+    if ((m_mustBeSeen || m_stop) && m_cury == 0
         && n0 + (int)strlen(toplines) + 3 < CO - 8 /* room for --More-- */
         && (notdied = strncmp(bp, "You die", 7)) != 0) {
         strncat(toplines, "  ", sizeof(toplines) - strlen(toplines) - 1);
         strncat(toplines, bp, sizeof(toplines) - strlen(toplines) - 1);
-        coreWin->m_curx += 2;
-        if (!(coreWin->m_flags & WIN_STOP))
+        m_curx += 2;
+        if (!m_stop)
             addtopl(bp);
         return;
-    } else if (!(coreWin->m_flags & WIN_STOP)) {
-        if (msgWin->m_mustBeSeen) {
+    } else if (!m_stop) {
+        if (m_mustBeSeen) {
             more();
-        } else if (coreWin->m_cury) { /* for when flags.toplin == 2 && cury > 1 */
-            docorner(1, coreWin->m_cury + 1); /* reset cury = 0 if redraw screen */
-            coreWin->m_curx = coreWin->m_cury = 0;   /* from home--cls() & docorner(1,n) */
+        } else if (m_cury) { /* for when flags.toplin == 2 && cury > 1 */
+            docorner(1, m_cury + 1); /* reset cury = 0 if redraw screen */
+            m_curx = m_cury = 0;   /* from home--cls() & docorner(1,n) */
         }
     }
     remember_topl();
@@ -437,8 +442,8 @@ void MessageWindow::update_topl(const char *bp)
         n0 = strlen(tl);
     }
     if (!notdied)
-        coreWin->m_flags &= ~WIN_STOP;
-    if (!(coreWin->m_flags & WIN_STOP))
+        m_stop = false;
+    if (!m_stop)
         redotoplin(toplines);
 }
 
@@ -448,10 +453,10 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
     register int c;
     boolean doprev = 0;
 
-    if (m_mustBeSeen && !(m_flags & WIN_STOP))
+    if (m_mustBeSeen && !m_stop)
         more();
 
-    m_flags &= ~WIN_STOP;
+    m_stop = false;
 
     m_nextIsPrompt = true;
     pline("%s ", query);
@@ -644,7 +649,7 @@ void MessageWindow::more()
     xwaitforspace("\033 ");
 
     if (morc == '\033')
-        m_flags |= WIN_STOP;
+        m_stop = true;
 
     /* if the message is more then one line then erase the entire message */
     if (m_mustBeErased && m_cury) {
@@ -691,7 +696,8 @@ char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
     /* normally <ESC> means skip further messages, but in this case
     it means cancel the current prompt; any other messages should
     continue to be output normally */
-    g_wins[WIN_MESSAGE]->m_flags &= ~WIN_CANCELLED;
+    MessageWindow * winMsg = (MessageWindow *) g_wins[WIN_MESSAGE];
+    winMsg->m_stop = false;
     g_dismiss_more = 0;
 
     return ((how == PICK_ONE && morc == let) || morc == '\033') ? morc : '\0';
