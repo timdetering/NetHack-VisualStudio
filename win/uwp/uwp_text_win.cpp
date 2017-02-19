@@ -13,8 +13,8 @@ TextWindow::TextWindow() : CoreWindow(NHW_TEXT)
 {
     m_offx = 0;
     m_offy = 0;
-    m_rows = g_textGrid.GetDimensions().m_y;
-    m_cols = g_textGrid.GetDimensions().m_x;
+    m_rows = kScreenHeight;
+    m_cols = kScreenWidth;
 }
 
 TextWindow::~TextWindow()

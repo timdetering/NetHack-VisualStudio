@@ -373,4 +373,6 @@ static const int kKillChar = 21;
 extern char g_dismiss_more;
 extern int g_rawprint;
 
+extern BaseWindow g_baseWindow;
+
 }

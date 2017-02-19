@@ -119,10 +119,8 @@ STATIC_DCL boolean NDECL(reset_role_filtering);
 void
 tty_init_nhwindows(int *, char **)
 {
-    iflags.cbreak = TRUE;
-
-    LI = g_textGrid.GetDimensions().m_y;
-    CO = g_textGrid.GetDimensions().m_x;
+    LI = kScreenHeight;
+    CO = kScreenWidth;
 
     set_option_mod_status("mouse_support", SET_IN_GAME);
 
@@ -135,9 +133,9 @@ tty_init_nhwindows(int *, char **)
     winid base_window = tty_create_nhwindow(NHW_BASE);
     assert(base_window == BASE_WINDOW);
 
-    g_wins[BASE_WINDOW]->m_active = 1;
+    g_baseWindow.m_active = 1;
+    g_baseWindow.Clear();
 
-    tty_clear_nhwindow(BASE_WINDOW);
     tty_display_nhwindow(BASE_WINDOW, FALSE);
 }
 
@@ -147,8 +145,7 @@ tty_init_nhwindows(int *, char **)
 void
 tty_askname()
 {
-    BaseWindow * baseWin = (BaseWindow *) g_wins[BASE_WINDOW];
-    baseWin->tty_askname();
+    g_baseWindow.tty_askname();
 }
 
 void
@@ -199,7 +196,6 @@ tty_exit_nhwindows(const char *str)
 #ifdef FREE_ALL_MEMORY
     if (BASE_WINDOW != WIN_ERR && g_wins[BASE_WINDOW]) {
         g_wins[BASE_WINDOW]->free_window_info(TRUE);
-        delete g_wins[BASE_WINDOW];
         g_wins[BASE_WINDOW] = NULL;
     }
 #endif
@@ -223,7 +219,7 @@ tty_create_nhwindow(int type)
     {
         if (g_wins[BASE_WINDOW] != NULL) return WIN_ERR;
 
-        BaseWindow * baseWin = new BaseWindow();
+        BaseWindow * baseWin = &g_baseWindow;
         coreWin = baseWin;
 
         /* base window, used for absolute movement on the screen */
@@ -418,7 +414,7 @@ tty_display_file(const char *fname, boolean complain)
             ) {
             /* attempt to scroll text below map window if there's room */
             g_wins[datawin]->m_offy = g_wins[WIN_STATUS]->m_offy + 3;
-            if ((int)g_wins[datawin]->m_offy + 12 > g_textGrid.GetDimensions().m_y)
+            if ((int)g_wins[datawin]->m_offy + 12 > kScreenHeight)
                     g_wins[datawin]->m_offy = 0;
         }
         while (dlb_fgets(buf, BUFSZ, f)) {
@@ -820,8 +816,8 @@ cl_eos()
     int x = g_textGrid.GetCursor().m_x;
     int y = g_textGrid.GetCursor().m_y;
 
-    int cx = g_textGrid.GetDimensions().m_x - x;
-    int cy = (g_textGrid.GetDimensions().m_y - (y + 1)) * g_textGrid.GetDimensions().m_x;
+    int cx = kScreenWidth - x;
+    int cy = (kScreenHeight - (y + 1)) * kScreenWidth;
 
     g_textGrid.Put(x, y, TextCell(), cx + cy);
     g_textGrid.SetCursor(Int2D(x, y));
@@ -833,7 +829,7 @@ void
 cl_end()
 {
     Int2D cursor = g_textGrid.GetCursor();
-    g_textGrid.Put(TextCell(), g_textGrid.GetDimensions().m_x - cursor.m_x);
+    g_textGrid.Put(TextCell(), kScreenWidth - cursor.m_x);
     g_textGrid.SetCursor(cursor);
 }
 

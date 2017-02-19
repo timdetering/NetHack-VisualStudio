@@ -53,8 +53,8 @@ void MenuWindow::Display(bool blocking)
 {
     m_active = 1;
 
-    int screenWidth = g_textGrid.GetDimensions().m_x;
-    int screenHeight = g_textGrid.GetDimensions().m_y;
+    int screenWidth = kScreenWidth;
+    int screenHeight = kScreenHeight;
     m_offx = m_cols < screenWidth ? screenWidth - m_cols - 1 : 0;
     m_offx = min(screenWidth / 2, m_offx);
 
@@ -300,7 +300,7 @@ void MenuWindow::process_menu()
                                     */
                     for (n = 0, cp = curr->str;
                         *cp &&
-                        g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
+                        g_textGrid.GetCursor().m_x < kScreenWidth;
                         cp++, n++) {
 
                         if (n == attr_n && (color != NO_COLOR
@@ -557,7 +557,7 @@ MenuWindow::process_lines()
     assert(m_lines.size() > 0);
 
     auto iter = m_lines.begin();
-    m_rows = g_textGrid.GetDimensions().m_y - m_offy;
+    m_rows = kScreenHeight - m_offy;
     int row = 0;
 
     while (iter != m_lines.end()) {
@@ -576,7 +576,7 @@ MenuWindow::process_lines()
             const char *cp;
 
             for (cp = str;
-                *cp && g_textGrid.GetCursor().m_x < g_textGrid.GetDimensions().m_x;
+                *cp && g_textGrid.GetCursor().m_x < kScreenWidth;
                 cp++)
                 core_putc(*cp, TextColor::NoColor, useAttribute);
         }
@@ -832,7 +832,7 @@ void MenuWindow::uwp_end_menu(
     }
 
     /* XXX another magic number? 52 */
-    lmax = min(52, g_textGrid.GetDimensions().m_y - 1);    /* # lines per page */
+    lmax = min(52, kScreenHeight - 1);    /* # lines per page */
     m_npages = (m_nitems + (lmax - 1)) / lmax; /* # of pages */
                                                                  /* make sure page list is large enough */
     if (m_plist_size < m_npages + 1 /*need 1 slot beyond last*/) {
@@ -859,7 +859,7 @@ void MenuWindow::uwp_end_menu(
 
         /* cut off any lines that are too long */
         len = strlen(curr->str) + 2; /* extra space at beg & end */
-        int screenWidth = g_textGrid.GetDimensions().m_x;
+        int screenWidth = kScreenWidth;
         if (len > screenWidth) {
             curr->str[screenWidth - 2] = 0;
             len = screenWidth;
@@ -883,7 +883,7 @@ void MenuWindow::uwp_end_menu(
         len = strlen(m_morestr);
     }
 
-    int screenWidth = g_textGrid.GetDimensions().m_x;
+    int screenWidth = kScreenWidth;
     if (len > screenWidth) {
         /* truncate the prompt if it's too long for the screen */
         if (m_npages <= 1) /* only str in single page case */

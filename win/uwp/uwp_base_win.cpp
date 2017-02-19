@@ -9,13 +9,15 @@
 
 using namespace Nethack;
 
+BaseWindow g_baseWindow;
+
 BaseWindow::BaseWindow() : CoreWindow(NHW_BASE)
 {
     // core
     m_offx = 0;
     m_offy = 0;
-    m_rows = g_textGrid.GetDimensions().m_y;
-    m_cols = g_textGrid.GetDimensions().m_x;
+    m_rows = kScreenHeight;
+    m_cols = kScreenWidth;
 
 }
 

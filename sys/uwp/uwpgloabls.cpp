@@ -26,9 +26,8 @@ namespace Nethack
         RGB_TO_XMFLOAT3(0xFF, 0xFF, 0xFF)  // white
     };
 
-
     EventQueue      g_eventQueue;
-    TextGrid        g_textGrid(Int2D(80, 24));
+    TextGrid        g_textGrid(Int2D(kScreenWidth, kScreenHeight));
     jmp_buf         g_mainLoopJmpBuf;
     Options         g_options;
     FontCollection  g_fontCollection;
