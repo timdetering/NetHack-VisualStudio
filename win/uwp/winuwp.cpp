@@ -27,8 +27,8 @@ extern "C" {
 /* this is only needed until tty_status_* routines are written */
 extern NEARDATA winid WIN_STATUS;
 
-/* erase_char and kill_char are usd by getline.c and topl.c */
-char erase_char, kill_char;
+char g_dismiss_more = 0;
+int g_rawprint = 0;
 
 /* Interface definition, for windows.c */
 struct window_procs uwp_procs = {
@@ -89,7 +89,6 @@ struct window_procs uwp_procs = {
 
 static int maxwin = 0; /* number of windows in use */
 CoreWindow *g_wins[MAXWIN];
-struct DisplayDesc *g_uwpDisplay; /* the tty display descriptor */
 
 char winpanicstr[] = "Bad window id %d";
 char defmorestr[] = "--More--";
@@ -120,28 +119,17 @@ STATIC_DCL boolean NDECL(reset_role_filtering);
 void
 tty_init_nhwindows(int *, char **)
 {
-    int wid, hgt;
-
-    erase_char = '\b';
-    kill_char = 21; /* cntl-U */
     iflags.cbreak = TRUE;
 
-    /* to port dependant tty setup */
-    wid = g_textGrid.GetDimensions().m_x;
-    hgt = g_textGrid.GetDimensions().m_y;
-
-    LI = hgt;
-    CO = wid;
+    LI = g_textGrid.GetDimensions().m_y;
+    CO = g_textGrid.GetDimensions().m_x;
 
     set_option_mod_status("mouse_support", SET_IN_GAME);
 
     start_screen();
 
-    /* set up tty descriptor */
-    g_uwpDisplay = (struct DisplayDesc *) alloc(sizeof(struct DisplayDesc));
-    g_uwpDisplay->rows = hgt;
-    g_uwpDisplay->cols = wid;
-    g_uwpDisplay->dismiss_more = 0;
+    g_dismiss_more = 0;
+    g_rawprint = 0;
 
     /* set up the default windows */
     winid base_window = tty_create_nhwindow(NHW_BASE);
@@ -214,8 +202,6 @@ tty_exit_nhwindows(const char *str)
         delete g_wins[BASE_WINDOW];
         g_wins[BASE_WINDOW] = NULL;
     }
-    free((genericptr_t) g_uwpDisplay);
-    g_uwpDisplay = (struct DisplayDesc *) 0;
 #endif
 
     iflags.window_inited = 0;
@@ -343,8 +329,7 @@ tty_display_nhwindow(winid window, boolean blocking)
     if (coreWin->m_flags & WIN_CANCELLED)
         return;
 
-    g_uwpDisplay->rawprint = 0;
-
+    g_rawprint = 0;
     coreWin->Display(blocking != 0);
 }
 
@@ -467,14 +452,13 @@ void
 tty_wait_synch()
 {
     /* we just need to make sure all windows are synch'd */
-    if (!g_uwpDisplay || g_uwpDisplay->rawprint) {
+    if (g_rawprint) {
         while (1) {
             int c = tty_nhgetch();
             if (c == '\n' || c == ESCAPE) 
                 break;
         }
-        if (g_uwpDisplay)
-            g_uwpDisplay->rawprint = 0;
+        g_rawprint = 0;
     } else {
         tty_display_nhwindow(WIN_MAP, FALSE);
     }
@@ -523,18 +507,14 @@ tty_print_glyph(
 void
 tty_raw_print(const char *str)
 {
-    if (g_uwpDisplay)
-        g_uwpDisplay->rawprint++;
-
+    g_rawprint++;
     uwp_raw_printf(TextAttribute::None, "%s\n", str);
 }
 
 void
 tty_raw_print_bold(const char *str)
 {
-    if (g_uwpDisplay)
-        g_uwpDisplay->rawprint++;
-
+    g_rawprint++;
     uwp_raw_printf(TextAttribute::Bold, "%s\n", str);
 }
 
@@ -611,8 +591,6 @@ char morc = 0; /* tell the outside world what char you chose */
 STATIC_DCL boolean FDECL(ext_cmd_getlin_hook, (char *));
 
 extern int NDECL(extcmd_via_menu); /* cmd.c */
-
-extern char erase_char, kill_char; /* from appropriate tty.c file */
 
                                    /*
                                    * Read a line closed with '\n' into the array char bufp[BUFSZ].
@@ -716,8 +694,6 @@ tty_doprev_message()
 {
     return GetMessageWindow()->doprev_message();
 }
-
-extern char erase_char; /* from xxxtty.c; don't need kill_char */
 
 char
 tty_yn_function(
@@ -826,7 +802,7 @@ void uwp_raw_printf(TextAttribute textAttribute, const char * fmt, ...)
     else
         g_textGrid.Putstr(TextColor::NoColor, textAttribute, buf);
 
-    if (g_uwpDisplay)
+    if (g_wins[BASE_WINDOW])
         g_wins[BASE_WINDOW]->Curs(g_textGrid.GetCursor().m_x + 1, g_textGrid.GetCursor().m_y);
 
     va_end(the_args);

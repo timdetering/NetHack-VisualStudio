@@ -227,8 +227,6 @@ extern struct window_procs uwp_procs;
 
 extern CoreWindow *g_wins[MAXWIN];
 
-extern struct DisplayDesc *g_uwpDisplay; /* the tty display descriptor */
-
 extern char morc;         /* last character typed to xwaitforspace */
 extern char defmorestr[]; /* default --more-- prompt */
 
@@ -370,6 +368,9 @@ MenuWindow * ToMenuWindow(CoreWindow * coreWin);
 
 void dmore(CoreWindow *, const char *);
 
-extern char erase_char, kill_char;
+static const int kKillChar = 21;
+
+extern char g_dismiss_more;
+extern int g_rawprint;
 
 }

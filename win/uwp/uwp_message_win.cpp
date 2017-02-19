@@ -138,7 +138,7 @@ int MessageWindow::doprev_message()
             do {
                 morc = 0;
                 if (m_msgIter == m_msgList.end()) {
-                    g_uwpDisplay->dismiss_more = C('p'); /* ^P ok at --More-- */
+                    g_dismiss_more = C('p'); /* ^P ok at --More-- */
                     redotoplin(toplines);
 
                     if (m_msgIter != m_msgList.begin())
@@ -149,7 +149,7 @@ int MessageWindow::doprev_message()
                     iter++;
 
                     if (iter == m_msgList.end()) {
-                        g_uwpDisplay->dismiss_more = C('p'); /* ^P ok at --More-- */
+                        g_dismiss_more = C('p'); /* ^P ok at --More-- */
                         redotoplin(iter->c_str());
 
                         if (m_msgIter != m_msgList.begin())
@@ -174,7 +174,7 @@ int MessageWindow::doprev_message()
                 }
 
             } while (morc == C('p'));
-            g_uwpDisplay->dismiss_more = 0;
+            g_dismiss_more = 0;
         } else { /* reversed */
             morc = 0;
             prevmsg_win = create_nhwindow(NHW_MENU);
@@ -192,10 +192,10 @@ int MessageWindow::doprev_message()
             display_nhwindow(prevmsg_win, TRUE);
             destroy_nhwindow(prevmsg_win);
             m_msgIter = m_msgList.end();
-            g_uwpDisplay->dismiss_more = 0;
+            g_dismiss_more = 0;
         }
     } else if (iflags.prevmsg_window == 's') { /* single */
-        g_uwpDisplay->dismiss_more = C('p'); /* <ctrl/P> allowed at --More-- */
+        g_dismiss_more = C('p'); /* <ctrl/P> allowed at --More-- */
         do {
             morc = 0;
             if (m_msgIter == m_msgList.end()) {
@@ -210,7 +210,7 @@ int MessageWindow::doprev_message()
                 m_msgIter = m_msgList.end();
 
         } while (morc == C('p'));
-        g_uwpDisplay->dismiss_more = 0;
+        g_dismiss_more = 0;
     }
     return 0;
 }
@@ -350,7 +350,7 @@ char MessageWindow::yn_function(
                     if (z == '\033')
                         value = -1; /* abort */
                     z = '\n';       /* break */
-                } else if (z == erase_char || z == '\b') {
+                } else if (z == '\b') {
                     if (n_len <= 1) {
                         value = -1;
                         break;
@@ -502,7 +502,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
             *bufp = 0;
             addtopl(obufp);
         }
-        if (c == erase_char || c == '\b') {
+        if (c == '\b') {
             if (bufp != obufp) {
 #ifdef NEWAUTOCOMP
                 char *i;
@@ -560,7 +560,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
                     putsyms("\b", TextColor::NoColor, TextAttribute::None);
 #endif /* NEWAUTOCOMP */
             }
-        } else if (c == kill_char || c == '\177') { /* Robert Viduya */
+        } else if (c == kKillChar || c == '\177') { /* Robert Viduya */
                                                     /* this test last - @ might be the kill_char */
 #ifndef NEWAUTOCOMP
             while (bufp != obufp) {
@@ -674,7 +674,7 @@ char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
         return 0;
     }
 
-    g_uwpDisplay->dismiss_more = let;
+    g_dismiss_more = let;
     morc = 0;
     /* barebones pline(); since we're only supposed to be called after
     response to a prompt, we'll assume that the display is up to date */
@@ -692,7 +692,7 @@ char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
     it means cancel the current prompt; any other messages should
     continue to be output normally */
     g_wins[WIN_MESSAGE]->m_flags &= ~WIN_CANCELLED;
-    g_uwpDisplay->dismiss_more = 0;
+    g_dismiss_more = 0;
 
     return ((how == PICK_ONE && morc == let) || morc == '\033') ? morc : '\0';
 }

@@ -11,12 +11,10 @@ using namespace Nethack;
 
 StatusWindow::StatusWindow() : CoreWindow(NHW_STATUS)
 {
-    assert(kStatusWidth == g_uwpDisplay->cols);
-
     // core
     /* status window, 2 lines long, full width, bottom of screen */
     m_offx = 0;
-    m_offy = min((int)g_uwpDisplay->rows - kStatusHeight, ROWNO + 1);
+    m_offy = min(g_textGrid.GetDimensions().m_y - kStatusHeight, ROWNO + 1);
     m_rows = kStatusHeight;
     m_cols = kStatusWidth;
 

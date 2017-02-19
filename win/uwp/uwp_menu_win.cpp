@@ -53,8 +53,10 @@ void MenuWindow::Display(bool blocking)
 {
     m_active = 1;
 
-    m_offx = m_cols < g_uwpDisplay->cols ? g_uwpDisplay->cols - m_cols - 1 : 0;
-    m_offx = min(g_uwpDisplay->cols / 2, m_offx);
+    int screenWidth = g_textGrid.GetDimensions().m_x;
+    int screenHeight = g_textGrid.GetDimensions().m_y;
+    m_offx = m_cols < screenWidth ? screenWidth - m_cols - 1 : 0;
+    m_offx = min(screenWidth / 2, m_offx);
 
     m_offy = 0;
 
@@ -65,7 +67,7 @@ void MenuWindow::Display(bool blocking)
 
     /* if we are going to have more then one page to display the use full screen */
     /* or if we are not supposed to use menu overlays */;
-    if (m_rows >= (int)g_uwpDisplay->rows || !iflags.menu_overlay)
+    if (m_rows >= screenHeight || !iflags.menu_overlay)
     {
         m_offx = 0;
         /* TODO(bhouse) why do we test and do something different for overlay? */
@@ -830,7 +832,7 @@ void MenuWindow::uwp_end_menu(
     }
 
     /* XXX another magic number? 52 */
-    lmax = min(52, (int)g_uwpDisplay->rows - 1);    /* # lines per page */
+    lmax = min(52, g_textGrid.GetDimensions().m_y - 1);    /* # lines per page */
     m_npages = (m_nitems + (lmax - 1)) / lmax; /* # of pages */
                                                                  /* make sure page list is large enough */
     if (m_plist_size < m_npages + 1 /*need 1 slot beyond last*/) {
@@ -857,9 +859,10 @@ void MenuWindow::uwp_end_menu(
 
         /* cut off any lines that are too long */
         len = strlen(curr->str) + 2; /* extra space at beg & end */
-        if (len > (int)g_uwpDisplay->cols) {
-            curr->str[g_uwpDisplay->cols - 2] = 0;
-            len = g_uwpDisplay->cols;
+        int screenWidth = g_textGrid.GetDimensions().m_x;
+        if (len > screenWidth) {
+            curr->str[screenWidth - 2] = 0;
+            len = screenWidth;
         }
         if (len > m_cols)
             m_cols = len;
@@ -880,11 +883,12 @@ void MenuWindow::uwp_end_menu(
         len = strlen(m_morestr);
     }
 
-    if (len > (int)g_uwpDisplay->cols) {
+    int screenWidth = g_textGrid.GetDimensions().m_x;
+    if (len > screenWidth) {
         /* truncate the prompt if it's too long for the screen */
         if (m_npages <= 1) /* only str in single page case */
-            m_morestr[g_uwpDisplay->cols] = 0;
-        len = g_uwpDisplay->cols;
+            m_morestr[screenWidth] = 0;
+        len = screenWidth;
     }
     if (len > m_cols)
         m_cols = len;

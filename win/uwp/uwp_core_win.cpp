@@ -57,7 +57,7 @@ void CoreWindow::Dismiss()
     * these should only get dismissed when the game is going away
     * or suspending
     */
-    tty_curs(BASE_WINDOW, 1, (int)g_uwpDisplay->rows - 1);
+    tty_curs(BASE_WINDOW, 1, g_textGrid.GetDimensions().m_y - 1);
     m_active = 0;
     m_flags = 0;
 }
@@ -94,7 +94,7 @@ void
 CoreWindow::xwaitforspace(
     register const char *s) /* chars allowed besides return */
 {
-    register int c, x = g_uwpDisplay ? (int)g_uwpDisplay->dismiss_more : '\n';
+    register int c, x = g_dismiss_more;
 
     morc = 0;
     while (
@@ -107,8 +107,7 @@ CoreWindow::xwaitforspace(
 
         if (iflags.cbreak) {
             if (c == '\033') {
-                if (g_uwpDisplay)
-                    g_uwpDisplay->dismiss_more = 1;
+                g_dismiss_more = 1;
                 morc = '\033';
                 break;
             }
