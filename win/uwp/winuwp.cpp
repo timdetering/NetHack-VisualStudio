@@ -380,21 +380,7 @@ tty_curs(winid window, int x, int y)
 void
 tty_putsym(winid window, int x, int y, char ch)
 {
-    CoreWindow *coreWin = GetCoreWindow(window);
-
-    switch (coreWin->m_type) {
-    case NHW_STATUS:
-    case NHW_MAP:
-    case NHW_BASE:
-        coreWin->Curs(x, y);
-        coreWin->core_putc(ch);
-        break;
-    case NHW_MESSAGE:
-    case NHW_MENU:
-    case NHW_TEXT:
-        impossible("Can't putsym to window type %d", coreWin->m_type);
-        break;
-    }
+    GetCoreWindow(window)->Putsym(x, y, ch);
 }
 
 void
@@ -403,6 +389,8 @@ tty_putstr(winid window, int attr, const char *str)
     assert(str != NULL);
     if (str == NULL)
         return;
+
+    assert(g_wins[window] != NULL);
 
     /* Assume there's a real problem if the window is missing --
      * probably a panic message

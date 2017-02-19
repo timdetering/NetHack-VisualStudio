@@ -34,6 +34,7 @@ struct CoreWindow {
     void Destroy();
     void Curs(int x, int y);
     virtual void Putstr(int attr, const char *str) = 0;
+    virtual void Putsym(int x, int y, char ch);
 
     void core_putc(char ch, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
     void core_puts(const char *s, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);

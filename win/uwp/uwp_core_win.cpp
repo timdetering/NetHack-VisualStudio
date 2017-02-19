@@ -175,3 +175,21 @@ CoreWindow::compress_str(const char * str)
     }
     return str;
 }
+
+void CoreWindow::Putsym(int x, int y, char ch)
+{
+
+    switch (m_type) {
+    case NHW_STATUS:
+    case NHW_MAP:
+    case NHW_BASE:
+        Curs(x, y);
+        core_putc(ch);
+        break;
+    case NHW_MESSAGE:
+    case NHW_MENU:
+    case NHW_TEXT:
+        impossible("Can't putsym to window type %d", m_type);
+        break;
+    }
+}
