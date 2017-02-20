@@ -9,7 +9,9 @@
 
 using namespace Nethack;
 
-MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE)
+MessageWindow g_messageWindow;
+
+MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE, MESSAGE_WINDOW)
 {
     // msg
     m_mustBeSeen = false;

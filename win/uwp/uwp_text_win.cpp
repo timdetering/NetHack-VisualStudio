@@ -9,7 +9,7 @@
 
 using namespace Nethack;
 
-TextWindow::TextWindow() : CoreWindow(NHW_TEXT)
+TextWindow::TextWindow(winid window) : CoreWindow(NHW_TEXT, window)
 {
     m_offx = 0;
     m_offy = 0;

@@ -118,6 +118,7 @@ extern"C" {
     void uwp_wait_for_return();
 
     const winid BASE_WINDOW = 0;
+
     const int kScreenWidth = 80;
     const int kScreenHeight = 24;
 

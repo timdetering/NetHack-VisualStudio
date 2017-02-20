@@ -25,7 +25,7 @@ typedef struct tty_mi {
 /* struct for windows */
 struct CoreWindow {
 
-    CoreWindow(int type);
+    CoreWindow(int type, winid window);
     virtual ~CoreWindow();
 
     virtual void Clear();
@@ -102,7 +102,7 @@ struct MessageWindow : public CoreWindow {
 
 struct MenuWindow : public CoreWindow {
 
-    MenuWindow();
+    MenuWindow(winid window);
     virtual ~MenuWindow();
 
     virtual void Clear();
@@ -186,7 +186,7 @@ struct MapWindow : public CoreWindow {
 };
 
 struct TextWindow : public CoreWindow {
-    TextWindow();
+    TextWindow(winid window);
     virtual ~TextWindow();
 
     virtual void Clear();
@@ -379,5 +379,13 @@ extern char g_dismiss_more;
 extern int g_rawprint;
 
 extern BaseWindow g_baseWindow;
+extern MessageWindow g_messageWindow;
+extern StatusWindow g_statusWindow;
+extern MapWindow g_mapWindow;
+
+const winid MESSAGE_WINDOW = 1;
+const winid STATUS_WINDOW = 2;
+const winid MAP_WINDOW = 3;
+const winid FIRST_FREE_WINDOW = 4;
 
 }

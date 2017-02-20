@@ -24,7 +24,7 @@ extern "C" {
 
 using namespace Nethack;
 
-MenuWindow::MenuWindow() : CoreWindow(NHW_MENU)
+MenuWindow::MenuWindow(winid window) : CoreWindow(NHW_MENU, window)
 {
     // menu
     m_mlist = (tty_menu_item *)0;

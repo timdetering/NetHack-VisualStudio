@@ -9,16 +9,19 @@
 
 using namespace Nethack;
 
-CoreWindow::CoreWindow(int inType) : m_type(inType)
+CoreWindow::CoreWindow(int inType, winid window) : m_type(inType), m_window(window)
 {
     m_flags = 0;
     m_active = FALSE;
     m_curx = 0;
     m_cury = 0;
+
+    g_wins[m_window] = this;
 }
 
 CoreWindow::~CoreWindow()
 {
+    g_wins[m_window] = NULL;
 }
 
 

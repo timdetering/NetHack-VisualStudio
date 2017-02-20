@@ -11,14 +11,13 @@ using namespace Nethack;
 
 BaseWindow g_baseWindow;
 
-BaseWindow::BaseWindow() : CoreWindow(NHW_BASE)
+BaseWindow::BaseWindow() : CoreWindow(NHW_BASE, BASE_WINDOW)
 {
     // core
     m_offx = 0;
     m_offy = 0;
     m_rows = kScreenHeight;
     m_cols = kScreenWidth;
-
 }
 
 BaseWindow::~BaseWindow()

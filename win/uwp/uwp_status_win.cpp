@@ -9,7 +9,9 @@
 
 using namespace Nethack;
 
-StatusWindow::StatusWindow() : CoreWindow(NHW_STATUS)
+StatusWindow g_statusWindow;
+
+StatusWindow::StatusWindow() : CoreWindow(NHW_STATUS, STATUS_WINDOW)
 {
     // core
     /* status window, 2 lines long, full width, bottom of screen */
@@ -17,7 +19,6 @@ StatusWindow::StatusWindow() : CoreWindow(NHW_STATUS)
     m_offy = min(kScreenHeight - kStatusHeight, ROWNO + 1);
     m_rows = kStatusHeight;
     m_cols = kStatusWidth;
-
 }
 
 StatusWindow::~StatusWindow()

@@ -171,28 +171,25 @@ tty_resume_nhwindows()
 void
 tty_exit_nhwindows(const char *str)
 {
-    winid i;
-
-    /*
-     * Disable windows to avoid calls to window routines.
-     */
     free_pickinv_cache(); /* reset its state as well as tear down window */
-    for (i = 0; i < MAXWIN; i++) {
-        if (i == BASE_WINDOW)
-            continue; /* handle BASE_WINDOW last */
+
+    for (int i = FIRST_FREE_WINDOW; i < MAXWIN; i++) {
         if (g_wins[i]) {
             delete g_wins[i];
             g_wins[i] = NULL;
         }
     }
+
+    g_statusWindow.Destroy();
+    g_mapWindow.Destroy();
+    g_messageWindow.Destroy();
+    g_baseWindow.Clear();
+
+    /* core engine should do this */
     WIN_MAP = WIN_MESSAGE = WIN_INVEN = WIN_ERR; /* these are all gone now */
 #ifndef STATUS_VIA_WINDOWPORT
     WIN_STATUS = WIN_ERR;
 #endif
-
-    if (BASE_WINDOW != WIN_ERR && g_wins[BASE_WINDOW]) {
-        g_wins[BASE_WINDOW] = NULL;
-    }
 
     iflags.window_inited = 0;
 }
@@ -200,79 +197,36 @@ tty_exit_nhwindows(const char *str)
 winid
 tty_create_nhwindow(int type)
 {
-    int i;
-    int newid;
+    winid available_id;
 
-    if (maxwin == MAXWIN)
+    for (available_id = FIRST_FREE_WINDOW; available_id < MAXWIN; available_id++)
+        if (g_wins[available_id] == NULL)
+            break;
+
+    if (available_id == MAXWIN)
         return WIN_ERR;
 
     CoreWindow *coreWin = NULL;
 
     switch (type) {
-    case NHW_BASE:
-    {
-        if (g_wins[BASE_WINDOW] != NULL) return WIN_ERR;
-
-        BaseWindow * baseWin = &g_baseWindow;
-        coreWin = baseWin;
-
-        /* base window, used for absolute movement on the screen */
-        break;
-    }
-
-    case NHW_MESSAGE:
-    {
-        MessageWindow * msgWin = new MessageWindow();
-        coreWin = msgWin;
-
-        break;
-    }
-    case NHW_STATUS:
-    {
-        StatusWindow * statusWin = new StatusWindow();
-        coreWin = statusWin;
-        break;
-    }
-    case NHW_MAP:
-    {
-        MapWindow * mapWin = new MapWindow();
-        coreWin = mapWin;
-
-        break;
-    }
+    case NHW_BASE: assert(g_wins[BASE_WINDOW] == &g_baseWindow);  return BASE_WINDOW;
+    case NHW_MESSAGE: assert(g_wins[MESSAGE_WINDOW] == &g_messageWindow); return MESSAGE_WINDOW;
+    case NHW_STATUS: assert(g_wins[STATUS_WINDOW] == &g_statusWindow); return STATUS_WINDOW;
+    case NHW_MAP: assert(g_wins[MAP_WINDOW] == &g_mapWindow); return MAP_WINDOW;
     case NHW_MENU:
     {
-        MenuWindow * menuWin = new MenuWindow();
-        coreWin = menuWin;
-
-        break;
+        MenuWindow * menuWin = new MenuWindow(available_id);
+        return menuWin->m_window;
     }
     case NHW_TEXT:
     {
-        TextWindow * textWin = new TextWindow();
-        coreWin = textWin;
-        break;
+        TextWindow * textWin = new TextWindow(available_id);
+        return textWin->m_window;
     }
     default:
         panic("Tried to create window type %d\n", (int) type);
         return WIN_ERR;
     }
-
-    for (newid = 0; newid < MAXWIN; newid++) {
-        if (g_wins[newid] == 0) {
-            g_wins[newid] = coreWin;
-            break;
-        }
-    }
-
-    if (newid == MAXWIN) {
-        panic("No window slots!");
-        return WIN_ERR;
-    }
-
-    coreWin->m_window = newid;
-
-    return newid;
 }
 
 CoreWindow * GetCoreWindow(winid window)
@@ -324,19 +278,17 @@ tty_dismiss_nhwindow(winid window)
     GetCoreWindow(window)->Dismiss();
 }
 
-
-
 void
 tty_destroy_nhwindow(winid window)
 {
     CoreWindow *coreWin = GetCoreWindow(window);
 
     coreWin->Destroy();
-    delete coreWin;
 
-    g_wins[window] = 0;
+    if (coreWin->m_window >= FIRST_FREE_WINDOW)
+        delete coreWin;
+
 }
-
 
 void
 tty_curs(winid window, int x, int y)

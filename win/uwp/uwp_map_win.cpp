@@ -9,7 +9,9 @@
 
 using namespace Nethack;
 
-MapWindow::MapWindow() : CoreWindow(NHW_MAP)
+MapWindow g_mapWindow;
+
+MapWindow::MapWindow() : CoreWindow(NHW_MAP, MAP_WINDOW)
 {
     // core
     /* map window, ROWNO lines long, full width, below message window */
@@ -17,7 +19,6 @@ MapWindow::MapWindow() : CoreWindow(NHW_MAP)
     m_offy = 1;
     m_rows = ROWNO;
     m_cols = COLNO;
-
 }
 
 MapWindow::~MapWindow()
