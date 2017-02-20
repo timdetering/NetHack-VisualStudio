@@ -48,6 +48,7 @@ MenuWindow::MenuWindow() : CoreWindow(NHW_MENU)
 
 MenuWindow::~MenuWindow()
 {
+    free_window_info();
 }
 
 void MenuWindow::Display(bool blocking)
@@ -154,8 +155,7 @@ void MenuWindow::Putstr(int attr, const char *str)
     } while (input.size() > 0);
 }
 
-void MenuWindow::free_window_info(
-    boolean free_data)
+void MenuWindow::free_window_info()
 {
     if (m_mlist) {
         tty_menu_item *temp;
@@ -177,7 +177,6 @@ void MenuWindow::free_window_info(
     m_nitems = 0;
     m_how = 0;
 
-    CoreWindow::free_window_info(free_data);
 }
 
 void MenuWindow::Clear()
@@ -186,7 +185,7 @@ void MenuWindow::Clear()
         clear_screen();
     }
 
-    free_window_info(FALSE);
+    free_window_info();
 
     CoreWindow::Clear();
 }

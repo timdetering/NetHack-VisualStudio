@@ -181,10 +181,7 @@ tty_exit_nhwindows(const char *str)
         if (i == BASE_WINDOW)
             continue; /* handle BASE_WINDOW last */
         if (g_wins[i]) {
-#ifdef FREE_ALL_MEMORY
-            g_wins[i]->free_window_info(TRUE);
             delete g_wins[i];
-#endif
             g_wins[i] = NULL;
         }
     }
@@ -192,13 +189,10 @@ tty_exit_nhwindows(const char *str)
 #ifndef STATUS_VIA_WINDOWPORT
     WIN_STATUS = WIN_ERR;
 #endif
-#ifdef FREE_ALL_MEMORY
+
     if (BASE_WINDOW != WIN_ERR && g_wins[BASE_WINDOW]) {
-        BaseWindow * baseWin = (BaseWindow *) g_wins[BASE_WINDOW];
-        baseWin->free_window_info(TRUE);
         g_wins[BASE_WINDOW] = NULL;
     }
-#endif
 
     iflags.window_inited = 0;
 }
@@ -320,9 +314,7 @@ tty_clear_nhwindow(winid window)
 void
 tty_display_nhwindow(winid window, boolean blocking)
 {
-    CoreWindow *coreWin = GetCoreWindow(window);
-
-    coreWin->Display(blocking != 0);
+    GetCoreWindow(window)->Display(blocking != 0);
 }
 
 

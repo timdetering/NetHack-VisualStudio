@@ -39,7 +39,7 @@ struct CoreWindow {
     void core_putc(char ch, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
     void core_puts(const char *s, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
 
-    virtual void free_window_info(boolean);
+    virtual void free_window_info();
     void dmore(const char *s); /* valid responses */
     void xwaitforspace(register const char *s);
 
@@ -71,7 +71,7 @@ struct MessageWindow : public CoreWindow {
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
 
-    virtual void free_window_info(boolean);
+    virtual void free_window_info();
 
     char yn_function(const char *query, const char *resp, char def);
     void removetopl(int n);
@@ -110,7 +110,7 @@ struct MenuWindow : public CoreWindow {
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
 
-    virtual void free_window_info(boolean);
+    virtual void free_window_info();
 
     void set_all_on_page(winid window, tty_menu_item *page_start, tty_menu_item *page_end);
     void unset_all_on_page( winid window, tty_menu_item *page_start, tty_menu_item *page_end);

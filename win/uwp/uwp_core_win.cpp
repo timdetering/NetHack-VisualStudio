@@ -21,6 +21,7 @@ CoreWindow::~CoreWindow()
 {
 }
 
+
 void CoreWindow::Destroy()
 {
     if (m_active)
@@ -32,8 +33,15 @@ void CoreWindow::Destroy()
     if (m_type == NHW_MAP)
         clear_screen();
 
-    free_window_info(TRUE);
+    free_window_info();
 }
+
+void CoreWindow::free_window_info()
+{
+    // do nothing
+}
+
+
 
 void CoreWindow::Curs(int x, int y)
 {
@@ -65,12 +73,6 @@ void CoreWindow::Clear()
 {
     m_curx = 0;
     m_cury = 0;
-}
-
-void CoreWindow::free_window_info(
-    boolean free_data)
-{
-    // do nothing
 }
 
 void CoreWindow::dmore(

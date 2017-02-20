@@ -9,15 +9,6 @@
 
 using namespace Nethack;
 
-void MessageWindow::free_window_info(
-    boolean free_data)
-{
-    m_msgList.clear();
-    m_msgIter = m_msgList.end();
-
-    CoreWindow::free_window_info(free_data);
-}
-
 MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE)
 {
     // msg
@@ -45,6 +36,12 @@ MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE)
 
 MessageWindow::~MessageWindow()
 {
+}
+
+void MessageWindow::free_window_info()
+{
+    m_msgList.clear();
+    m_msgIter = m_msgList.end();
 }
 
 void MessageWindow::Clear()
