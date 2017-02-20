@@ -198,13 +198,12 @@ void MenuWindow::process_menu()
     long count;
     int n, attr_n, curr_page, page_lines, resp_len;
     boolean finished, counting, reset_count;
-    char *cp, *rp, resp[QBUFSZ], gacc[QBUFSZ], *msave, *morestr, really_morc;
+    char *cp, *rp, resp[QBUFSZ], gacc[QBUFSZ], really_morc;
+
 #define MENU_EXPLICIT_CHOICE 0x7f /* pseudo menu manipulation char */
 
     curr_page = page_lines = 0;
     page_start = page_end = 0;
-    msave = m_morestr; /* save the morestr */
-    m_morestr = morestr = (char *)alloc((unsigned)QBUFSZ);
     counting = FALSE;
     count = 0L;
     reset_count = TRUE;
@@ -350,20 +349,21 @@ void MenuWindow::process_menu()
             Strcat(resp, gacc);                 /* group accelerators */
             Strcat(resp, mapped_menu_cmds);
 
-            if (m_npages > 1)
-                Sprintf(m_morestr, "(%d of %d)", curr_page + 1,
-                (int)m_npages);
-            else if (msave)
-                Strcpy(m_morestr, msave);
-            else
-                Strcpy(m_morestr, defmorestr);
+            if (m_npages > 1) {
+                char buf[128];
+                snprintf(buf, sizeof(buf), "(%d of %d)", curr_page + 1, m_npages);
+                m_morestr = std::string(buf);
+            } else {
+                m_morestr = std::string("(end) ");
+            }
 
             tty_curs(m_window, 1, page_lines);
             cl_end();
             dmore(resp);
         } else {
             /* just put the cursor back... */
-            tty_curs(m_window, (int)strlen(m_morestr) + 2, page_lines);
+            m_morestr = std::string("(end) ");
+            tty_curs(m_window, m_morestr.size() + 2, page_lines);
             xwaitforspace(resp);
         }
 
@@ -553,8 +553,6 @@ void MenuWindow::process_menu()
         }
 
     } /* while */
-    m_morestr = msave;
-    free((genericptr_t)morestr);
 }
 
 void
@@ -836,8 +834,7 @@ void MenuWindow::uwp_end_menu(
         uwp_add_menu(&any, 0, 0, ATR_NONE, prompt, MENU_UNSELECTED);
     }
 
-    /* XXX another magic number? 52 */
-    lmax = min(52, kScreenHeight - 1);    /* # lines per page */
+    lmax = kScreenHeight - 1;    /* # lines per page */
     m_npages = (m_nitems + (lmax - 1)) / lmax; /* # of pages */
                                                                  /* make sure page list is large enough */
     if (m_plist_size < m_npages + 1 /*need 1 slot beyond last*/) {
@@ -884,17 +881,12 @@ void MenuWindow::uwp_end_menu(
         len = strlen(buf);
         m_morestr = dupstr("");
     } else {
-        m_morestr = dupstr("(end) ");
-        len = strlen(m_morestr);
+        m_morestr = std::string("(end) ");
+        len = m_morestr.size();
     }
 
-    int screenWidth = kScreenWidth;
-    if (len > screenWidth) {
-        /* truncate the prompt if it's too long for the screen */
-        if (m_npages <= 1) /* only str in single page case */
-            m_morestr[screenWidth] = 0;
-        len = screenWidth;
-    }
+    assert(len <= kScreenWidth);
+
     if (len > m_cols)
         m_cols = len;
 

@@ -135,8 +135,7 @@ tty_init_nhwindows(int *, char **)
 
     g_baseWindow.m_active = 1;
     g_baseWindow.Clear();
-
-    tty_display_nhwindow(BASE_WINDOW, FALSE);
+    g_baseWindow.Display(FALSE);
 }
 
 /*
@@ -195,7 +194,8 @@ tty_exit_nhwindows(const char *str)
 #endif
 #ifdef FREE_ALL_MEMORY
     if (BASE_WINDOW != WIN_ERR && g_wins[BASE_WINDOW]) {
-        g_wins[BASE_WINDOW]->free_window_info(TRUE);
+        BaseWindow * baseWin = (BaseWindow *) g_wins[BASE_WINDOW];
+        baseWin->free_window_info(TRUE);
         g_wins[BASE_WINDOW] = NULL;
     }
 #endif

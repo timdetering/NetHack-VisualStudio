@@ -52,7 +52,7 @@ struct CoreWindow {
     int m_offx, m_offy;    /* offset from topleft of display */
     long m_rows, m_cols;     /* dimensions */
     long m_curx, m_cury;     /* current cursor position */
-    char *m_morestr;         /* string to display instead of default */
+    std::string m_morestr;         /* string to display instead of default */
 };
 
 

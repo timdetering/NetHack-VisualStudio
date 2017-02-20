@@ -15,7 +15,6 @@ CoreWindow::CoreWindow(int inType) : m_type(inType)
     m_active = FALSE;
     m_curx = 0;
     m_cury = 0;
-    m_morestr = 0;
 }
 
 CoreWindow::~CoreWindow()
@@ -71,16 +70,13 @@ void CoreWindow::Clear()
 void CoreWindow::free_window_info(
     boolean free_data)
 {
-    if (m_morestr) {
-        free((genericptr_t)m_morestr);
-        m_morestr = 0;
-    }
+    // do nothing
 }
 
 void CoreWindow::dmore(
     const char *s) /* valid responses */
 {
-    const char *prompt = m_morestr ? m_morestr : defmorestr;
+    const char *prompt = m_morestr.size() ? m_morestr.c_str() : defmorestr;
     int offset = (m_type == NHW_TEXT) ? 1 : 2;
 
     tty_curs(BASE_WINDOW, (int)m_curx + m_offx + offset, (int)m_cury + m_offy);

@@ -28,8 +28,6 @@ void TextWindow::Clear()
         clear_screen();
     }
 
-    assert(m_morestr == NULL);
-
     CoreWindow::Clear();
 }
 
