@@ -80,19 +80,20 @@ void BaseWindow::tty_askname()
         }
 #endif /* SELECTSAVED */
 
-    int startLine = g_wins[BASE_WINDOW]->m_cury;
+    int startLine = m_cury;
 
     do {
         if (++tryct > 1) {
             if (tryct > 10)
                 bail("Giving up after 10 tries.\n");
-            tty_curs(BASE_WINDOW, 1, startLine);
-            win_puts(BASE_WINDOW, "Enter a name for your character...");
+            set_cursor(0, startLine);
+            core_puts("Enter a name for your character...");
         }
 
-        tty_curs(BASE_WINDOW, 1, startLine + 1), cl_end();
+        set_cursor(0, startLine + 1);
+        cl_end();
 
-        win_puts(BASE_WINDOW, who_are_you);
+        core_puts(who_are_you);
 
         ct = 0;
         while ((c = tty_nhgetch()) != '\n') {
@@ -110,7 +111,7 @@ void BaseWindow::tty_askname()
             if (c == '\b' || c == '\177') {
                 if (ct) {
                     ct--;
-                    win_puts(BASE_WINDOW, "\b \b");
+                    core_puts("\b \b");
                 }
                 continue;
             }
@@ -123,7 +124,7 @@ void BaseWindow::tty_askname()
     } while (ct == 0);
 
     /* move to next line to simulate echo of user's <return> */
-    tty_curs(BASE_WINDOW, 1, g_wins[BASE_WINDOW]->m_cury + 1);
+    set_cursor(0, m_cury + 1);
 
     /* since we let user pick an arbitrary name now, he/she can pick
     another one during role selection */

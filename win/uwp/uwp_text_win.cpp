@@ -127,3 +127,14 @@ void TextWindow::Display(bool blocking)
 
     m_active = 1;
 }
+
+void TextWindow::dmore(
+    const char *s) /* valid responses */
+{
+    const char *prompt = m_morestr.size() ? m_morestr.c_str() : defmorestr;
+
+    set_cursor(m_curx, m_cury);
+    core_puts(prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
+
+    xwaitforspace(s);
+}

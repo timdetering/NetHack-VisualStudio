@@ -32,7 +32,8 @@ struct CoreWindow {
     virtual void Display(bool blocking) = 0;
     virtual void Dismiss();
     void Destroy();
-    void Curs(int x, int y);
+
+    void set_cursor(int x, int y);
     virtual void Putstr(int attr, const char *str) = 0;
     virtual void Putsym(int x, int y, char ch);
 
@@ -40,7 +41,6 @@ struct CoreWindow {
     void core_puts(const char *s, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
 
     virtual void free_window_info();
-    void dmore(const char *s); /* valid responses */
     void xwaitforspace(register const char *s);
 
     const char *compress_str(const char *);
@@ -128,6 +128,7 @@ struct MenuWindow : public CoreWindow {
     void uwp_add_menu(const anything *identifier, char ch, char gch, int attr, const char *str, boolean preselected);
     void uwp_end_menu(const char *prompt);
 
+    void dmore(const char *s); /* valid responses */
 
     std::list<std::pair<int, std::string>> m_lines;
 
@@ -193,6 +194,8 @@ struct TextWindow : public CoreWindow {
     virtual void Display(bool blocking);
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
+
+    void dmore(const char *s); /* valid responses */
 
     std::list<std::pair<Nethack::TextAttribute, std::string>> m_lines;
 
@@ -368,8 +371,7 @@ void win_puts(
 
 CoreWindow * GetCoreWindow(winid window);
 MessageWindow * GetMessageWindow();
-MessageWindow * ToMessageWindow(CoreWindow * coreWin);
-MenuWindow * ToMenuWindow(CoreWindow * coreWin);
+MenuWindow * GetMenuWindow(winid window);
 
 void dmore(CoreWindow *, const char *);
 

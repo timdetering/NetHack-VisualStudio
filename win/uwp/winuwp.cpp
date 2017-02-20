@@ -129,10 +129,6 @@ tty_init_nhwindows(int *, char **)
     g_dismiss_more = 0;
     g_rawprint = 0;
 
-    /* set up the default windows */
-    winid base_window = tty_create_nhwindow(NHW_BASE);
-    assert(base_window == BASE_WINDOW);
-
     g_baseWindow.m_active = 1;
     g_baseWindow.Clear();
     g_baseWindow.Display(FALSE);
@@ -206,13 +202,11 @@ tty_create_nhwindow(int type)
     if (available_id == MAXWIN)
         return WIN_ERR;
 
-    CoreWindow *coreWin = NULL;
-
     switch (type) {
-    case NHW_BASE: assert(g_wins[BASE_WINDOW] == &g_baseWindow);  return BASE_WINDOW;
-    case NHW_MESSAGE: assert(g_wins[MESSAGE_WINDOW] == &g_messageWindow); return MESSAGE_WINDOW;
-    case NHW_STATUS: assert(g_wins[STATUS_WINDOW] == &g_statusWindow); return STATUS_WINDOW;
-    case NHW_MAP: assert(g_wins[MAP_WINDOW] == &g_mapWindow); return MAP_WINDOW;
+    case NHW_BASE: return BASE_WINDOW;
+    case NHW_MESSAGE: return MESSAGE_WINDOW;
+    case NHW_STATUS: return STATUS_WINDOW;
+    case NHW_MAP: return MAP_WINDOW;
     case NHW_MENU:
     {
         MenuWindow * menuWin = new MenuWindow(available_id);
@@ -244,18 +238,12 @@ MessageWindow * GetMessageWindow()
     return NULL;
 }
 
-MessageWindow * ToMessageWindow(CoreWindow * coreWin)
+MenuWindow * GetMenuWindow(winid window)
 {
-    if (coreWin->m_type == NHW_MESSAGE)
-        return (MessageWindow *)coreWin;
-    return NULL;
-}
+    if (window == WIN_ERR || g_wins[window] == NULL)
+        panic(winpanicstr, window);
 
-MenuWindow * ToMenuWindow(CoreWindow * coreWin)
-{
-    if (coreWin->m_type == NHW_MENU)
-        return (MenuWindow *)coreWin;
-    return NULL;
+    return (MenuWindow *) g_wins[window];
 }
 
 void
@@ -293,9 +281,7 @@ tty_destroy_nhwindow(winid window)
 void
 tty_curs(winid window, int x, int y)
 {
-    CoreWindow *coreWin = GetCoreWindow(window);
-
-    coreWin->Curs(x, y);
+    GetCoreWindow(window)->set_cursor(x - 1, y);
 }
 
 void
@@ -427,7 +413,7 @@ tty_print_glyph(
     CoreWindow * coreWin = GetCoreWindow(window);
 
     /* Move the cursor. */
-    coreWin->Curs(x, y);
+    coreWin->set_cursor(x - 1, y);
 
     /* must be after color check; term_end_color may turn off inverse too */
     if (((special & MG_PET) && iflags.hilite_pet)
@@ -733,13 +719,8 @@ void uwp_raw_printf(TextAttribute textAttribute, const char * fmt, ...)
     va_start(the_args, fmt);
     vsprintf(buf, fmt, the_args);
 
-    if (g_wins[BASE_WINDOW])
-        g_wins[BASE_WINDOW]->core_puts(buf, TextColor::NoColor, textAttribute);
-    else
-        g_textGrid.Putstr(TextColor::NoColor, textAttribute, buf);
-
-    if (g_wins[BASE_WINDOW])
-        g_wins[BASE_WINDOW]->Curs(g_textGrid.GetCursor().m_x + 1, g_textGrid.GetCursor().m_y);
+    g_baseWindow.core_puts(buf, TextColor::NoColor, textAttribute);
+    g_baseWindow.set_cursor(g_textGrid.GetCursor().m_x, g_textGrid.GetCursor().m_y);
 
     va_end(the_args);
 }
@@ -762,7 +743,7 @@ cl_eos()
     g_textGrid.Put(x, y, TextCell(), cx + cy);
     g_textGrid.SetCursor(Int2D(x, y));
 
-    tty_curs(BASE_WINDOW, x + 1, y);
+    g_baseWindow.set_cursor(x, y);
 }
 
 void
@@ -781,8 +762,7 @@ void clear_screen(void)
 
 void uwp_puts(const char *s)
 {
-    assert(g_wins[BASE_WINDOW] != NULL);
-    g_wins[BASE_WINDOW]->core_puts(s, TextColor::NoColor, TextAttribute::None);
+    g_baseWindow.core_puts(s, TextColor::NoColor, TextAttribute::None);
 }
 
 void win_putc(

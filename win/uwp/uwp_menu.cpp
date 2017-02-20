@@ -35,15 +35,7 @@ tty_add_menu(
     const char *str,            /* menu string */
     boolean preselected)        /* item is marked as selected */
 {
-    MenuWindow *menuWin = ToMenuWindow(GetCoreWindow(window));
-
-    if (str == (const char *)0)
-        return;
-
-    if (menuWin == NULL)
-        panic(winpanicstr, window);
-
-    return menuWin->uwp_add_menu(identifier, ch, gch, attr, str, preselected);
+    GetMenuWindow(window)->uwp_add_menu(identifier, ch, gch, attr, str, preselected);
 }
 
 /*
@@ -57,12 +49,7 @@ tty_end_menu(
     winid window,       /* menu to use */
     const char *prompt) /* prompt to for menu */
 {
-    MenuWindow *menuWin = ToMenuWindow(GetCoreWindow(window));
-
-    if (menuWin == NULL)
-        panic(winpanicstr, window);
-
-    menuWin->uwp_end_menu(prompt);
+    GetMenuWindow(window)->uwp_end_menu(prompt);
 }
 
 int
@@ -71,12 +58,7 @@ tty_select_menu(
     int how,
     menu_item **menu_list)
 {
-    MenuWindow *menuWin = ToMenuWindow(GetCoreWindow(window));
-
-    if (menuWin == NULL)
-        panic(winpanicstr, window);
-
-    return menuWin->uwp_select_menu(how, menu_list);
+    return GetMenuWindow(window)->uwp_select_menu(how, menu_list);
 }
 
 char tty_message_menu(char let, int how, const char *mesg)

@@ -32,7 +32,7 @@ MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE, MESSAGE_WINDOW)
         iflags.msg_history = kMaxMessageHistoryLength;
 
     m_rows = iflags.msg_history;
-    m_cols = 0;
+    m_cols = kScreenWidth;
     m_stop = false;
 }
 
@@ -52,7 +52,7 @@ void MessageWindow::Clear()
         home();
         cl_end();
         if (m_cury)
-            docorner(1, m_cury + 1);
+            docorner(0, m_cury + 1);
         m_mustBeErased = false;
     }
 
@@ -419,8 +419,8 @@ void MessageWindow::update_topl(const char *bp)
         if (m_mustBeSeen) {
             more();
         } else if (m_cury) { /* for when flags.toplin == 2 && cury > 1 */
-            docorner(1, m_cury + 1); /* reset cury = 0 if redraw screen */
-            m_curx = m_cury = 0;   /* from home--cls() & docorner(1,n) */
+            docorner(0, m_cury + 1); /* reset cury = 0 if redraw screen */
+            m_curx = m_cury = 0;   /* from home--cls() & docorner(0,n) */
         }
     }
     remember_topl();
@@ -626,7 +626,7 @@ void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute
 
 void MessageWindow::addtopl(const char *s)
 {
-    tty_curs(BASE_WINDOW, m_curx + 1, m_cury);
+    set_cursor(m_curx, m_cury);
     putsyms(s, TextColor::NoColor, TextAttribute::None);
     cl_end();
     m_mustBeSeen = true;
@@ -638,7 +638,7 @@ void MessageWindow::more()
     assert(!m_nextIsPrompt);
 
     if (m_mustBeErased) {
-        tty_curs(BASE_WINDOW, m_curx + 1, m_cury);
+        set_cursor(m_curx, m_cury);
         if (m_curx >= CO - 8)
             topl_putsym('\n', TextColor::NoColor, TextAttribute::None);
     }
@@ -652,7 +652,7 @@ void MessageWindow::more()
 
     /* if the message is more then one line then erase the entire message */
     if (m_mustBeErased && m_cury) {
-        docorner(1, m_cury + 1);
+        docorner(0, m_cury + 1);
         m_curx = m_cury = 0;
         home();
         m_mustBeErased = false;
@@ -709,7 +709,7 @@ void MessageWindow::docorner(int xmin, int ymax)
     StatusWindow * statusWin = (StatusWindow *)g_wins[WIN_STATUS];
 
     for (y = 0; y < ymax; y++) {
-        tty_curs(BASE_WINDOW, xmin + 1, y); /* move cursor */
+        set_cursor(xmin, y);
         cl_end();                       /* clear to end of line */
         if (y < mapWin->m_offy || y > ROWNO)
             continue; /* only refresh board  */

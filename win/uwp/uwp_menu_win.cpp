@@ -659,13 +659,11 @@ MenuWindow::invert_all(winid window, tty_menu_item *page_start, tty_menu_item *p
 {
     tty_menu_item *curr;
     boolean on_curr_page;
-    CoreWindow *coreWin = GetCoreWindow(window);
-    MenuWindow *menuWin = ToMenuWindow(coreWin);
 
     invert_all_on_page(window, page_start, page_end, acc);
 
     /* invert the rest */
-    for (on_curr_page = FALSE, curr = menuWin->m_mlist; curr; curr = curr->next) {
+    for (on_curr_page = FALSE, curr = m_mlist; curr; curr = curr->next) {
         if (curr == page_start)
             on_curr_page = TRUE;
         else if (curr == page_end)
@@ -911,5 +909,16 @@ tty_menu_item * MenuWindow::reverse(tty_menu_item *curr)
         curr = next;
     }
     return head;
+}
+
+void MenuWindow::dmore(
+    const char *s) /* valid responses */
+{
+    const char *prompt = m_morestr.size() ? m_morestr.c_str() : defmorestr;
+
+    set_cursor(m_curx + 1, m_cury);
+    core_puts(prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
+
+    xwaitforspace(s);
 }
 

@@ -44,15 +44,12 @@ void CoreWindow::free_window_info()
     // do nothing
 }
 
-
-
-void CoreWindow::Curs(int x, int y)
+void CoreWindow::set_cursor(int x, int y)
 {
-
-    m_curx = --x; /* column 0 is never used */
+    m_curx = x;
     m_cury = y;
 
-    assert(x >= 0 && x <= m_cols);
+    assert(x >= 0 && x < m_cols);
     assert(y >= 0 && y < m_rows);
 
     x += m_offx;
@@ -63,11 +60,6 @@ void CoreWindow::Curs(int x, int y)
 
 void CoreWindow::Dismiss()
 {
-    /*
-    * these should only get dismissed when the game is going away
-    * or suspending
-    */
-    tty_curs(BASE_WINDOW, 1, kScreenHeight - 1);
     m_active = 0;
     m_flags = 0;
 }
@@ -76,19 +68,6 @@ void CoreWindow::Clear()
 {
     m_curx = 0;
     m_cury = 0;
-}
-
-void CoreWindow::dmore(
-    const char *s) /* valid responses */
-{
-    const char *prompt = m_morestr.size() ? m_morestr.c_str() : defmorestr;
-    int offset = (m_type == NHW_TEXT) ? 1 : 2;
-
-    tty_curs(BASE_WINDOW, (int)m_curx + m_offx + offset, (int)m_cury + m_offy);
-
-    win_puts(BASE_WINDOW, prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
-
-    xwaitforspace(s);
 }
 
 void
@@ -184,7 +163,7 @@ void CoreWindow::Putsym(int x, int y, char ch)
     case NHW_STATUS:
     case NHW_MAP:
     case NHW_BASE:
-        Curs(x, y);
+        set_cursor(x - 1, y);
         core_putc(ch);
         break;
     case NHW_MESSAGE:
