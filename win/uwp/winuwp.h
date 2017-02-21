@@ -43,7 +43,7 @@ struct CoreWindow {
     void core_putc(char ch, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
     void core_puts(const char *s, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
 
-    int wait_for_response(register const char *s);
+    int wait_for_response(const char *s, int dismiss_more = 0);
 
     const char *compress_str(const char *);
 
@@ -78,14 +78,14 @@ struct MessageWindow : public CoreWindow {
     char yn_function(const char *query, const char *resp, char def);
     void removetopl(int n);
     int doprev_message();
-    void redotoplin(const char *str);
+    void redotoplin(const char *str, int dismiss_more);
     void update_topl(const char *bp);
     void hooked_tty_getlin(const char *, char *, getlin_hook_proc);
     void putsyms(const char *str, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
     void topl_putsym(char c, Nethack::TextColor color, Nethack::TextAttribute attribute);
     void remember_topl();
     void addtopl(const char *s);
-    void more();
+    void more(int dismiss_more = 0);
     char uwp_message_menu(char let, int how, const char *mesg);
     void docorner(int xmin, int ymax);
 
@@ -375,7 +375,6 @@ MenuWindow * GetMenuWindow(winid window);
 
 static const int kKillChar = 21;
 
-extern char g_dismiss_more;
 extern int g_rawprint;
 
 extern BaseWindow g_baseWindow;

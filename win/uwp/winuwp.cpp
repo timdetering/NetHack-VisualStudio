@@ -27,7 +27,6 @@ extern "C" {
 /* this is only needed until tty_status_* routines are written */
 extern NEARDATA winid WIN_STATUS;
 
-char g_dismiss_more = 0;
 int g_rawprint = 0;
 
 /* Interface definition, for windows.c */
@@ -122,7 +121,6 @@ tty_init_nhwindows(int *, char **)
     LI = kScreenHeight;
     CO = kScreenWidth;
 
-    g_dismiss_more = 0;
     g_rawprint = 0;
 
     set_option_mod_status("mouse_support", SET_IN_GAME);

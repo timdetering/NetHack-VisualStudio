@@ -64,9 +64,10 @@ void CoreWindow::Clear()
 
 int
 CoreWindow::wait_for_response(
-    register const char *s) /* chars allowed besides return */
+    const char *s,
+    int dismiss_more) /* chars allowed besides return */
 {
-    int c, x = g_dismiss_more;
+    int c;
     int response = 0;
 
     while (
@@ -79,12 +80,11 @@ CoreWindow::wait_for_response(
             break;
 
         if (c == '\033') {
-            g_dismiss_more = 1;
             response = '\033';
             break;
         }
 
-        if ((s && index(s, c)) || c == x) {
+        if ((s && index(s, c)) || c == dismiss_more) {
             response = (char)c;
             break;
         }

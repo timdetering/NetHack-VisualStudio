@@ -108,7 +108,7 @@ void MessageWindow::removetopl(int n)
         putsyms("\b \b", TextColor::NoColor, TextAttribute::None);
 }
 
-void MessageWindow::redotoplin(const char *str)
+void MessageWindow::redotoplin(const char *str, int dismiss_more)
 {
     home();
 
@@ -123,7 +123,7 @@ void MessageWindow::redotoplin(const char *str)
     if (m_nextIsPrompt) {
         m_nextIsPrompt = false;
     } else if (m_cury != 0)
-        more();
+        more(dismiss_more);
 
 }
 
@@ -149,8 +149,7 @@ int MessageWindow::doprev_message()
             do {
                 morc = 0;
                 if (m_msgIter == m_msgList.end()) {
-                    g_dismiss_more = C('p'); /* ^P ok at --More-- */
-                    redotoplin(toplines);
+                    redotoplin(toplines, C('p'));
 
                     if (m_msgIter != m_msgList.begin())
                         m_msgIter--;
@@ -160,8 +159,7 @@ int MessageWindow::doprev_message()
                     iter++;
 
                     if (iter == m_msgList.end()) {
-                        g_dismiss_more = C('p'); /* ^P ok at --More-- */
-                        redotoplin(iter->c_str());
+                       redotoplin(iter->c_str(), C('p'));
 
                         if (m_msgIter != m_msgList.begin())
                             m_msgIter--;
@@ -185,7 +183,6 @@ int MessageWindow::doprev_message()
                 }
 
             } while (morc == C('p'));
-            g_dismiss_more = 0;
         } else { /* reversed */
             morc = 0;
             prevmsg_win = create_nhwindow(NHW_MENU);
@@ -203,16 +200,14 @@ int MessageWindow::doprev_message()
             display_nhwindow(prevmsg_win, TRUE);
             destroy_nhwindow(prevmsg_win);
             m_msgIter = m_msgList.end();
-            g_dismiss_more = 0;
         }
     } else if (iflags.prevmsg_window == 's') { /* single */
-        g_dismiss_more = C('p'); /* <ctrl/P> allowed at --More-- */
         do {
             morc = 0;
             if (m_msgIter == m_msgList.end()) {
-                redotoplin(toplines);
+                redotoplin(toplines, C('p'));
             } else {
-                redotoplin(m_msgIter->c_str());
+                redotoplin(m_msgIter->c_str(), C('p'));
             }
 
             if (m_msgIter != m_msgList.begin())
@@ -221,7 +216,6 @@ int MessageWindow::doprev_message()
                 m_msgIter = m_msgList.end();
 
         } while (morc == C('p'));
-        g_dismiss_more = 0;
     }
     return 0;
 }
@@ -448,7 +442,7 @@ void MessageWindow::update_topl(const char *bp)
     if (!notdied)
         m_stop = false;
     if (!m_stop)
-        redotoplin(toplines);
+        redotoplin(toplines, 0);
 }
 
 void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook_proc hook)
@@ -458,7 +452,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
     boolean doprev = 0;
 
     if (m_mustBeSeen && !m_stop)
-        more();
+        more(0);
 
     m_stop = false;
 
@@ -638,7 +632,7 @@ void MessageWindow::addtopl(const char *s)
     m_mustBeErased = true;
 }
 
-void MessageWindow::more()
+void MessageWindow::more(int dismiss_more)
 {
     assert(!m_nextIsPrompt);
 
@@ -650,7 +644,7 @@ void MessageWindow::more()
 
     putsyms(defmorestr, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
 
-    morc = wait_for_response("\033 ");
+    morc = wait_for_response("\033 ", dismiss_more);
 
     if (morc == '\033')
         m_stop = true;
@@ -683,15 +677,12 @@ char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
         return 0;
     }
 
-    g_dismiss_more = let;
     morc = 0;
-    /* barebones pline(); since we're only supposed to be called after
-    response to a prompt, we'll assume that the display is up to date */
-    tty_putstr(WIN_MESSAGE, 0, mesg);
-    /* if `mesg' didn't wrap (triggering --More--), force --More-- now */
+
+    g_messageWindow.Putstr(0, mesg);
 
     if (m_mustBeSeen) {
-        more();
+        more(let);
         assert(!m_mustBeSeen);
 
         if (m_mustBeErased)
@@ -700,28 +691,24 @@ char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
     /* normally <ESC> means skip further messages, but in this case
     it means cancel the current prompt; any other messages should
     continue to be output normally */
-    MessageWindow * winMsg = (MessageWindow *) g_wins[WIN_MESSAGE];
-    winMsg->m_stop = false;
-    g_dismiss_more = 0;
+    m_stop = false;
 
     return ((how == PICK_ONE && morc == let) || morc == '\033') ? morc : '\0';
 }
 
 void MessageWindow::docorner(int xmin, int ymax)
 {
-    register int y;
-    MapWindow *mapWin = (MapWindow *)g_wins[WIN_MAP];
-    StatusWindow * statusWin = (StatusWindow *)g_wins[WIN_STATUS];
+    int y;
 
     for (y = 0; y < ymax; y++) {
         set_cursor(xmin, y);
         cl_end();                       /* clear to end of line */
-        if (y < mapWin->m_offy || y > ROWNO)
+        if (y < g_mapWindow.m_offy || y > ROWNO)
             continue; /* only refresh board  */
-        row_refresh(xmin - (int)mapWin->m_offx, COLNO - 1, y - (int)mapWin->m_offy);
+        row_refresh(xmin - g_mapWindow.m_offx, COLNO - 1, y - g_mapWindow.m_offy);
     }
 
-    if (ymax >= (int)statusWin->m_offy) {
+    if (ymax >= (int)g_statusWindow.m_offy) {
         /* we have wrecked the bottom line */
         context.botlx = 1;
         bot();
