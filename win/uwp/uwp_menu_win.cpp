@@ -27,8 +27,6 @@ using namespace Nethack;
 MenuWindow::MenuWindow(winid window) : CoreWindow(NHW_MENU, window)
 {
     // menu
-    m_mlist = (tty_menu_item *)0;
-    m_plist = (tty_menu_item **)0;
     m_npages = 0;
     m_plist_size = 0;
     m_nitems = 0;
@@ -67,10 +65,8 @@ void MenuWindow::Display(bool blocking)
 
     m_offy = 0;
 
-    MessageWindow * msgWin = GetMessageWindow();
-
-    if (msgWin != NULL && msgWin->m_mustBeSeen)
-        tty_display_nhwindow(WIN_MESSAGE, TRUE);
+    if (g_messageWindow.m_mustBeSeen)
+        g_messageWindow.Display(true);
 
     /* if we are going to have more then one page to display the use full screen */
     /* or if we are not supposed to use menu overlays */;
@@ -79,20 +75,15 @@ void MenuWindow::Display(bool blocking)
         m_offx = 0;
         /* TODO(bhouse) why do we test and do something different for overlay? */
         if (iflags.menu_overlay) {
-            tty_curs(m_window, 1, 0);
+            set_cursor(0, 0);
             cl_eos();
         } else
             clear_screen();
 
         /* we just cleared the message area so we no longer need to erase */
-        if (msgWin != NULL)
-            msgWin->m_mustBeErased = false;
+        g_messageWindow.m_mustBeErased = false;
     } else {
-        /* TODO(bhouse) why do we have this complexity ... why not just
-        * always clear?
-        */
-        if (msgWin != NULL)
-            tty_clear_nhwindow(WIN_MESSAGE);
+        g_messageWindow.Clear();
     }
 
     if (m_lines.size() > 0) {
@@ -157,20 +148,14 @@ void MenuWindow::Putstr(int attr, const char *str)
 
 void MenuWindow::free_window_info()
 {
-    if (m_mlist) {
-        tty_menu_item *temp;
+    for (auto item : m_items) {
+        if (item->str)
+            free((genericptr_t)item->str);
+        free((genericptr_t)item);
+    }
 
-        while ((temp = m_mlist) != 0) {
-            m_mlist = m_mlist->next;
-            if (temp->str)
-                free((genericptr_t)temp->str);
-            free((genericptr_t)temp);
-        }
-    }
-    if (m_plist) {
-        free((genericptr_t)m_plist);
-        m_plist = 0;
-    }
+    m_items.clear();
+    m_pages.clear();
 
     m_plist_size = 0;
     m_npages = 0;
@@ -181,9 +166,8 @@ void MenuWindow::free_window_info()
 
 void MenuWindow::Clear()
 {
-    if (m_active) {
+    if (m_active)
         clear_screen();
-    }
 
     free_window_info();
 
@@ -193,7 +177,9 @@ void MenuWindow::Clear()
 
 void MenuWindow::process_menu()
 {
-    tty_menu_item *page_start, *page_end, *curr;
+    itemIter page_start;
+    itemIter page_end;
+    tty_menu_item *curr;
     long count;
     int n, attr_n, curr_page, page_lines, resp_len;
     boolean finished, counting, reset_count;
@@ -202,7 +188,8 @@ void MenuWindow::process_menu()
 #define MENU_EXPLICIT_CHOICE 0x7f /* pseudo menu manipulation char */
 
     curr_page = page_lines = 0;
-    page_start = page_end = 0;
+    page_start = m_items.end();
+    page_end = m_items.end();
     counting = FALSE;
     count = 0L;
     reset_count = TRUE;
@@ -218,21 +205,27 @@ void MenuWindow::process_menu()
 
         for (i = 0; i < SIZE(gcnt); i++)
             gcnt[i] = 0;
-        for (n = 0, curr = m_mlist; curr; curr = curr->next)
-            if (curr->gselector && curr->gselector != curr->selector) {
-                ++n;
-                ++gcnt[GSELIDX(curr->gselector)];
-            }
 
-        if (n > 0) /* at least one group accelerator found */
-            for (rp = gacc, curr = m_mlist; curr; curr = curr->next)
-                if (curr->gselector && curr->gselector != curr->selector
-                    && !index(gacc, curr->gselector)
+        n = 0;
+        for (auto item : m_items) {
+            if (item->gselector && item->gselector != item->selector) {
+                ++n;
+                ++gcnt[GSELIDX(item->gselector)];
+            }
+        }
+
+        if (n > 0) { /* at least one group accelerator found */
+            rp = gacc;
+            for(auto item : m_items) {
+                if (item->gselector && item->gselector != item->selector
+                    && !index(gacc, item->gselector)
                     && (m_how == PICK_ANY
-                    || gcnt[GSELIDX(curr->gselector)] == 1)) {
-                    *rp++ = curr->gselector;
+                    || gcnt[GSELIDX(item->gselector)] == 1)) {
+                    *rp++ = item->gselector;
                     *rp = '\0'; /* re-terminate for index() */
                 }
+            }
+        }
     }
     resp_len = 0; /* lint suppression */
 
@@ -244,7 +237,7 @@ void MenuWindow::process_menu()
         } else
             reset_count = TRUE;
 
-        if (!page_start) {
+        if (page_start == m_items.end()) {
             /* new page to be displayed */
             if (curr_page < 0 || (m_npages > 0 && curr_page >= m_npages))
                 panic("bad menu screen page #%d", curr_page);
@@ -252,7 +245,7 @@ void MenuWindow::process_menu()
             /* clear screen */
             if (!m_offx) { /* if not corner, do clearscreen */
                 if (m_offy) {
-                    tty_curs(m_window, 1, 0);
+                    set_cursor(0, 0);
                     cl_eos();
                 } else
                     clear_screen();
@@ -261,16 +254,16 @@ void MenuWindow::process_menu()
             rp = resp;
             if (m_npages > 0) {
                 /* collect accelerators */
-                page_start = m_plist[curr_page];
-                page_end = m_plist[curr_page + 1];
-                for (page_lines = 0, curr = page_start; curr != page_end;
-                    page_lines++, curr = curr->next) {
+                page_start = m_pages[curr_page];
+                page_end = m_pages[curr_page + 1];
+                auto iter = page_start;
+                for (page_lines = 0; iter != page_end; page_lines++, iter++) {
                     int attr, color = NO_COLOR;
-
+                    auto curr = *iter;
                     if (curr->selector)
                         *rp++ = curr->selector;
 
-                    tty_curs(m_window, 1, page_lines);
+                    set_cursor(0, page_lines);
                     if (m_offx)
                         cl_end();
 
@@ -325,8 +318,8 @@ void MenuWindow::process_menu()
                     } /* for *cp */
                 } /* if npages > 0 */
             } else {
-                page_start = 0;
-                page_end = 0;
+                page_start = m_items.end();
+                page_end = m_items.end();
                 page_lines = 0;
             }
             *rp = 0;
@@ -336,7 +329,7 @@ void MenuWindow::process_menu()
             /* corner window - clear extra lines from last page */
             if (m_offx) {
                 for (n = page_lines + 1; n < m_rows; n++) {
-                    tty_curs(m_window, 1, n);
+                    set_cursor(0, n);
                     cl_end();
                 }
             }
@@ -356,13 +349,13 @@ void MenuWindow::process_menu()
                 m_morestr = std::string("(end) ");
             }
 
-            tty_curs(m_window, 1, page_lines);
+            set_cursor(0, page_lines);
             cl_end();
             dmore(resp);
         } else {
             /* just put the cursor back... */
             m_morestr = std::string("(end) ");
-            tty_curs(m_window, m_morestr.size() + 2, page_lines);
+            set_cursor(m_morestr.size() + 1, page_lines);
             xwaitforspace(resp);
         }
 
@@ -410,9 +403,9 @@ void MenuWindow::process_menu()
         case '\033': /* cancel - from counting or loop */
             if (!counting) {
                 /* deselect everything */
-                for (curr = m_mlist; curr; curr = curr->next) {
-                    curr->selected = FALSE;
-                    curr->count = -1L;
+                for (auto item : m_items) {
+                    item->selected = FALSE;
+                    item->count = -1L;
                 }
                 m_cancelled = true;
                 finished = TRUE;
@@ -432,7 +425,7 @@ void MenuWindow::process_menu()
         case MENU_NEXT_PAGE:
             if (m_npages > 0 && curr_page != m_npages - 1) {
                 curr_page++;
-                page_start = 0;
+                page_start = m_items.end();
             } else if (morc == ' ') {
                 /* ' ' finishes menus here, but stop '>' doing the same. */
                 finished = TRUE;
@@ -441,53 +434,55 @@ void MenuWindow::process_menu()
         case MENU_PREVIOUS_PAGE:
             if (m_npages > 0 && curr_page != 0) {
                 --curr_page;
-                page_start = 0;
+                page_start = m_items.end();
             }
             break;
         case MENU_FIRST_PAGE:
             if (m_npages > 0 && curr_page != 0) {
-                page_start = 0;
+                page_start = m_items.end();
                 curr_page = 0;
             }
             break;
         case MENU_LAST_PAGE:
             if (m_npages > 0 && curr_page != m_npages - 1) {
-                page_start = 0;
+                page_start = m_items.end();
                 curr_page = m_npages - 1;
             }
             break;
         case MENU_SELECT_PAGE:
             if (m_how == PICK_ANY)
-                set_all_on_page(m_window, page_start, page_end);
+                set_all_on_page(page_start, page_end);
             break;
         case MENU_UNSELECT_PAGE:
-            unset_all_on_page(m_window, page_start, page_end);
+            unset_all_on_page(page_start, page_end);
             break;
         case MENU_INVERT_PAGE:
             if (m_how == PICK_ANY)
-                invert_all_on_page(m_window, page_start, page_end, 0);
+                invert_all_on_page(page_start, page_end, 0);
             break;
         case MENU_SELECT_ALL:
             if (m_how == PICK_ANY) {
-                set_all_on_page(m_window, page_start, page_end);
+                set_all_on_page(page_start, page_end);
                 /* set the rest */
-                for (curr = m_mlist; curr; curr = curr->next)
-                    if (curr->identifier.a_void && !curr->selected)
-                        curr->selected = TRUE;
+                for (auto item : m_items) {
+                    if (item->identifier.a_void && !item->selected)
+                        item->selected = TRUE;
+                }
             }
             break;
         case MENU_UNSELECT_ALL:
-            unset_all_on_page(m_window, page_start, page_end);
+            unset_all_on_page(page_start, page_end);
             /* unset the rest */
-            for (curr = m_mlist; curr; curr = curr->next)
-                if (curr->identifier.a_void && curr->selected) {
-                    curr->selected = FALSE;
-                    curr->count = -1;
+            for (auto item : m_items) {
+                if (item->identifier.a_void && item->selected) {
+                    item->selected = FALSE;
+                    item->count = -1;
                 }
+            }
             break;
         case MENU_INVERT_ALL:
             if (m_how == PICK_ANY)
-                invert_all(m_window, page_start, page_end, 0);
+                invert_all(page_start, page_end, 0);
             break;
         case MENU_SEARCH:
             if (m_how == PICK_NONE) {
@@ -503,16 +498,18 @@ void MenuWindow::process_menu()
                     break;
                 Sprintf(searchbuf, "*%s*", tmpbuf);
 
-                for (curr = m_mlist; curr; curr = curr->next) {
+                for (auto iter = m_items.begin(); iter != m_items.end(); iter++) {
+                    auto item = *iter;
                     if (on_curr_page)
                         lineno++;
-                    if (curr == page_start)
+                    if (iter == page_start)
                         on_curr_page = TRUE;
-                    else if (curr == page_end)
+                    else if (iter == page_end)
                         on_curr_page = FALSE;
-                    if (curr->identifier.a_void
-                        && pmatchi(searchbuf, curr->str)) {
-                        toggle_menu_curr(m_window, curr, lineno, on_curr_page,
+
+                    if (item->identifier.a_void
+                        && pmatchi(searchbuf, item->str)) {
+                        toggle_menu_curr(m_window, item, lineno, on_curr_page,
                             counting, count);
                         if (m_how == PICK_ONE) {
                             finished = TRUE;
@@ -534,20 +531,23 @@ void MenuWindow::process_menu()
             group_accel:
                 /* group accelerator; for the PICK_ONE case, we know that
                 it matches exactly one item in order to be in gacc[] */
-                invert_all(m_window, page_start, page_end, morc);
+                invert_all(page_start, page_end, morc);
                 if (m_how == PICK_ONE)
                     finished = TRUE;
                 break;
             }
             /* find, toggle, and possibly update */
-            for (n = 0, curr = page_start; curr != page_end;
-                n++, curr = curr->next)
+            auto iter = page_start;
+            for (n = 0; iter != page_end; n++, iter++)
+            {
+                curr = *iter;
                 if (morc == curr->selector) {
                     toggle_menu_curr(m_window, curr, n, TRUE, counting, count);
                     if (m_how == PICK_ONE)
                         finished = TRUE;
                     break; /* from `for' loop */
                 }
+            }
             break;
         }
 
@@ -566,7 +566,7 @@ MenuWindow::process_lines()
     while (iter != m_lines.end()) {
         auto line = *iter++;
 
-        tty_curs(m_window, 1, row++);
+        set_cursor(0, row++);
         cl_end();
 
         if (line.second.size() > 0) {
@@ -585,7 +585,7 @@ MenuWindow::process_lines()
         }
 
         if (row == (m_rows - 1) || iter == m_lines.end()) {
-            tty_curs(m_window, 1, row);
+            set_cursor(0, row);
             cl_end();
             dmore(quitchars);
             if (morc == '\033') {
@@ -593,7 +593,7 @@ MenuWindow::process_lines()
                 break;
             }
 
-            tty_curs(m_window, 1, 0);
+            set_cursor(0, 0);
             cl_eos();
             row = 0;
         }
@@ -602,44 +602,51 @@ MenuWindow::process_lines()
 }
 
 void MenuWindow::set_all_on_page(
-    winid window,
-    tty_menu_item *page_start,
-    tty_menu_item *page_end)
+    itemIter page_start,
+    itemIter page_end)
 {
     tty_menu_item *curr;
     int n;
 
-    for (n = 0, curr = page_start; curr != page_end; n++, curr = curr->next)
+    auto iter = page_start;
+    for (n = 0; iter != page_end; n++, iter++) {
+        curr = *iter;
         if (curr->identifier.a_void && !curr->selected) {
             curr->selected = TRUE;
             set_item_state(n, curr);
         }
+    }
 }
 
 void MenuWindow::unset_all_on_page(
-    winid window,
-    tty_menu_item *page_start,
-    tty_menu_item *page_end)
+    itemIter page_start,
+    itemIter page_end)
 {
     tty_menu_item *curr;
     int n;
 
-    for (n = 0, curr = page_start; curr != page_end; n++, curr = curr->next)
+    auto iter = page_start;
+    for (n = 0; iter != page_end; n++, iter++)
+    {
+        curr = *iter;
         if (curr->identifier.a_void && curr->selected) {
             curr->selected = FALSE;
             curr->count = -1L;
             set_item_state(n, curr);
         }
+    }
 }
 
 /* acc - group accelerator, 0 => all */
 void
-MenuWindow::invert_all_on_page(winid window, tty_menu_item *page_start, tty_menu_item *page_end, char acc)
+MenuWindow::invert_all_on_page(itemIter page_start, itemIter page_end, char acc)
 {
     tty_menu_item *curr;
     int n;
 
-    for (n = 0, curr = page_start; curr != page_end; n++, curr = curr->next)
+    auto iter = page_start;
+    for (n = 0; iter != page_end; n++, iter++) {
+        curr = *iter;
         if (curr->identifier.a_void && (acc == 0 || curr->gselector == acc)) {
             if (curr->selected) {
                 curr->selected = FALSE;
@@ -648,6 +655,7 @@ MenuWindow::invert_all_on_page(winid window, tty_menu_item *page_start, tty_menu
                 curr->selected = TRUE;
             set_item_state(n, curr);
         }
+    }
 }
 
 /*
@@ -655,27 +663,28 @@ MenuWindow::invert_all_on_page(winid window, tty_menu_item *page_start, tty_menu
 * acc - group accelerator, 0 => all
 */
 void
-MenuWindow::invert_all(winid window, tty_menu_item *page_start, tty_menu_item *page_end, char acc)
+MenuWindow::invert_all(itemIter page_start, itemIter page_end, char acc)
 {
     tty_menu_item *curr;
     boolean on_curr_page;
 
-    invert_all_on_page(window, page_start, page_end, acc);
+    invert_all_on_page(page_start, page_end, acc);
 
     /* invert the rest */
-    for (on_curr_page = FALSE, curr = m_mlist; curr; curr = curr->next) {
-        if (curr == page_start)
+    for (auto iter = m_items.begin(); iter != m_items.end(); iter++) {
+        auto item = *iter;
+        if (iter == page_start)
             on_curr_page = TRUE;
-        else if (curr == page_end)
+        else if (iter == page_end)
             on_curr_page = FALSE;
 
-        if (!on_curr_page && curr->identifier.a_void
-            && (acc == 0 || curr->gselector == acc)) {
-            if (curr->selected) {
-                curr->selected = FALSE;
-                curr->count = -1;
+        if (!on_curr_page && item->identifier.a_void
+            && (acc == 0 || item->gselector == acc)) {
+            if (item->selected) {
+                item->selected = FALSE;
+                item->count = -1;
             } else
-                curr->selected = TRUE;
+                item->selected = TRUE;
         }
     }
 }
@@ -727,7 +736,7 @@ MenuWindow::set_item_state(
 {
     char ch = item->selected ? (item->count == -1L ? '+' : '#') : '-';
 
-    tty_curs(m_window, 4, lineno);
+    set_cursor(3, lineno);
     core_putc(ch, TextColor::NoColor, (TextAttribute)(item->attr != 0 ? 1 << item->attr : 0));
 
 }
@@ -749,19 +758,22 @@ int MenuWindow::uwp_select_menu(
     if (m_cancelled) {
         n = -1;
     } else {
-        for (n = 0, curr = m_mlist; curr; curr = curr->next)
-            if (curr->selected)
+        n = 0;
+        for (auto item : m_items)
+            if (item->selected)
                 n++;
     }
 
     if (n > 0) {
         *menu_list = (menu_item *)alloc(n * sizeof(menu_item));
-        for (mi = *menu_list, curr = m_mlist; curr; curr = curr->next)
-            if (curr->selected) {
-                mi->item = curr->identifier;
-                mi->count = curr->count;
+        mi = *menu_list;
+        for (auto item : m_items) {
+            if (item->selected) {
+                mi->item = item->identifier;
+                mi->count = item->count;
                 mi++;
             }
+        }
     }
 
     return n;
@@ -807,8 +819,8 @@ void MenuWindow::uwp_add_menu(
     item->attr = attr;
     item->str = dupstr(newstr ? newstr : "");
 
-    item->next = m_mlist;
-    m_mlist = item;
+    m_items.push_back(item);
+
 }
 
 void MenuWindow::uwp_end_menu(
@@ -818,9 +830,6 @@ void MenuWindow::uwp_end_menu(
     short len;
     int lmax, n;
     char menu_ch;
-
-    /* Reverse the list so that items are in correct order. */
-    m_mlist = reverse(m_mlist);
 
     /* Put the prompt at the beginning of the menu. */
     if (prompt) {
@@ -833,40 +842,37 @@ void MenuWindow::uwp_end_menu(
 
     lmax = kScreenHeight - 1;    /* # lines per page */
     m_npages = (m_nitems + (lmax - 1)) / lmax; /* # of pages */
-                                                                 /* make sure page list is large enough */
-    if (m_plist_size < m_npages + 1 /*need 1 slot beyond last*/) {
-        if (m_plist)
-            free((genericptr_t)m_plist);
-        m_plist_size = m_npages + 1;
-        m_plist = (tty_menu_item **)alloc(m_plist_size
-            * sizeof(tty_menu_item *));
-    }
 
     m_cols = 0;  /* cols is set when the win is initialized... (why?) */
     menu_ch = '?'; /* lint suppression */
-    for (n = 0, curr = m_mlist; curr; n++, curr = curr->next) {
+    m_pages.resize(m_npages+1);
+    n = 0;
+    for (auto iter = m_items.begin(); iter != m_items.end(); iter++) {
+        auto item = *iter;
         /* set page boundaries and character accelerators */
         if ((n % lmax) == 0) {
             menu_ch = 'a';
-            m_plist[n / lmax] = curr;
+            m_pages[n/lmax] = iter;
         }
-        if (curr->identifier.a_void && !curr->selector) {
-            curr->str[0] = curr->selector = menu_ch;
+        if (item->identifier.a_void && !item->selector) {
+            item->str[0] = item->selector = menu_ch;
             if (menu_ch++ == 'z')
                 menu_ch = 'A';
         }
 
         /* cut off any lines that are too long */
-        len = strlen(curr->str) + 2; /* extra space at beg & end */
+        len = strlen(item->str) + 2; /* extra space at beg & end */
         int screenWidth = kScreenWidth;
         if (len > screenWidth) {
-            curr->str[screenWidth - 2] = 0;
+            item->str[screenWidth - 2] = 0;
             len = screenWidth;
         }
         if (len > m_cols)
             m_cols = len;
+        n++;
     }
-    m_plist[m_npages] = 0; /* plist terminator */
+
+    m_pages[m_npages] = m_items.end();
 
                                              /*
                                              * If greater than 1 page, morestr is "(x of y) " otherwise, "(end) "
@@ -895,20 +901,6 @@ void MenuWindow::uwp_end_menu(
         m_rows = lmax + 1;
     else
         m_rows = m_nitems + 1;
-}
-
-/* Invert the given list, can handle NULL as an input. */
-tty_menu_item * MenuWindow::reverse(tty_menu_item *curr)
-{
-    tty_menu_item *next, *head = 0;
-
-    while (curr) {
-        next = curr->next;
-        curr->next = head;
-        head = curr;
-        curr = next;
-    }
-    return head;
 }
 
 void MenuWindow::dmore(

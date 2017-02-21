@@ -12,7 +12,6 @@
 
 /* menu structure */
 typedef struct tty_mi {
-    struct tty_mi *next;
     anything identifier; /* user identifier */
     long count;          /* user count */
     char *str;           /* description string (including accelerator) */
@@ -55,6 +54,7 @@ struct CoreWindow {
     std::string m_morestr;         /* string to display instead of default */
 };
 
+typedef std::list<tty_menu_item *>::iterator itemIter;
 
 static const int kMaxMessageHistoryLength = 60;
 static const int kMinMessageHistoryLength = 20;
@@ -112,17 +112,15 @@ struct MenuWindow : public CoreWindow {
 
     virtual void free_window_info();
 
-    void set_all_on_page(winid window, tty_menu_item *page_start, tty_menu_item *page_end);
-    void unset_all_on_page( winid window, tty_menu_item *page_start, tty_menu_item *page_end);
-    void invert_all_on_page(winid window, tty_menu_item *page_start, tty_menu_item *page_end, char acc);
-    void invert_all(winid window, tty_menu_item *page_start, tty_menu_item *page_end, char acc);
+    void set_all_on_page(itemIter page_start, itemIter page_end);
+    void unset_all_on_page(itemIter page_start, itemIter page_end);
+    void invert_all_on_page(itemIter page_start, itemIter page_end, char acc);
+    void invert_all(itemIter page_start, itemIter page_end, char acc);
     boolean toggle_menu_curr(winid window, tty_menu_item *curr, int lineno, boolean in_view, boolean counting, long count);
     void set_item_state(int lineno, tty_menu_item *item);
 
     void process_lines();
     void process_menu();
-
-    tty_menu_item *reverse(tty_menu_item *curr);
 
     int uwp_select_menu(int how, menu_item **menu_list);
     void uwp_add_menu(const anything *identifier, char ch, char gch, int attr, const char *str, boolean preselected);
@@ -132,8 +130,9 @@ struct MenuWindow : public CoreWindow {
 
     std::list<std::pair<int, std::string>> m_lines;
 
-    tty_menu_item *m_mlist;  /* menu information (MENU) */
-    tty_menu_item **m_plist; /* menu page pointers (MENU) */
+    std::list<tty_menu_item *> m_items;
+    std::vector<itemIter> m_pages;
+
     long m_plist_size;       /* size of allocated plist (MENU) */
     long m_npages;           /* number of pages in menu (MENU) */
     long m_nitems;           /* total number of items (MENU) */
