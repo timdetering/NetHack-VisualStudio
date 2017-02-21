@@ -749,7 +749,7 @@ MessageWindow::uwp_putmsghistory(
     } else {
 
         assert(initd);
-        for (auto msg : m_snapshot_msgList) {
+        for (auto & msg : m_snapshot_msgList) {
             remember_topl();
             strncpy(toplines, msg.c_str(), sizeof(toplines) - 1);
         }

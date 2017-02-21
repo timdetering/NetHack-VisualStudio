@@ -14,12 +14,14 @@
 typedef struct tty_mi {
     anything identifier; /* user identifier */
     long count;          /* user count */
-    char *str;           /* description string (including accelerator) */
+    std::string str;           /* description string (including accelerator) */
     int attr;            /* string attribute */
     boolean selected;    /* TRUE if selected by user */
     char selector;       /* keyboard accelerator */
     char gselector;      /* group accelerator */
 } tty_menu_item;
+
+typedef std::list<tty_menu_item>::iterator itemIter;
 
 /* struct for windows */
 struct CoreWindow {
@@ -53,8 +55,6 @@ struct CoreWindow {
     long m_curx, m_cury;     /* current cursor position */
     std::string m_morestr;         /* string to display instead of default */
 };
-
-typedef std::list<tty_menu_item *>::iterator itemIter;
 
 static const int kMaxMessageHistoryLength = 60;
 static const int kMinMessageHistoryLength = 20;
@@ -116,8 +116,8 @@ struct MenuWindow : public CoreWindow {
     void unset_all_on_page(itemIter page_start, itemIter page_end);
     void invert_all_on_page(itemIter page_start, itemIter page_end, char acc);
     void invert_all(itemIter page_start, itemIter page_end, char acc);
-    boolean toggle_menu_curr(winid window, tty_menu_item *curr, int lineno, boolean in_view, boolean counting, long count);
-    void set_item_state(int lineno, tty_menu_item *item);
+    boolean toggle_menu_curr(tty_menu_item & curr, int lineno, boolean in_view, boolean counting, long count);
+    void set_item_state(int lineno, tty_menu_item & item);
 
     void process_lines();
     void process_menu();
@@ -130,7 +130,7 @@ struct MenuWindow : public CoreWindow {
 
     std::list<std::pair<int, std::string>> m_lines;
 
-    std::list<tty_menu_item *> m_items;
+    std::list<tty_menu_item> m_items;
     std::vector<itemIter> m_pages;
 
     long m_plist_size;       /* size of allocated plist (MENU) */

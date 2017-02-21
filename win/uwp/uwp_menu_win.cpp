@@ -148,12 +148,6 @@ void MenuWindow::Putstr(int attr, const char *str)
 
 void MenuWindow::free_window_info()
 {
-    for (auto item : m_items) {
-        if (item->str)
-            free((genericptr_t)item->str);
-        free((genericptr_t)item);
-    }
-
     m_items.clear();
     m_pages.clear();
 
@@ -179,11 +173,11 @@ void MenuWindow::process_menu()
 {
     itemIter page_start;
     itemIter page_end;
-    tty_menu_item *curr;
     long count;
     int n, attr_n, curr_page, page_lines, resp_len;
     boolean finished, counting, reset_count;
-    char *cp, *rp, resp[QBUFSZ], gacc[QBUFSZ], really_morc;
+    char *rp, resp[QBUFSZ], gacc[QBUFSZ], really_morc;
+    const char *cp;
 
 #define MENU_EXPLICIT_CHOICE 0x7f /* pseudo menu manipulation char */
 
@@ -207,21 +201,21 @@ void MenuWindow::process_menu()
             gcnt[i] = 0;
 
         n = 0;
-        for (auto item : m_items) {
-            if (item->gselector && item->gselector != item->selector) {
+        for (auto & item : m_items) {
+            if (item.gselector && item.gselector != item.selector) {
                 ++n;
-                ++gcnt[GSELIDX(item->gselector)];
+                ++gcnt[GSELIDX(item.gselector)];
             }
         }
 
         if (n > 0) { /* at least one group accelerator found */
             rp = gacc;
-            for(auto item : m_items) {
-                if (item->gselector && item->gselector != item->selector
-                    && !index(gacc, item->gselector)
+            for(auto & item : m_items) {
+                if (item.gselector && item.gselector != item.selector
+                    && !index(gacc, item.gselector)
                     && (m_how == PICK_ANY
-                    || gcnt[GSELIDX(item->gselector)] == 1)) {
-                    *rp++ = item->gselector;
+                    || gcnt[GSELIDX(item.gselector)] == 1)) {
+                    *rp++ = item.gselector;
                     *rp = '\0'; /* re-terminate for index() */
                 }
             }
@@ -260,8 +254,8 @@ void MenuWindow::process_menu()
                 for (page_lines = 0; iter != page_end; page_lines++, iter++) {
                     int attr, color = NO_COLOR;
                     auto curr = *iter;
-                    if (curr->selector)
-                        *rp++ = curr->selector;
+                    if (curr.selector)
+                        *rp++ = curr.selector;
 
                     set_cursor(0, page_lines);
                     if (m_offx)
@@ -273,8 +267,8 @@ void MenuWindow::process_menu()
                     core_putc(' ', useColor, useAttribute);
 
                     if (!iflags.use_menu_color
-                        || !get_menu_coloring(curr->str, &color, &attr))
-                        attr = curr->attr;
+                        || !get_menu_coloring((char *) curr.str.c_str(), &color, &attr))
+                        attr = curr.attr;
 
                     /* which character to start attribute highlighting;
                     whole line for headers and such, after the selector
@@ -282,9 +276,9 @@ void MenuWindow::process_menu()
                     lines (including fake ones that simulate grayed-out
                     entries, so we don't rely on curr->identifier here) */
                     attr_n = 0; /* whole line */
-                    if (curr->str[0] && curr->str[1] == ' '
-                        && curr->str[2] && index("-+#", curr->str[2])
-                        && curr->str[3] == ' ')
+                    if (curr.str[0] && curr.str[1] == ' '
+                        && curr.str[2] && index("-+#", curr.str[2])
+                        && curr.str[3] == ' ')
                         /* [0]=letter, [1]==space, [2]=[-+#], [3]=space */
                         attr_n = 4; /* [4:N]=entry description */
 
@@ -295,7 +289,7 @@ void MenuWindow::process_menu()
                                     * actually output the character.  We're faster doing
                                     * this.
                                     */
-                    for (n = 0, cp = curr->str;
+                    for (n = 0, cp = curr.str.c_str();
                         *cp &&
                         g_textGrid.GetCursor().m_x < kScreenWidth;
                         cp++, n++) {
@@ -307,9 +301,9 @@ void MenuWindow::process_menu()
                         }
 
                         if (n == 2
-                            && curr->identifier.a_void != 0
-                            && curr->selected) {
-                            if (curr->count == -1L)
+                            && curr.identifier.a_void != 0
+                            && curr.selected) {
+                            if (curr.count == -1L)
                                 core_putc('+', useColor, useAttribute);
                             else
                                 core_putc('#', useColor, useAttribute);
@@ -403,9 +397,9 @@ void MenuWindow::process_menu()
         case '\033': /* cancel - from counting or loop */
             if (!counting) {
                 /* deselect everything */
-                for (auto item : m_items) {
-                    item->selected = FALSE;
-                    item->count = -1L;
+                for (auto & item : m_items) {
+                    item.selected = FALSE;
+                    item.count = -1L;
                 }
                 m_cancelled = true;
                 finished = TRUE;
@@ -464,19 +458,19 @@ void MenuWindow::process_menu()
             if (m_how == PICK_ANY) {
                 set_all_on_page(page_start, page_end);
                 /* set the rest */
-                for (auto item : m_items) {
-                    if (item->identifier.a_void && !item->selected)
-                        item->selected = TRUE;
+                for (auto & item : m_items) {
+                    if (item.identifier.a_void && !item.selected)
+                        item.selected = TRUE;
                 }
             }
             break;
         case MENU_UNSELECT_ALL:
             unset_all_on_page(page_start, page_end);
             /* unset the rest */
-            for (auto item : m_items) {
-                if (item->identifier.a_void && item->selected) {
-                    item->selected = FALSE;
-                    item->count = -1;
+            for (auto & item : m_items) {
+                if (item.identifier.a_void && item.selected) {
+                    item.selected = FALSE;
+                    item.count = -1;
                 }
             }
             break;
@@ -499,7 +493,7 @@ void MenuWindow::process_menu()
                 Sprintf(searchbuf, "*%s*", tmpbuf);
 
                 for (auto iter = m_items.begin(); iter != m_items.end(); iter++) {
-                    auto item = *iter;
+                    auto & item = *iter;
                     if (on_curr_page)
                         lineno++;
                     if (iter == page_start)
@@ -507,9 +501,9 @@ void MenuWindow::process_menu()
                     else if (iter == page_end)
                         on_curr_page = FALSE;
 
-                    if (item->identifier.a_void
-                        && pmatchi(searchbuf, item->str)) {
-                        toggle_menu_curr(m_window, item, lineno, on_curr_page,
+                    if (item.identifier.a_void
+                        && pmatchi(searchbuf, item.str.c_str())) {
+                        toggle_menu_curr(item, lineno, on_curr_page,
                             counting, count);
                         if (m_how == PICK_ONE) {
                             finished = TRUE;
@@ -540,9 +534,9 @@ void MenuWindow::process_menu()
             auto iter = page_start;
             for (n = 0; iter != page_end; n++, iter++)
             {
-                curr = *iter;
-                if (morc == curr->selector) {
-                    toggle_menu_curr(m_window, curr, n, TRUE, counting, count);
+                auto & item = *iter;
+                if (morc == item.selector) {
+                    toggle_menu_curr(item, n, TRUE, counting, count);
                     if (m_how == PICK_ONE)
                         finished = TRUE;
                     break; /* from `for' loop */
@@ -605,15 +599,14 @@ void MenuWindow::set_all_on_page(
     itemIter page_start,
     itemIter page_end)
 {
-    tty_menu_item *curr;
     int n;
 
     auto iter = page_start;
     for (n = 0; iter != page_end; n++, iter++) {
-        curr = *iter;
-        if (curr->identifier.a_void && !curr->selected) {
-            curr->selected = TRUE;
-            set_item_state(n, curr);
+        auto & item = *iter;
+        if (item.identifier.a_void && !item.selected) {
+            item.selected = TRUE;
+            set_item_state(n, item);
         }
     }
 }
@@ -622,17 +615,16 @@ void MenuWindow::unset_all_on_page(
     itemIter page_start,
     itemIter page_end)
 {
-    tty_menu_item *curr;
     int n;
 
     auto iter = page_start;
     for (n = 0; iter != page_end; n++, iter++)
     {
-        curr = *iter;
-        if (curr->identifier.a_void && curr->selected) {
-            curr->selected = FALSE;
-            curr->count = -1L;
-            set_item_state(n, curr);
+        auto & item = *iter;
+        if (item.identifier.a_void && item.selected) {
+            item.selected = FALSE;
+            item.count = -1L;
+            set_item_state(n, item);
         }
     }
 }
@@ -641,19 +633,18 @@ void MenuWindow::unset_all_on_page(
 void
 MenuWindow::invert_all_on_page(itemIter page_start, itemIter page_end, char acc)
 {
-    tty_menu_item *curr;
     int n;
 
     auto iter = page_start;
     for (n = 0; iter != page_end; n++, iter++) {
-        curr = *iter;
-        if (curr->identifier.a_void && (acc == 0 || curr->gselector == acc)) {
-            if (curr->selected) {
-                curr->selected = FALSE;
-                curr->count = -1L;
+        auto & item = *iter;
+        if (item.identifier.a_void && (acc == 0 || item.gselector == acc)) {
+            if (item.selected) {
+                item.selected = FALSE;
+                item.count = -1L;
             } else
-                curr->selected = TRUE;
-            set_item_state(n, curr);
+                item.selected = TRUE;
+            set_item_state(n, item);
         }
     }
 }
@@ -665,63 +656,61 @@ MenuWindow::invert_all_on_page(itemIter page_start, itemIter page_end, char acc)
 void
 MenuWindow::invert_all(itemIter page_start, itemIter page_end, char acc)
 {
-    tty_menu_item *curr;
     boolean on_curr_page;
 
     invert_all_on_page(page_start, page_end, acc);
 
     /* invert the rest */
     for (auto iter = m_items.begin(); iter != m_items.end(); iter++) {
-        auto item = *iter;
+        auto & item = *iter;
         if (iter == page_start)
             on_curr_page = TRUE;
         else if (iter == page_end)
             on_curr_page = FALSE;
 
-        if (!on_curr_page && item->identifier.a_void
-            && (acc == 0 || item->gselector == acc)) {
-            if (item->selected) {
-                item->selected = FALSE;
-                item->count = -1;
+        if (!on_curr_page && item.identifier.a_void
+            && (acc == 0 || item.gselector == acc)) {
+            if (item.selected) {
+                item.selected = FALSE;
+                item.count = -1;
             } else
-                item->selected = TRUE;
+                item.selected = TRUE;
         }
     }
 }
 
 boolean
 MenuWindow::toggle_menu_curr(
-    winid window,
-    tty_menu_item *curr,
+    tty_menu_item & item,
     int lineno,
     boolean in_view,
     boolean counting,
     long count)
 {
-    if (curr->selected) {
+    if (item.selected) {
         if (counting && count > 0) {
-            curr->count = count;
+            item.count = count;
             if (in_view)
-                set_item_state(lineno, curr);
+                set_item_state(lineno, item);
             return TRUE;
         } else { /* change state */
-            curr->selected = FALSE;
-            curr->count = -1L;
+            item.selected = FALSE;
+            item.count = -1L;
             if (in_view)
-                set_item_state(lineno, curr);
+                set_item_state(lineno, item);
             return TRUE;
         }
     } else { /* !selected */
         if (counting && count > 0) {
-            curr->count = count;
-            curr->selected = TRUE;
+            item.count = count;
+            item.selected = TRUE;
             if (in_view)
-                set_item_state(lineno, curr);
+                set_item_state(lineno, item);
             return TRUE;
         } else if (!counting) {
-            curr->selected = TRUE;
+            item.selected = TRUE;
             if (in_view)
-                set_item_state(lineno, curr);
+                set_item_state(lineno, item);
             return TRUE;
         }
         /* do nothing counting&&count==0 */
@@ -732,12 +721,12 @@ MenuWindow::toggle_menu_curr(
 void
 MenuWindow::set_item_state(
     int lineno,
-    tty_menu_item *item)
+    tty_menu_item  & item)
 {
-    char ch = item->selected ? (item->count == -1L ? '+' : '#') : '-';
+    char ch = item.selected ? (item.count == -1L ? '+' : '#') : '-';
 
     set_cursor(3, lineno);
-    core_putc(ch, TextColor::NoColor, (TextAttribute)(item->attr != 0 ? 1 << item->attr : 0));
+    core_putc(ch, TextColor::NoColor, (TextAttribute)(item.attr != 0 ? 1 << item.attr : 0));
 
 }
 
@@ -745,7 +734,6 @@ int MenuWindow::uwp_select_menu(
     int how,
     menu_item **menu_list)
 {
-    tty_menu_item *curr;
     menu_item *mi;
     int n;
 
@@ -759,18 +747,18 @@ int MenuWindow::uwp_select_menu(
         n = -1;
     } else {
         n = 0;
-        for (auto item : m_items)
-            if (item->selected)
+        for (auto & item : m_items)
+            if (item.selected)
                 n++;
     }
 
     if (n > 0) {
         *menu_list = (menu_item *)alloc(n * sizeof(menu_item));
         mi = *menu_list;
-        for (auto item : m_items) {
-            if (item->selected) {
-                mi->item = item->identifier;
-                mi->count = item->count;
+        for (auto & item : m_items) {
+            if (item.selected) {
+                mi->item = item.identifier;
+                mi->count = item.count;
                 mi++;
             }
         }
@@ -787,7 +775,7 @@ void MenuWindow::uwp_add_menu(
     const char *str,            /* menu string */
     boolean preselected)        /* item is marked as selected */
 {
-    tty_menu_item *item;
+    tty_menu_item item;
     const char *newstr;
     char buf[4 + BUFSZ];
 
@@ -810,14 +798,13 @@ void MenuWindow::uwp_add_menu(
     } else
         newstr = str;
 
-    item = (tty_menu_item *)alloc(sizeof(tty_menu_item));
-    item->identifier = *identifier;
-    item->count = -1L;
-    item->selected = preselected;
-    item->selector = ch;
-    item->gselector = gch;
-    item->attr = attr;
-    item->str = dupstr(newstr ? newstr : "");
+    item.identifier = *identifier;
+    item.count = -1L;
+    item.selected = preselected;
+    item.selector = ch;
+    item.gselector = gch;
+    item.attr = attr;
+    item.str = std::string(newstr ? newstr : "");
 
     m_items.push_back(item);
 
@@ -826,7 +813,6 @@ void MenuWindow::uwp_add_menu(
 void MenuWindow::uwp_end_menu(
     const char *prompt) /* prompt to for menu */
 {
-    tty_menu_item *curr;
     short len;
     int lmax, n;
     char menu_ch;
@@ -848,23 +834,24 @@ void MenuWindow::uwp_end_menu(
     m_pages.resize(m_npages+1);
     n = 0;
     for (auto iter = m_items.begin(); iter != m_items.end(); iter++) {
-        auto item = *iter;
+        auto & item = *iter;
         /* set page boundaries and character accelerators */
         if ((n % lmax) == 0) {
             menu_ch = 'a';
             m_pages[n/lmax] = iter;
         }
-        if (item->identifier.a_void && !item->selector) {
-            item->str[0] = item->selector = menu_ch;
+        if (item.identifier.a_void && !item.selector) {
+            item.selector = menu_ch;
+            item.str[0] = menu_ch;
             if (menu_ch++ == 'z')
                 menu_ch = 'A';
         }
 
         /* cut off any lines that are too long */
-        len = strlen(item->str) + 2; /* extra space at beg & end */
+        len = item.str.size() + 2; /* extra space at beg & end */
         int screenWidth = kScreenWidth;
         if (len > screenWidth) {
-            item->str[screenWidth - 2] = 0;
+            item.str = item.str.substr(0, screenWidth - 2);
             len = screenWidth;
         }
         if (len > m_cols)

@@ -104,7 +104,7 @@ void TextWindow::Display(bool blocking)
     cl_eos();
 
     while (iter != m_lines.end()) {
-        auto line = *iter++;
+        auto & line = *iter++;
 
         tty_curs(m_window, 1, row++);
         win_puts(m_window, line.second.c_str(), TextColor::NoColor, line.first);
