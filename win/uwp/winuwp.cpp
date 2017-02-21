@@ -511,7 +511,6 @@ tty_nh_poskey(int *x, int *y, int *mod)
     return i;
 }
 
-char morc = 0; /* tell the outside world what char you chose */
 STATIC_DCL boolean FDECL(ext_cmd_getlin_hook, (char *));
 
 extern int NDECL(extcmd_via_menu); /* cmd.c */

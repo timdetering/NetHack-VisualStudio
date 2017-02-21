@@ -63,7 +63,7 @@ tty_select_menu(
 
 char tty_message_menu(char let, int how, const char *mesg)
 {
-    return GetMessageWindow()->uwp_message_menu(let, how, mesg);
+    return g_messageWindow.uwp_message_menu(let, how, mesg);
 }
 
 } /* extern "C" */

@@ -78,14 +78,14 @@ struct MessageWindow : public CoreWindow {
     char yn_function(const char *query, const char *resp, char def);
     void removetopl(int n);
     int doprev_message();
-    void redotoplin(const char *str, int dismiss_more);
+    int redotoplin(const char *str, int dismiss_more = 0);
     void update_topl(const char *bp);
     void hooked_tty_getlin(const char *, char *, getlin_hook_proc);
     void putsyms(const char *str, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
     void topl_putsym(char c, Nethack::TextColor color, Nethack::TextAttribute attribute);
     void remember_topl();
     void addtopl(const char *s);
-    void more(int dismiss_more = 0);
+    int more(int dismiss_more = 0);
     char uwp_message_menu(char let, int how, const char *mesg);
     void docorner(int xmin, int ymax);
 
@@ -235,7 +235,6 @@ extern struct window_procs uwp_procs;
 
 extern CoreWindow *g_wins[MAXWIN];
 
-extern char morc;         /* last character typed to xwaitforspace */
 extern char defmorestr[]; /* default --more-- prompt */
 
 /* port specific external function references */

@@ -108,7 +108,7 @@ void MessageWindow::removetopl(int n)
         putsyms("\b \b", TextColor::NoColor, TextAttribute::None);
 }
 
-void MessageWindow::redotoplin(const char *str, int dismiss_more)
+int MessageWindow::redotoplin(const char *str, int dismiss_more)
 {
     home();
 
@@ -120,11 +120,14 @@ void MessageWindow::redotoplin(const char *str, int dismiss_more)
     m_mustBeSeen = true;
     m_mustBeErased = true;
 
+    int response = 0;
+
     if (m_nextIsPrompt) {
         m_nextIsPrompt = false;
     } else if (m_cury != 0)
-        more(dismiss_more);
+        response = more(dismiss_more);
 
+    return response;
 }
 
 int MessageWindow::doprev_message()
@@ -146,10 +149,10 @@ int MessageWindow::doprev_message()
             display_nhwindow(prevmsg_win, TRUE);
             destroy_nhwindow(prevmsg_win);
         } else if (iflags.prevmsg_window == 'c') { /* combination */
+            int response = 0;
             do {
-                morc = 0;
                 if (m_msgIter == m_msgList.end()) {
-                    redotoplin(toplines, C('p'));
+                    response = redotoplin(toplines, C('p'));
 
                     if (m_msgIter != m_msgList.begin())
                         m_msgIter--;
@@ -159,7 +162,7 @@ int MessageWindow::doprev_message()
                     iter++;
 
                     if (iter == m_msgList.end()) {
-                       redotoplin(iter->c_str(), C('p'));
+                       response = redotoplin(iter->c_str(), C('p'));
 
                         if (m_msgIter != m_msgList.begin())
                             m_msgIter--;
@@ -182,9 +185,8 @@ int MessageWindow::doprev_message()
                     }
                 }
 
-            } while (morc == C('p'));
+            } while (response == C('p'));
         } else { /* reversed */
-            morc = 0;
             prevmsg_win = create_nhwindow(NHW_MENU);
             putstr(prevmsg_win, 0, "Message History");
             putstr(prevmsg_win, 0, "");
@@ -202,12 +204,12 @@ int MessageWindow::doprev_message()
             m_msgIter = m_msgList.end();
         }
     } else if (iflags.prevmsg_window == 's') { /* single */
+        int response = 0;
         do {
-            morc = 0;
             if (m_msgIter == m_msgList.end()) {
-                redotoplin(toplines, C('p'));
+                response = redotoplin(toplines, C('p'));
             } else {
-                redotoplin(m_msgIter->c_str(), C('p'));
+                response = redotoplin(m_msgIter->c_str(), C('p'));
             }
 
             if (m_msgIter != m_msgList.begin())
@@ -215,7 +217,7 @@ int MessageWindow::doprev_message()
             else
                 m_msgIter = m_msgList.end();
 
-        } while (morc == C('p'));
+        } while (response == C('p'));
     }
     return 0;
 }
@@ -442,7 +444,7 @@ void MessageWindow::update_topl(const char *bp)
     if (!notdied)
         m_stop = false;
     if (!m_stop)
-        redotoplin(toplines, 0);
+        redotoplin(toplines);
 }
 
 void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook_proc hook)
@@ -632,7 +634,7 @@ void MessageWindow::addtopl(const char *s)
     m_mustBeErased = true;
 }
 
-void MessageWindow::more(int dismiss_more)
+int MessageWindow::more(int dismiss_more)
 {
     assert(!m_nextIsPrompt);
 
@@ -644,9 +646,9 @@ void MessageWindow::more(int dismiss_more)
 
     putsyms(defmorestr, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
 
-    morc = wait_for_response("\033 ", dismiss_more);
+    int response = wait_for_response("\033 ", dismiss_more);
 
-    if (morc == '\033')
+    if (response == '\033')
         m_stop = true;
 
     /* if the message is more then one line then erase the entire message */
@@ -657,7 +659,7 @@ void MessageWindow::more(int dismiss_more)
         m_mustBeErased = false;
     }
     /* if the single line message was cancelled then erase the message */
-    else if (morc == '\033') {
+    else if (response == '\033') {
         m_curx = m_cury = 0;
         home();
         cl_end();
@@ -666,6 +668,8 @@ void MessageWindow::more(int dismiss_more)
     /* otherwise we have left the message visible */
 
     m_mustBeSeen = false;
+
+    return response;
 }
 
 /* special hack for treating top line --More-- as a one item menu */
@@ -677,12 +681,15 @@ char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
         return 0;
     }
 
-    morc = 0;
+    int response = 0;
 
+    /* we set m_nextIsPrompt to ensure that we don't post a "more" prompt
+       and getting a response within putstr handling */
+    m_nextIsPrompt = true;
     g_messageWindow.Putstr(0, mesg);
 
     if (m_mustBeSeen) {
-        more(let);
+        response = more(let);
         assert(!m_mustBeSeen);
 
         if (m_mustBeErased)
@@ -693,7 +700,7 @@ char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
     continue to be output normally */
     m_stop = false;
 
-    return ((how == PICK_ONE && morc == let) || morc == '\033') ? morc : '\0';
+    return ((how == PICK_ONE && response == let) || response == '\033') ? response : '\0';
 }
 
 void MessageWindow::docorner(int xmin, int ymax)

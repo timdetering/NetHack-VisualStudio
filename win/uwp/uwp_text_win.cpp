@@ -79,39 +79,36 @@ void TextWindow::Display(bool blocking)
 
     assert(m_offx == 0);
 
-    MessageWindow * msgWin = GetMessageWindow();
+    if (g_messageWindow.m_mustBeSeen)
+        g_messageWindow.Display(true);
 
-    if (msgWin != NULL && msgWin->m_mustBeSeen)
-        tty_display_nhwindow(WIN_MESSAGE, TRUE);
-
-    if (msgWin != NULL)
-        tty_clear_nhwindow(WIN_MESSAGE);
+    g_messageWindow.Clear();
 
     assert(m_lines.size() > 0);
 
     auto iter = m_lines.begin();
     int row = 0;
 
-    tty_curs(m_window, 1, 0);
+    set_cursor(0, 0);
     cl_eos();
 
     while (iter != m_lines.end()) {
         auto & line = *iter++;
 
-        tty_curs(m_window, 1, row++);
-        win_puts(m_window, line.second.c_str(), TextColor::NoColor, line.first);
+        set_cursor(0, row++);
+        core_puts(line.second.c_str(), TextColor::NoColor, line.first);
 
         if (row == (m_rows - 1) || iter == m_lines.end()) {
-            tty_curs(m_window, 1, row);
+            set_cursor(0, row);
             cl_eos();
-            tty_curs(m_window, 1, m_rows - 1);
-            morc = dmore(quitchars);
-            if (morc == '\033') {
+            set_cursor(0, m_rows - 1);
+            int response = dmore(quitchars);
+            if (response == ESCAPE) {
                 m_cancelled = true;
                 break;
             }
 
-            tty_curs(m_window, 1, 0);
+            set_cursor(0, 0);
             cl_eos();
             row = 0;
         }

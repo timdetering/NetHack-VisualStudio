@@ -781,7 +781,7 @@ static bool main_menu(void)
 
 #if 0
 
-#if 1
+#if 0
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
@@ -789,6 +789,7 @@ static bool main_menu(void)
     putstr(BASE_WINDOW, 0, "0123456789012345678901234567890123456789012345678901234567890123456789012345678");
 #endif
 
+#if 0
     winid tmpwin = create_nhwindow(NHW_TEXT);
     putstr(tmpwin, 0, "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789");
     putstr(tmpwin, 0, "");
@@ -796,8 +797,9 @@ static bool main_menu(void)
     putstr(tmpwin, 0, "0123456789012345678901234567890123456789012345678901234567890123456789\n0123456789");
     display_nhwindow(tmpwin, TRUE);
     destroy_nhwindow(tmpwin);
+#endif
 
-#if 1
+#if 0
     tmpwin = create_nhwindow(NHW_TEXT);
     for (int i = 0; i < 25; i++)
     {
@@ -808,6 +810,18 @@ static bool main_menu(void)
     display_nhwindow(tmpwin, TRUE);
     destroy_nhwindow(tmpwin);
 #endif
+
+
+    int picked;
+    for (int i = 0; i < 10; i++) {
+        picked = message_menu('a', 1, "pick object a 0123456789012345678901 23456789012345678901234 5678901234567 8901234567890123456789");
+        clear_nhwindow(BASE_WINDOW);
+        char line[256];
+        sprintf(line, "try %d picked %d", i, picked);
+        curs(BASE_WINDOW, 1, 3);
+        putstr(BASE_WINDOW, 0, line);
+    }
+
 
 #endif
 
