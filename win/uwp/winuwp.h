@@ -90,7 +90,7 @@ struct MessageWindow : public CoreWindow {
     void addtopl(const char *s);
     int more(int dismiss_more = 0);
     char uwp_message_menu(char let, int how, const char *mesg);
-    void docorner(int xmin, int ymax);
+    void erase_message();
 
     void uwp_putmsghistory(const char *msg, boolean restoring_msghist);
     char *uwp_getmsghistory(boolean init);

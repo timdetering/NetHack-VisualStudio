@@ -497,16 +497,12 @@ tty_nh_poskey(int *x, int *y, int *mod)
         }
     }
 
-    MessageWindow *msgWin = NULL;
-
-    if (WIN_MESSAGE != WIN_ERR) {
-        msgWin = (MessageWindow *)g_wins[WIN_MESSAGE];
-
-        if (msgWin != NULL) {
-            msgWin->m_stop = false;
-            msgWin->m_mustBeSeen = false;
-        }
-    }
+    /* ignoring the fact that we could actually been hung up ...
+     * we received input so lets allow future messages to been
+     * seen (stop == false) and any messages posted have been seen.
+     */
+    g_messageWindow.m_stop = false;
+    g_messageWindow.m_mustBeSeen = false;
 
     return i;
 }

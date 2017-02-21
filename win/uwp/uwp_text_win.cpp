@@ -38,7 +38,6 @@ void TextWindow::Dismiss()
         docrt();
         m_active = 0;
     }
-    m_flags = 0;
     m_cancelled = false;
 }
 

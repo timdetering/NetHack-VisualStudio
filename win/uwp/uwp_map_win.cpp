@@ -66,6 +66,8 @@ void MapWindow::Dismiss()
 
 void MapWindow::Putstr(int attr, const char *str)
 {
+    assert(0);  // not expected to get called
+
     str = compress_str(str);
     TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
 

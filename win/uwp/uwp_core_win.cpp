@@ -18,7 +18,6 @@ CoreWindow::CoreWindow(int inType, winid window) : m_type(inType), m_window(wind
 
 void CoreWindow::Init()
 {
-    m_flags = 0;
     m_active = FALSE;
     m_curx = 0;
     m_cury = 0;
@@ -59,13 +58,12 @@ void CoreWindow::clear_to_end_of_line()
 void CoreWindow::clear_to_end_of_screen()
 {
     g_textGrid.SetCursor(Int2D(m_curx + m_offx, m_cury + m_offy));
-    g_textGrid.ClearToEndOfLine();
+    g_textGrid.ClearToEndOfScreen();
 }
 
 void CoreWindow::Dismiss()
 {
     m_active = 0;
-    m_flags = 0;
 }
 
 void CoreWindow::Clear()
@@ -126,7 +124,7 @@ void CoreWindow::core_puts(
     int x = m_curx + m_offx;
     int y = m_cury + m_offy;
 
-    g_textGrid.Putstr(textColor, textAttribute, s);
+    g_textGrid.Putstr(x, y, textColor, textAttribute, s);
 
     m_curx = g_textGrid.GetCursor().m_x - m_offx;
     m_cury = g_textGrid.GetCursor().m_y - m_offy;

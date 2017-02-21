@@ -15,8 +15,6 @@ MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE, MESSAGE_WINDOW)
 {
     Init();
 
-    // core
-    /* message window, 1 line long, very wide, top of screen */
     m_offx = 0;
     m_offy = 0;
 
@@ -32,7 +30,6 @@ MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE, MESSAGE_WINDOW)
 
 void MessageWindow::Init()
 {
-    // msg
     m_mustBeSeen = false;
     m_mustBeErased = false;
     m_nextIsPrompt = false;
@@ -57,11 +54,7 @@ void MessageWindow::Destroy()
 void MessageWindow::Clear()
 {
     if (m_mustBeErased) {
-        set_cursor(0, 0);
-        clear_to_end_of_line();
-        if (m_cury)
-            docorner(0, m_cury + 1);
-        m_mustBeErased = false;
+        erase_message();
     }
 
     CoreWindow::Clear();
@@ -76,10 +69,7 @@ void MessageWindow::Display(bool blocking)
 
     if (m_mustBeSeen) {
         more();
-        assert(!m_mustBeSeen);
-
-        if (m_mustBeErased)
-            tty_clear_nhwindow(m_window);
+        Clear();
     }
 
     m_curx = 0;
@@ -91,7 +81,7 @@ void MessageWindow::Display(bool blocking)
 void MessageWindow::Dismiss()
 {
     if (m_mustBeSeen)
-        tty_display_nhwindow(WIN_MESSAGE, TRUE);
+        Display(true);
 
     CoreWindow::Dismiss();
     m_stop = false;
@@ -417,8 +407,8 @@ void MessageWindow::update_topl(const char *bp)
     } else if (!m_stop) {
         if (m_mustBeSeen) {
             more();
-        } else if (m_cury) { /* for when flags.toplin == 2 && cury > 1 */
-            docorner(0, m_cury + 1); /* reset cury = 0 if redraw screen */
+        } else if (m_cury) {
+            erase_message();
             m_curx = 0;
             m_cury = 0;
         }
@@ -455,6 +445,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
     if (m_mustBeSeen && !m_stop)
         more(0);
 
+    /* getting input ... new messages should be seen (stop == false) */
     m_stop = false;
 
     m_nextIsPrompt = true;
@@ -647,24 +638,20 @@ int MessageWindow::more(int dismiss_more)
 
     int response = wait_for_response("\033 ", dismiss_more);
 
-    if (response == '\033')
-        m_stop = true;
+    /* if the message is more then one line or message was cancelled then erase the entire message. 
+     * otherwise we leave the message visible.
+     */
+    if ((m_mustBeErased && m_cury != 0) || response == ESCAPE)
+        erase_message();
 
-    /* if the message is more then one line then erase the entire message */
-    if (m_mustBeErased && m_cury) {
-        docorner(0, m_cury + 1);
-        set_cursor(0, 0);
-        m_mustBeErased = false;
-    }
-    /* if the single line message was cancelled then erase the message */
-    else if (response == ESCAPE) {
-        set_cursor(0, 0);
-        clear_to_end_of_line();
-        m_mustBeErased = false;
-    }
-    /* otherwise we have left the message visible */
-
+    /* message has been seen and confirmed */
     m_mustBeSeen = false;
+
+    /* note: if we are stopping messages there are no messages to be seen
+     *       or messages that need erasing.
+     */
+    if (response == ESCAPE)
+        m_stop = true;
 
     return response;
 }
@@ -700,8 +687,10 @@ char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
     return ((how == PICK_ONE && response == let) || response == '\033') ? response : '\0';
 }
 
-void MessageWindow::docorner(int xmin, int ymax)
+void MessageWindow::erase_message()
 {
+    int xmin = 0;
+    int ymax = m_cury + 1;
     int y;
 
     for (y = 0; y < ymax; y++) {
@@ -717,6 +706,9 @@ void MessageWindow::docorner(int xmin, int ymax)
         context.botlx = 1;
         bot();
     }
+
+    set_cursor(0, 0);
+    m_mustBeErased = false;
 }
 
 void
