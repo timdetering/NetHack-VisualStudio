@@ -25,6 +25,13 @@ MapWindow::~MapWindow()
 {
 }
 
+void MapWindow::Destroy()
+{
+    CoreWindow::Destroy();
+
+    clear_screen();
+}
+
 void MapWindow::Clear()
 {
     context.botlx = 1;

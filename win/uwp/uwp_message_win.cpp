@@ -13,12 +13,7 @@ MessageWindow g_messageWindow;
 
 MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE, MESSAGE_WINDOW)
 {
-    // msg
-    m_mustBeSeen = false;
-    m_mustBeErased = false;
-    m_nextIsPrompt = false;
-
-    m_msgIter = m_msgList.end();
+    Init();
 
     // core
     /* message window, 1 line long, very wide, top of screen */
@@ -33,6 +28,17 @@ MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE, MESSAGE_WINDOW)
 
     m_rows = iflags.msg_history;
     m_cols = kScreenWidth;
+}
+
+void MessageWindow::Init()
+{
+    // msg
+    m_mustBeSeen = false;
+    m_mustBeErased = false;
+    m_nextIsPrompt = false;
+
+    m_msgIter = m_msgList.end();
+
     m_stop = false;
 }
 
@@ -40,8 +46,10 @@ MessageWindow::~MessageWindow()
 {
 }
 
-void MessageWindow::free_window_info()
+void MessageWindow::Destroy()
 {
+    CoreWindow::Destroy();
+
     m_msgList.clear();
     m_msgIter = m_msgList.end();
 }
@@ -76,9 +84,6 @@ void MessageWindow::Display(bool blocking)
 
     m_curx = 0;
     m_cury = 0;
-
-    if (!m_active)
-        iflags.window_inited = TRUE;
 
     m_active = 1;
 }
@@ -645,7 +650,7 @@ void MessageWindow::more()
 
     putsyms(defmorestr, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
 
-    xwaitforspace("\033 ");
+    morc = wait_for_response("\033 ");
 
     if (morc == '\033')
         m_stop = true;

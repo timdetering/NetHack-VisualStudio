@@ -28,14 +28,8 @@ MenuWindow::MenuWindow(winid window) : CoreWindow(NHW_MENU, window)
 {
     // menu
     m_npages = 0;
-    m_plist_size = 0;
-    m_nitems = 0;
     m_how = 0;
 
-    // core
-    /* inventory/menu window, variable length, full width, top of screen
-    */
-    /* help window, the same, different semantics for display, etc */
     m_offx = 0;
     m_offy = 0;
     m_rows = 0;
@@ -46,7 +40,11 @@ MenuWindow::MenuWindow(winid window) : CoreWindow(NHW_MENU, window)
 
 MenuWindow::~MenuWindow()
 {
-    free_window_info();
+}
+
+void MenuWindow::Destroy()
+{
+    CoreWindow::Destroy();
 }
 
 void MenuWindow::Display(bool blocking)
@@ -98,15 +96,8 @@ void MenuWindow::Display(bool blocking)
 void MenuWindow::Dismiss()
 {
     if (m_active) {
-        if (iflags.window_inited) {
-            /* otherwise dismissing the text endwin after other windows
-            * are dismissed tries to redraw the map and panics.  since
-            * the whole reason for dismissing the other windows was to
-            * leave the ending window on the screen, we don't want to
-            * erase it anyway.
-            */
-            docrt();
-        }
+        assert(iflags.window_inited);
+        docrt();
         m_active = 0;
     }
     m_flags = 0;
@@ -146,24 +137,16 @@ void MenuWindow::Putstr(int attr, const char *str)
     } while (input.size() > 0);
 }
 
-void MenuWindow::free_window_info()
-{
-    m_items.clear();
-    m_pages.clear();
-
-    m_plist_size = 0;
-    m_npages = 0;
-    m_nitems = 0;
-    m_how = 0;
-
-}
-
 void MenuWindow::Clear()
 {
     if (m_active)
         clear_screen();
 
-    free_window_info();
+    m_items.clear();
+    m_pages.clear();
+
+    m_npages = 0;
+    m_how = 0;
 
     CoreWindow::Clear();
 }
@@ -230,6 +213,8 @@ void MenuWindow::process_menu()
             count = 0;
         } else
             reset_count = TRUE;
+
+        int response;
 
         if (page_start == m_items.end()) {
             /* new page to be displayed */
@@ -337,35 +322,35 @@ void MenuWindow::process_menu()
 
             if (m_npages > 1) {
                 char buf[128];
-                snprintf(buf, sizeof(buf), "(%d of %d)", curr_page + 1, m_npages);
+                snprintf(buf, sizeof(buf), " (%d of %d)", curr_page + 1, m_npages);
                 m_morestr = std::string(buf);
             } else {
-                m_morestr = std::string("(end) ");
+                m_morestr = std::string(" (end) ");
             }
 
             set_cursor(0, page_lines);
             cl_end();
-            dmore(resp);
+            response = dmore(resp);
         } else {
             /* just put the cursor back... */
-            m_morestr = std::string("(end) ");
+            m_morestr = std::string(" (end) ");
             set_cursor(m_morestr.size() + 1, page_lines);
-            xwaitforspace(resp);
+            response = wait_for_response(resp);
         }
 
-        really_morc = morc; /* (only used with MENU_EXPLICIT_CHOICE */
-        if ((rp = index(resp, morc)) != 0 && rp < resp + resp_len)
+        really_morc = response; /* (only used with MENU_EXPLICIT_CHOICE */
+        if ((rp = index(resp, response)) != 0 && rp < resp + resp_len)
             /* explicit menu selection; don't override it if it also
             happens to match a mapped menu command (such as ':' to
             look inside a container vs ':' to search) */
-            morc = MENU_EXPLICIT_CHOICE;
+            response = MENU_EXPLICIT_CHOICE;
         else
-            morc = map_menu_cmd(morc);
+            response = map_menu_cmd(response);
 
-        switch (morc) {
+        switch (response) {
         case '0':
             /* special case: '0' is also the default ball class */
-            if (!counting && index(gacc, morc))
+            if (!counting && index(gacc, response))
                 goto group_accel;
             /* fall through to count the zero */
         case '1':
@@ -377,7 +362,7 @@ void MenuWindow::process_menu()
         case '7':
         case '8':
         case '9':
-            count = (count * 10L) + (long)(morc - '0');
+            count = (count * 10L) + (long)(response - '0');
             /*
             * It is debatable whether we should allow 0 to
             * start a count.  There is no difference if the
@@ -420,7 +405,7 @@ void MenuWindow::process_menu()
             if (m_npages > 0 && curr_page != m_npages - 1) {
                 curr_page++;
                 page_start = m_items.end();
-            } else if (morc == ' ') {
+            } else if (response == ' ') {
                 /* ' ' finishes menus here, but stop '>' doing the same. */
                 finished = TRUE;
             }
@@ -514,18 +499,18 @@ void MenuWindow::process_menu()
             }
             break;
         case MENU_EXPLICIT_CHOICE:
-            morc = really_morc;
+            response = really_morc;
             /*FALLTHRU*/
         default:
-            if (m_how == PICK_NONE || !index(resp, morc)) {
+            if (m_how == PICK_NONE || !index(resp, response)) {
                 /* unacceptable input received */
                 tty_nhbell();
                 break;
-            } else if (index(gacc, morc)) {
+            } else if (index(gacc, response)) {
             group_accel:
                 /* group accelerator; for the PICK_ONE case, we know that
                 it matches exactly one item in order to be in gacc[] */
-                invert_all(page_start, page_end, morc);
+                invert_all(page_start, page_end, response);
                 if (m_how == PICK_ONE)
                     finished = TRUE;
                 break;
@@ -535,7 +520,7 @@ void MenuWindow::process_menu()
             for (n = 0; iter != page_end; n++, iter++)
             {
                 auto & item = *iter;
-                if (morc == item.selector) {
+                if (response == item.selector) {
                     toggle_menu_curr(item, n, TRUE, counting, count);
                     if (m_how == PICK_ONE)
                         finished = TRUE;
@@ -581,8 +566,8 @@ MenuWindow::process_lines()
         if (row == (m_rows - 1) || iter == m_lines.end()) {
             set_cursor(0, row);
             cl_end();
-            dmore(quitchars);
-            if (morc == '\033') {
+            int response = dmore(quitchars);
+            if (response == '\033') {
                 m_cancelled = true;
                 break;
             }
@@ -739,9 +724,9 @@ int MenuWindow::uwp_select_menu(
 
     *menu_list = (menu_item *)0;
     m_how = (short)how;
-    morc = 0;
-    tty_display_nhwindow(m_window, TRUE);
-    tty_dismiss_nhwindow(m_window); /* does not destroy window data */
+
+    Display(TRUE);
+    Dismiss();
 
     if (m_cancelled) {
         n = -1;
@@ -782,7 +767,6 @@ void MenuWindow::uwp_add_menu(
     if (str == (const char *)0)
         return;
 
-    m_nitems++;
     if (identifier->a_void) {
         int len = strlen(str);
 
@@ -827,7 +811,7 @@ void MenuWindow::uwp_end_menu(
     }
 
     lmax = kScreenHeight - 1;    /* # lines per page */
-    m_npages = (m_nitems + (lmax - 1)) / lmax; /* # of pages */
+    m_npages = (m_items.size() + (lmax - 1)) / lmax; /* # of pages */
 
     m_cols = 0;  /* cols is set when the win is initialized... (why?) */
     menu_ch = '?'; /* lint suppression */
@@ -861,9 +845,9 @@ void MenuWindow::uwp_end_menu(
 
     m_pages[m_npages] = m_items.end();
 
-                                             /*
-                                             * If greater than 1 page, morestr is "(x of y) " otherwise, "(end) "
-                                             */
+    /*
+    * If greater than 1 page, morestr is "(x of y) " otherwise, "(end) "
+    */
     if (m_npages > 1) {
         char buf[QBUFSZ];
         /* produce the largest demo string */
@@ -887,17 +871,14 @@ void MenuWindow::uwp_end_menu(
     if (m_npages > 1)
         m_rows = lmax + 1;
     else
-        m_rows = m_nitems + 1;
+        m_rows = m_items.size() + 1;
 }
 
-void MenuWindow::dmore(
+int MenuWindow::dmore(
     const char *s) /* valid responses */
 {
-    const char *prompt = m_morestr.size() ? m_morestr.c_str() : defmorestr;
-
-    set_cursor(m_curx + 1, m_cury);
-    core_puts(prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
-
-    xwaitforspace(s);
+    assert(m_morestr.size() > 0);
+    core_puts(m_morestr.c_str(), TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
+    return wait_for_response(s);
 }
 

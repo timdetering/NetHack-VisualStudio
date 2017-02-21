@@ -29,10 +29,12 @@ struct CoreWindow {
     CoreWindow(int type, winid window);
     virtual ~CoreWindow();
 
+    virtual void Init();
+
     virtual void Clear();
     virtual void Display(bool blocking) = 0;
     virtual void Dismiss();
-    void Destroy();
+    virtual void Destroy();
 
     void set_cursor(int x, int y);
     virtual void Putstr(int attr, const char *str) = 0;
@@ -41,15 +43,14 @@ struct CoreWindow {
     void core_putc(char ch, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
     void core_puts(const char *s, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
 
-    virtual void free_window_info();
-    void xwaitforspace(register const char *s);
+    int wait_for_response(register const char *s);
 
     const char *compress_str(const char *);
 
     winid m_window;         /* winid */
     int m_flags;           /* window flags */
     xchar m_type;          /* type of window */
-    boolean m_active;      /* true if window is active */
+    bool m_active;      /* true if window is active */
     int m_offx, m_offy;    /* offset from topleft of display */
     long m_rows, m_cols;     /* dimensions */
     long m_curx, m_cury;     /* current cursor position */
@@ -66,12 +67,13 @@ struct MessageWindow : public CoreWindow {
     MessageWindow();
     virtual ~MessageWindow();
 
+    virtual void Init();
+
     virtual void Clear();
     virtual void Display(bool blocking);
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
-
-    virtual void free_window_info();
+    virtual void Destroy();
 
     char yn_function(const char *query, const char *resp, char def);
     void removetopl(int n);
@@ -109,8 +111,7 @@ struct MenuWindow : public CoreWindow {
     virtual void Display(bool blocking);
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
-
-    virtual void free_window_info();
+    virtual void Destroy();
 
     void set_all_on_page(itemIter page_start, itemIter page_end);
     void unset_all_on_page(itemIter page_start, itemIter page_end);
@@ -126,14 +127,13 @@ struct MenuWindow : public CoreWindow {
     void uwp_add_menu(const anything *identifier, char ch, char gch, int attr, const char *str, boolean preselected);
     void uwp_end_menu(const char *prompt);
 
-    void dmore(const char *s); /* valid responses */
+    int dmore(const char *s); /* valid responses */
 
     std::list<std::pair<int, std::string>> m_lines;
 
     std::list<tty_menu_item> m_items;
     std::vector<itemIter> m_pages;
 
-    long m_plist_size;       /* size of allocated plist (MENU) */
     long m_npages;           /* number of pages in menu (MENU) */
     long m_nitems;           /* total number of items (MENU) */
     short m_how;             /* menu mode - pick 1 or N (MENU) */
@@ -182,6 +182,7 @@ struct MapWindow : public CoreWindow {
     virtual void Display(bool blocking);
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
+    virtual void Destroy();
 
 };
 
@@ -194,7 +195,7 @@ struct TextWindow : public CoreWindow {
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
 
-    void dmore(const char *s); /* valid responses */
+    int dmore(const char *s); /* valid responses */
 
     std::list<std::pair<Nethack::TextAttribute, std::string>> m_lines;
 
@@ -371,8 +372,6 @@ void win_puts(
 CoreWindow * GetCoreWindow(winid window);
 MessageWindow * GetMessageWindow();
 MenuWindow * GetMenuWindow(winid window);
-
-void dmore(CoreWindow *, const char *);
 
 static const int kKillChar = 21;
 

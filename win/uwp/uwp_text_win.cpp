@@ -34,16 +34,8 @@ void TextWindow::Clear()
 void TextWindow::Dismiss()
 {
     if (m_active) {
-        if (iflags.window_inited) {
-            /* otherwise dismissing the text endwin after other windows
-            * are dismissed tries to redraw the map and panics.  since
-            * the whole reason for dismissing the other windows was to
-            * leave the ending window on the screen, we don't want to
-            * erase it anyway.
-            */
-            docrt();
-
-        }
+        assert(iflags.window_inited);
+        docrt();
         m_active = 0;
     }
     m_flags = 0;
@@ -113,7 +105,7 @@ void TextWindow::Display(bool blocking)
             tty_curs(m_window, 1, row);
             cl_eos();
             tty_curs(m_window, 1, m_rows - 1);
-            dmore(quitchars);
+            morc = dmore(quitchars);
             if (morc == '\033') {
                 m_cancelled = true;
                 break;
@@ -128,7 +120,7 @@ void TextWindow::Display(bool blocking)
     m_active = 1;
 }
 
-void TextWindow::dmore(
+int TextWindow::dmore(
     const char *s) /* valid responses */
 {
     const char *prompt = m_morestr.size() ? m_morestr.c_str() : defmorestr;
@@ -136,5 +128,5 @@ void TextWindow::dmore(
     set_cursor(m_curx, m_cury);
     core_puts(prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
 
-    xwaitforspace(s);
+    return wait_for_response(s);
 }

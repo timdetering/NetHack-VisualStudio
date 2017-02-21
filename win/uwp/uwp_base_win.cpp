@@ -48,8 +48,8 @@ void BaseWindow::Putstr(int attr, const char *str)
     str = compress_str(str);
     TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
 
-    tty_curs(m_window, m_curx + 1, m_cury);
-    win_puts(m_window, str, TextColor::NoColor, useAttribute);
+    set_cursor(m_curx, m_cury);
+    core_puts(str, TextColor::NoColor, useAttribute);
     m_curx = 0;
     m_cury++;
 }

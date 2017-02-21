@@ -11,12 +11,17 @@ using namespace Nethack;
 
 CoreWindow::CoreWindow(int inType, winid window) : m_type(inType), m_window(window)
 {
+    Init();
+
+    g_wins[m_window] = this;
+}
+
+void CoreWindow::Init()
+{
     m_flags = 0;
     m_active = FALSE;
     m_curx = 0;
     m_cury = 0;
-
-    g_wins[m_window] = this;
 }
 
 CoreWindow::~CoreWindow()
@@ -29,19 +34,6 @@ void CoreWindow::Destroy()
 {
     if (m_active)
         tty_dismiss_nhwindow(m_window);
-
-    if (m_type == NHW_MESSAGE)
-        iflags.window_inited = 0;
-
-    if (m_type == NHW_MAP)
-        clear_screen();
-
-    free_window_info();
-}
-
-void CoreWindow::free_window_info()
-{
-    // do nothing
 }
 
 void CoreWindow::set_cursor(int x, int y)
@@ -70,13 +62,13 @@ void CoreWindow::Clear()
     m_cury = 0;
 }
 
-void
-CoreWindow::xwaitforspace(
+int
+CoreWindow::wait_for_response(
     register const char *s) /* chars allowed besides return */
 {
-    register int c, x = g_dismiss_more;
+    int c, x = g_dismiss_more;
+    int response = 0;
 
-    morc = 0;
     while (
 #ifdef HANGUPHANDLING
         !program_state.done_hup &&
@@ -88,17 +80,19 @@ CoreWindow::xwaitforspace(
 
         if (c == '\033') {
             g_dismiss_more = 1;
-            morc = '\033';
+            response = '\033';
             break;
         }
 
         if ((s && index(s, c)) || c == x) {
-            morc = (char)c;
+            response = (char)c;
             break;
         }
 
         tty_nhbell();
     }
+
+    return response;
 }
 
 void CoreWindow::core_putc(char ch, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute)

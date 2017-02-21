@@ -122,16 +122,21 @@ tty_init_nhwindows(int *, char **)
     LI = kScreenHeight;
     CO = kScreenWidth;
 
-    set_option_mod_status("mouse_support", SET_IN_GAME);
-
-    start_screen();
-
     g_dismiss_more = 0;
     g_rawprint = 0;
+
+    set_option_mod_status("mouse_support", SET_IN_GAME);
+
+    g_baseWindow.Init();
+    g_messageWindow.Init();
+    g_mapWindow.Init();
+    g_statusWindow.Init();
 
     g_baseWindow.m_active = 1;
     g_baseWindow.Clear();
     g_baseWindow.Display(FALSE);
+
+    iflags.window_inited = TRUE;
 }
 
 /*
@@ -187,7 +192,7 @@ tty_exit_nhwindows(const char *str)
     WIN_STATUS = WIN_ERR;
 #endif
 
-    iflags.window_inited = 0;
+    iflags.window_inited = FALSE;
 }
 
 winid
@@ -273,9 +278,8 @@ tty_destroy_nhwindow(winid window)
 
     coreWin->Destroy();
 
-    if (coreWin->m_window >= FIRST_FREE_WINDOW)
+    if (window >= FIRST_FREE_WINDOW)
         delete coreWin;
-
 }
 
 void
