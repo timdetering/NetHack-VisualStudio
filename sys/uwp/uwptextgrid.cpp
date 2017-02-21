@@ -697,6 +697,44 @@ namespace Nethack
         m_cellsLock.ReleaseExclusive();
     }
 
+    void TextGrid::ClearToEndOfLine()
+    {
+        m_cellsLock.AcquireExclusive();
+
+        assert(m_cursor.m_x < m_gridDimensions.m_x);
+        assert(m_cursor.m_y < m_gridDimensions.m_y);
+
+        TextCell clearCell;
+        int offset = (m_cursor.m_y * m_gridDimensions.m_x) + m_cursor.m_x;
+        int sentinel = (m_cursor.m_y + 1) * m_gridDimensions.m_x;
+
+        while (offset < sentinel)
+            m_cells[offset++] = clearCell;
+
+        m_dirty = true;
+
+        m_cellsLock.ReleaseExclusive();
+    }
+
+    void TextGrid::ClearToEndOfScreen()
+    {
+        m_cellsLock.AcquireExclusive();
+
+        assert(m_cursor.m_x < m_gridDimensions.m_x);
+        assert(m_cursor.m_y < m_gridDimensions.m_y);
+
+        TextCell clearCell;
+        int offset = (m_cursor.m_y * m_gridDimensions.m_x) + m_cursor.m_x;
+        int sentinel = m_gridDimensions.m_y * m_gridDimensions.m_x;
+
+        while (offset < sentinel)
+            m_cells[offset++] = clearCell;
+
+        m_dirty = true;
+
+        m_cellsLock.ReleaseExclusive();
+    }
+
     void TextGrid::Scroll(int amount)
     {
         bool takeLock = !m_cellsLock.HasExclusive();

@@ -323,7 +323,7 @@ tty_display_file(const char *fname, boolean complain)
     f = dlb_fopen(fname, "r");
     if (!f) {
         if (complain) {
-            home();
+            g_textGrid.SetCursor(Int2D(0, 0));
             tty_mark_synch();
             tty_raw_print("");
             perror(fname);
@@ -606,10 +606,6 @@ tty_get_ext_cmd()
     return i;
 }
 
-#ifndef C /* this matches src/cmd.c */
-#define C(c) (0x1f & (c))
-#endif
-
 STATIC_DCL void FDECL(msghistory_snapshot, (BOOLEAN_P));
 
 int
@@ -726,64 +722,14 @@ void uwp_raw_printf(TextAttribute textAttribute, const char * fmt, ...)
     va_end(the_args);
 }
 
-void
-home()
-{
-    g_textGrid.SetCursor(Int2D(0, 0));
-}
-
-void
-cl_eos()
-{
-    int x = g_textGrid.GetCursor().m_x;
-    int y = g_textGrid.GetCursor().m_y;
-
-    int cx = kScreenWidth - x;
-    int cy = (kScreenHeight - (y + 1)) * kScreenWidth;
-
-    g_textGrid.Put(x, y, TextCell(), cx + cy);
-    g_textGrid.SetCursor(Int2D(x, y));
-
-    g_baseWindow.set_cursor(x, y);
-}
-
-void
-cl_end()
-{
-    Int2D cursor = g_textGrid.GetCursor();
-    g_textGrid.Put(TextCell(), kScreenWidth - cursor.m_x);
-    g_textGrid.SetCursor(cursor);
-}
-
 void clear_screen(void)
 {
     g_textGrid.Clear();
-    home();
 }
 
 void uwp_puts(const char *s)
 {
     g_baseWindow.core_puts(s, TextColor::NoColor, TextAttribute::None);
-}
-
-void win_putc(
-    winid window,
-    char ch,
-    Nethack::TextColor textColor,
-    Nethack::TextAttribute textAttribute)
-{
-    assert(g_wins[window] != NULL);
-    g_wins[window]->core_putc(ch, textColor, textAttribute);
-}
-
-void win_puts(
-    winid window,
-    const char *s,
-    TextColor textColor,
-    TextAttribute textAttribute)
-{
-    assert(g_wins[window] != NULL);
-    g_wins[window]->core_puts(s, textColor, textAttribute);
 }
 
 } /* extern "C" */

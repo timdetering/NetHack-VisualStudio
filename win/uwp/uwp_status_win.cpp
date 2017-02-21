@@ -27,10 +27,10 @@ StatusWindow::~StatusWindow()
 
 void StatusWindow::Clear()
 {
-    tty_curs(m_window, 1, 0);
-    cl_end();
-    tty_curs(m_window, 1, 1);
-    cl_end();
+    set_cursor(0, 0);
+    clear_to_end_of_line();
+    set_cursor(0, 1);
+    clear_to_end_of_line();
 
     CoreWindow::Clear();
 }
@@ -69,8 +69,8 @@ void StatusWindow::Putstr(int attr, const char *str)
         if (!*nb) {
             if (*ob || context.botlx) {
                 /* last char printed may be in middle of line */
-                tty_curs(WIN_STATUS, i, m_cury);
-                cl_end();
+                set_cursor(i - 1, m_cury);
+                clear_to_end_of_line();
             }
             break;
         }

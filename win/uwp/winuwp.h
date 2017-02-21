@@ -37,6 +37,9 @@ struct CoreWindow {
     virtual void Destroy();
 
     void set_cursor(int x, int y);
+    void clear_to_end_of_line();
+    void clear_to_end_of_screen();
+
     virtual void Putstr(int attr, const char *str) = 0;
     virtual void Putsym(int x, int y, char ch);
 
@@ -265,13 +268,10 @@ void xputs(
 #if defined(SCREEN_VGA) || defined(SCREEN_8514)
 extern void FDECL(xputg, (int, int, unsigned));
 #endif
-extern void NDECL(cl_end);
 extern void NDECL(clear_screen);
-extern void NDECL(home);
 extern void NDECL(backsp);
 extern void NDECL(graph_on);
 extern void NDECL(graph_off);
-extern void NDECL(cl_eos);
 
 /* ### topl.c ### */
 
@@ -351,22 +351,6 @@ extern void FDECL(tty_putmsghistory, (const char *, BOOLEAN_P));
 
 void uwp_raw_printf(Nethack::TextAttribute textAttribute, const char *, ...);
 
-/* New window output functions.
- * These window based output functions use the window cursor position
- * for output and update all three cursor positions (window, g_uwpDisplay
- * and g_textGrid) appropriately.
- */
-void win_putc(
-    winid window,
-    char ch,
-    Nethack::TextColor textColor = Nethack::TextColor::NoColor,
-    Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
-
-void win_puts(
-    winid window,
-    const char *s,
-    Nethack::TextColor textColor = Nethack::TextColor::NoColor,
-    Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
 
 CoreWindow * GetCoreWindow(winid window);
 MessageWindow * GetMessageWindow();

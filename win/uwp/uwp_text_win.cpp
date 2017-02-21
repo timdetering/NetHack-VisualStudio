@@ -90,7 +90,7 @@ void TextWindow::Display(bool blocking)
     int row = 0;
 
     set_cursor(0, 0);
-    cl_eos();
+    clear_to_end_of_screen();
 
     while (iter != m_lines.end()) {
         auto & line = *iter++;
@@ -100,7 +100,7 @@ void TextWindow::Display(bool blocking)
 
         if (row == (m_rows - 1) || iter == m_lines.end()) {
             set_cursor(0, row);
-            cl_eos();
+            clear_to_end_of_screen();
             set_cursor(0, m_rows - 1);
             int response = dmore(quitchars);
             if (response == ESCAPE) {
@@ -109,7 +109,7 @@ void TextWindow::Display(bool blocking)
             }
 
             set_cursor(0, 0);
-            cl_eos();
+            clear_to_end_of_screen();
             row = 0;
         }
     }

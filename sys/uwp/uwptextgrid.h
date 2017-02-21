@@ -115,6 +115,8 @@ namespace Nethack
 
         void Clear(void);
         void Scroll(int amount);
+        void ClearToEndOfLine(void);
+        void ClearToEndOfScreen(void);
 
         void Put(char c, TextColor color = TextColor::NoColor, TextAttribute attribute = TextAttribute::None)
         {

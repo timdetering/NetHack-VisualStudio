@@ -50,6 +50,18 @@ void CoreWindow::set_cursor(int x, int y)
     g_textGrid.SetCursor(Int2D(x, y));
 }
 
+void CoreWindow::clear_to_end_of_line()
+{
+    g_textGrid.SetCursor(Int2D(m_curx + m_offx, m_cury + m_offy));
+    g_textGrid.ClearToEndOfLine();
+}
+
+void CoreWindow::clear_to_end_of_screen()
+{
+    g_textGrid.SetCursor(Int2D(m_curx + m_offx, m_cury + m_offy));
+    g_textGrid.ClearToEndOfLine();
+}
+
 void CoreWindow::Dismiss()
 {
     m_active = 0;

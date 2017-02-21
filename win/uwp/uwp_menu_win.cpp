@@ -74,7 +74,7 @@ void MenuWindow::Display(bool blocking)
         /* TODO(bhouse) why do we test and do something different for overlay? */
         if (iflags.menu_overlay) {
             set_cursor(0, 0);
-            cl_eos();
+            clear_to_end_of_screen();
         } else
             clear_screen();
 
@@ -225,7 +225,7 @@ void MenuWindow::process_menu()
             if (!m_offx) { /* if not corner, do clearscreen */
                 if (m_offy) {
                     set_cursor(0, 0);
-                    cl_eos();
+                    clear_to_end_of_screen();
                 } else
                     clear_screen();
             }
@@ -244,7 +244,7 @@ void MenuWindow::process_menu()
 
                     set_cursor(0, page_lines);
                     if (m_offx)
-                        cl_end();
+                        clear_to_end_of_line();
 
                     TextColor useColor = TextColor::NoColor;
                     TextAttribute useAttribute = TextAttribute::None;
@@ -309,7 +309,7 @@ void MenuWindow::process_menu()
             if (m_offx) {
                 for (n = page_lines + 1; n < m_rows; n++) {
                     set_cursor(0, n);
-                    cl_end();
+                    clear_to_end_of_line();
                 }
             }
 
@@ -329,7 +329,7 @@ void MenuWindow::process_menu()
             }
 
             set_cursor(0, page_lines);
-            cl_end();
+            clear_to_end_of_line();
             response = dmore(resp);
         } else {
             /* just put the cursor back... */
@@ -546,7 +546,7 @@ MenuWindow::process_lines()
         auto line = *iter++;
 
         set_cursor(0, row++);
-        cl_end();
+        clear_to_end_of_line();
 
         if (line.second.size() > 0) {
             const char * str = line.second.c_str();
@@ -565,7 +565,7 @@ MenuWindow::process_lines()
 
         if (row == (m_rows - 1) || iter == m_lines.end()) {
             set_cursor(0, row);
-            cl_end();
+            clear_to_end_of_line();
             int response = dmore(quitchars);
             if (response == '\033') {
                 m_cancelled = true;
@@ -573,7 +573,7 @@ MenuWindow::process_lines()
             }
 
             set_cursor(0, 0);
-            cl_eos();
+            clear_to_end_of_screen();
             row = 0;
         }
 

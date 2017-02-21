@@ -57,8 +57,8 @@ void MessageWindow::Destroy()
 void MessageWindow::Clear()
 {
     if (m_mustBeErased) {
-        home();
-        cl_end();
+        set_cursor(0, 0);
+        clear_to_end_of_line();
         if (m_cury)
             docorner(0, m_cury + 1);
         m_mustBeErased = false;
@@ -110,13 +110,11 @@ void MessageWindow::removetopl(int n)
 
 int MessageWindow::redotoplin(const char *str, int dismiss_more)
 {
-    home();
-
     m_curx = 0;
     m_cury = 0;
 
     putsyms(str, TextColor::NoColor, TextAttribute::None);
-    cl_end();
+    clear_to_end_of_line();
     m_mustBeSeen = true;
     m_mustBeErased = true;
 
@@ -421,7 +419,8 @@ void MessageWindow::update_topl(const char *bp)
             more();
         } else if (m_cury) { /* for when flags.toplin == 2 && cury > 1 */
             docorner(0, m_cury + 1); /* reset cury = 0 if redraw screen */
-            m_curx = m_cury = 0;   /* from home--cls() & docorner(0,n) */
+            m_curx = 0;
+            m_cury = 0;
         }
     }
     remember_topl();
@@ -612,7 +611,7 @@ void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute
         core_putc('\b');
         return;
     case '\n':
-        cl_end();
+        clear_to_end_of_line();
         core_putc('\n');
         break;
     default:
@@ -622,14 +621,14 @@ void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute
     }
 
     if (m_curx == 0)
-        cl_end();
+        clear_to_end_of_line();
 }
 
 void MessageWindow::addtopl(const char *s)
 {
     set_cursor(m_curx, m_cury);
     putsyms(s, TextColor::NoColor, TextAttribute::None);
-    cl_end();
+    clear_to_end_of_line();
     m_mustBeSeen = true;
     m_mustBeErased = true;
 }
@@ -654,15 +653,13 @@ int MessageWindow::more(int dismiss_more)
     /* if the message is more then one line then erase the entire message */
     if (m_mustBeErased && m_cury) {
         docorner(0, m_cury + 1);
-        m_curx = m_cury = 0;
-        home();
+        set_cursor(0, 0);
         m_mustBeErased = false;
     }
     /* if the single line message was cancelled then erase the message */
-    else if (response == '\033') {
-        m_curx = m_cury = 0;
-        home();
-        cl_end();
+    else if (response == ESCAPE) {
+        set_cursor(0, 0);
+        clear_to_end_of_line();
         m_mustBeErased = false;
     }
     /* otherwise we have left the message visible */
@@ -709,7 +706,7 @@ void MessageWindow::docorner(int xmin, int ymax)
 
     for (y = 0; y < ymax; y++) {
         set_cursor(xmin, y);
-        cl_end();                       /* clear to end of line */
+        clear_to_end_of_line();
         if (y < g_mapWindow.m_offy || y > ROWNO)
             continue; /* only refresh board  */
         row_refresh(xmin - g_mapWindow.m_offx, COLNO - 1, y - g_mapWindow.m_offy);

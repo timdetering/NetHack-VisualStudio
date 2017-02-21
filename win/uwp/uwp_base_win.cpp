@@ -91,7 +91,7 @@ void BaseWindow::tty_askname()
         }
 
         set_cursor(0, startLine + 1);
-        cl_end();
+        clear_to_end_of_line();
 
         core_puts(who_are_you);
 
