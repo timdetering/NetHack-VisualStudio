@@ -98,6 +98,10 @@ void MessageWindow::removetopl(int n)
         putsyms("\b \b", TextColor::NoColor, TextAttribute::None);
 }
 
+/* set the topline message with the given string.
+ * dismiss_more is an additional character that can be used to dismiss
+ * a more prompt.
+ */
 int MessageWindow::redotoplin(const char *str, int dismiss_more)
 {
     m_curx = 0;
@@ -280,14 +284,14 @@ char MessageWindow::yn_function(
             q = lowc(q);
         if (q == '\020') { /* ctrl-P */
             if (iflags.prevmsg_window != 's') {
-                (void)tty_doprev_message();
-                tty_clear_nhwindow(WIN_MESSAGE);
+                doprev_message();
+                Clear();
                 m_msgIter = m_msgList.end();
                 addtopl(prompt);
             } else {
                 if (!doprev)
-                    (void) tty_doprev_message(); /* need two initially */
-                (void)tty_doprev_message();
+                    doprev_message(); /* need two initially */
+                doprev_message();
                 doprev = 1;
             }
             q = '\0'; /* force another loop iteration */
@@ -296,7 +300,7 @@ char MessageWindow::yn_function(
             /* BUG[?]: this probably ought to check whether the
             character which has just been read is an acceptable
             response; if so, skip the reprompt and use it. */
-            tty_clear_nhwindow(WIN_MESSAGE);
+            Clear();
             m_msgIter = m_msgList.end();
             doprev = 0;
             addtopl(prompt);
@@ -380,7 +384,7 @@ clean_up:
     m_mustBeSeen = false;
 
     if (m_cury)
-        tty_clear_nhwindow(WIN_MESSAGE);
+        Clear();
 
     return q;
 }
@@ -443,7 +447,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
     boolean doprev = 0;
 
     if (m_mustBeSeen && !m_stop)
-        more(0);
+        more();
 
     /* getting input ... new messages should be seen (stop == false) */
     m_stop = false;
@@ -461,7 +465,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
             if (c == '\033' && obufp[0] != '\0') {
                 obufp[0] = '\0';
                 bufp = obufp;
-                tty_clear_nhwindow(WIN_MESSAGE);
+                Clear();
                 m_msgIter = m_msgList.end();
                 addtopl(query);
                 addtopl(" ");
@@ -475,7 +479,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
         if (c == '\020') { /* ctrl-P */
             if (iflags.prevmsg_window != 's') {
                 (void)tty_doprev_message();
-                tty_clear_nhwindow(WIN_MESSAGE);
+                Clear();
                 m_msgIter = m_msgList.end();
                 addtopl(query);
                 addtopl(" ");
@@ -483,13 +487,13 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
                 addtopl(obufp);
             } else {
                 if (!doprev)
-                    (void) tty_doprev_message(); /* need two initially */
-                (void)tty_doprev_message();
+                    doprev_message(); /* need two initially */
+                doprev_message();
                 doprev = 1;
                 continue;
             }
         } else if (doprev && iflags.prevmsg_window == 's') {
-            tty_clear_nhwindow(WIN_MESSAGE);
+            Clear();
             m_msgIter = m_msgList.end();
             doprev = 0;
             addtopl(query);
@@ -499,49 +503,29 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
         }
         if (c == '\b') {
             if (bufp != obufp) {
-#ifdef NEWAUTOCOMP
                 char *i;
-
-#endif /* NEWAUTOCOMP */
                 bufp--;
-#ifndef NEWAUTOCOMP
-                putsyms("\b \b", TextColor::NoColor, TextAttribute::None); /* putsym converts \b */
-#else                             /* NEWAUTOCOMP */
                 putsyms("\b", TextColor::NoColor, TextAttribute::None);
                 for (i = bufp; *i; ++i)
                     putsyms(" ", TextColor::NoColor, TextAttribute::None);
                 for (; i > bufp; --i)
                     putsyms("\b", TextColor::NoColor, TextAttribute::None);
                 *bufp = 0;
-#endif                            /* NEWAUTOCOMP */
             } else
                 tty_nhbell();
-#if defined(apollo)
-        } else if (c == '\n' || c == '\r') {
-#else
         } else if (c == '\n') {
-#endif
-#ifndef NEWAUTOCOMP
-            *bufp = 0;
-#endif /* not NEWAUTOCOMP */
             break;
         } else if (' ' <= (unsigned char)c && c != '\177'
             && (bufp - obufp < BUFSZ - 1 && bufp - obufp < COLNO)) {
             /* avoid isprint() - some people don't have it
             ' ' is not always a printing char */
-#ifdef NEWAUTOCOMP
             char *i = eos(bufp);
-
-#endif /* NEWAUTOCOMP */
             *bufp = c;
             bufp[1] = 0;
             putsyms(bufp, TextColor::NoColor, TextAttribute::None);
             bufp++;
             if (hook && (*hook)(obufp)) {
                 putsyms(bufp, TextColor::NoColor, TextAttribute::None);
-#ifndef NEWAUTOCOMP
-                bufp = eos(bufp);
-#else  /* NEWAUTOCOMP */
                 /* pointer and cursor left where they were */
                 for (i = bufp; *i; ++i)
                     putsyms("\b", TextColor::NoColor, TextAttribute::None);
@@ -553,27 +537,19 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
                     putsyms(" ", TextColor::NoColor, TextAttribute::None);
                 for (; s > bufp; --s)
                     putsyms("\b", TextColor::NoColor, TextAttribute::None);
-#endif /* NEWAUTOCOMP */
             }
         } else if (c == kKillChar || c == '\177') { /* Robert Viduya */
                                                     /* this test last - @ might be the kill_char */
-#ifndef NEWAUTOCOMP
-            while (bufp != obufp) {
-                bufp--;
-                putsyms("\b \b");
-            }
-#else  /* NEWAUTOCOMP */
             for (; *bufp; ++bufp)
                 putsyms(" ", TextColor::NoColor, TextAttribute::None);
             for (; bufp != obufp; --bufp)
                 putsyms("\b \b", TextColor::NoColor, TextAttribute::None);
             *bufp = 0;
-#endif /* NEWAUTOCOMP */
         } else
             tty_nhbell();
     }
     m_mustBeSeen = false;
-    clear_nhwindow(WIN_MESSAGE); /* clean up after ourselves */
+    Clear();
 }
 
 void
@@ -617,7 +593,6 @@ void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute
 
 void MessageWindow::addtopl(const char *s)
 {
-    set_cursor(m_curx, m_cury);
     putsyms(s, TextColor::NoColor, TextAttribute::None);
     clear_to_end_of_line();
     m_mustBeSeen = true;
@@ -677,7 +652,7 @@ char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
         assert(!m_mustBeSeen);
 
         if (m_mustBeErased)
-            tty_clear_nhwindow(WIN_MESSAGE);
+            Clear();
     }
     /* normally <ESC> means skip further messages, but in this case
     it means cancel the current prompt; any other messages should
@@ -689,16 +664,14 @@ char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
 
 void MessageWindow::erase_message()
 {
-    int xmin = 0;
     int ymax = m_cury + 1;
-    int y;
 
-    for (y = 0; y < ymax; y++) {
-        set_cursor(xmin, y);
+    for (int y = 0; y < ymax; y++) {
+        set_cursor(0, y);
         clear_to_end_of_line();
         if (y < g_mapWindow.m_offy || y > ROWNO)
             continue; /* only refresh board  */
-        row_refresh(xmin - g_mapWindow.m_offx, COLNO - 1, y - g_mapWindow.m_offy);
+        row_refresh(0 - g_mapWindow.m_offx, COLNO - 1, y - g_mapWindow.m_offy);
     }
 
     if (ymax >= (int)g_statusWindow.m_offy) {

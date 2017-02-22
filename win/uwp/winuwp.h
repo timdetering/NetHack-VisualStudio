@@ -8,8 +8,6 @@
 #error UWP_GRAPHICS must be defined
 #endif
 
-#define NEWAUTOCOMP
-
 /* menu structure */
 typedef struct tty_mi {
     anything identifier; /* user identifier */
