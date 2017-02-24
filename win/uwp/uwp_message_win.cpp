@@ -89,7 +89,60 @@ void MessageWindow::Dismiss()
 
 void MessageWindow::Putstr(int attr, const char *str)
 {
-    update_topl(str);
+    /* TODO(bhouse) could we get non-zero attr? */
+    assert(attr == 0);
+
+    std::string input = std::string(str);
+
+    char *tl, *otl;
+    int n0;
+    int notdied = 1;
+
+    const char * bp = input.c_str();
+
+    /* If there is room on the line, print message on same line */
+    /* But messages like "You die..." deserve their own line */
+    n0 = strlen(bp);
+    if ((m_mustBeSeen || m_stop) && m_cury == 0
+        && n0 + (int)strlen(toplines) + 3 < CO - 8 /* room for --More-- */
+        && (notdied = strncmp(bp, "You die", 7)) != 0) {
+        strncat(toplines, "  ", sizeof(toplines) - strlen(toplines) - 1);
+        strncat(toplines, bp, sizeof(toplines) - strlen(toplines) - 1);
+        if (!m_stop) {
+            m_curx += 2;
+            addtopl(bp);
+        }
+        return;
+    } else if (!m_stop) {
+        if (m_mustBeSeen) {
+            more();
+        } else if (m_cury) {
+            erase_message();
+            m_curx = 0;
+            m_cury = 0;
+        }
+    }
+    remember_topl();
+    strncpy(toplines, bp, TBUFSZ - 1);
+
+    for (tl = toplines; n0 >= CO; ) {
+        otl = tl;
+        for (tl += CO - 1; tl != otl; --tl)
+            if (*tl == ' ')
+                break;
+        if (tl == otl) {
+            /* Eek!  A huge token.  Try splitting after it. */
+            tl = index(otl, ' ');
+            if (!tl)
+                break; /* No choice but to spit it out whole. */
+        }
+        *tl++ = '\n';
+        n0 = strlen(tl);
+    }
+    if (!notdied)
+        m_stop = false;
+    if (!m_stop)
+        redotoplin(toplines);
 }
 
 void MessageWindow::removetopl(int n)
@@ -184,7 +237,7 @@ int MessageWindow::doprev_message()
             putstr(prevmsg_win, 0, "");
             putstr(prevmsg_win, 0, toplines);
 
-            auto & iter = m_msgList.end();
+            auto iter = m_msgList.end();
             while (iter != m_msgList.begin())
             {
                 putstr(prevmsg_win, 0, iter->c_str());
@@ -387,57 +440,6 @@ clean_up:
         Clear();
 
     return q;
-}
-
-/* add to the top line */
-void MessageWindow::update_topl(const char *bp)
-{
-    register char *tl, *otl;
-    register int n0;
-    int notdied = 1;
-
-    /* If there is room on the line, print message on same line */
-    /* But messages like "You die..." deserve their own line */
-    n0 = strlen(bp);
-    if ((m_mustBeSeen || m_stop) && m_cury == 0
-        && n0 + (int)strlen(toplines) + 3 < CO - 8 /* room for --More-- */
-        && (notdied = strncmp(bp, "You die", 7)) != 0) {
-        strncat(toplines, "  ", sizeof(toplines) - strlen(toplines) - 1);
-        strncat(toplines, bp, sizeof(toplines) - strlen(toplines) - 1);
-        m_curx += 2;
-        if (!m_stop)
-            addtopl(bp);
-        return;
-    } else if (!m_stop) {
-        if (m_mustBeSeen) {
-            more();
-        } else if (m_cury) {
-            erase_message();
-            m_curx = 0;
-            m_cury = 0;
-        }
-    }
-    remember_topl();
-    strncpy(toplines, bp, TBUFSZ - 1);
-
-    for (tl = toplines; n0 >= CO; ) {
-        otl = tl;
-        for (tl += CO - 1; tl != otl; --tl)
-            if (*tl == ' ')
-                break;
-        if (tl == otl) {
-            /* Eek!  A huge token.  Try splitting after it. */
-            tl = index(otl, ' ');
-            if (!tl)
-                break; /* No choice but to spit it out whole. */
-        }
-        *tl++ = '\n';
-        n0 = strlen(tl);
-    }
-    if (!notdied)
-        m_stop = false;
-    if (!m_stop)
-        redotoplin(toplines);
 }
 
 void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook_proc hook)

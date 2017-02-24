@@ -80,7 +80,6 @@ struct MessageWindow : public CoreWindow {
     void removetopl(int n);
     int doprev_message();
     int redotoplin(const char *str, int dismiss_more = 0);
-    void update_topl(const char *bp);
     void hooked_tty_getlin(const char *, char *, getlin_hook_proc);
     void putsyms(const char *str, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
     void topl_putsym(char c, Nethack::TextColor color, Nethack::TextAttribute attribute);
