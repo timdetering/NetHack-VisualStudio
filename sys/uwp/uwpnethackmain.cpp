@@ -448,7 +448,7 @@ void NethackMain::SuspendNethackMainLoop(void)
     m_mainLoopHold = true;
 
     // Send EOF causing a hangup to occur and exiting out of mainloop
-    g_eventQueue.PushBack(Nethack::Event(EOF));
+    g_eventQueue.PushBack(Nethack::Event(kEOF));
 
     // wait till main loop is held
     while(!m_mainLoopHeld)

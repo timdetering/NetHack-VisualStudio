@@ -84,7 +84,9 @@ CoreWindow::wait_for_response(
 #ifdef HANGUPHANDLING
         !program_state.done_hup &&
 #endif
-        (c = tty_nhgetch()) != EOF) {
+        1) {
+
+        c = tty_nhgetch();
 
         if (c == kNewline)
             break;

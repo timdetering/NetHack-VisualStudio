@@ -97,16 +97,15 @@ void BaseWindow::tty_askname()
 
         ct = 0;
         while ((c = tty_nhgetch()) != kNewline) {
-            if (c == EOF)
-                c = kEscape;
+
             if (c == kEscape) {
                 ct = 0;
                 break;
             } /* continue outer loop */
-#if defined(WIN32CON)
-            if (c == kEndOfText)
+
+            if (c == kControlC)
                 bail("^C abort.\n");
-#endif
+
             /* some people get confused when their erase char is not ^H */
             if (c == kBackspace || c == kDelete) {
                 if (ct) {
@@ -115,6 +114,7 @@ void BaseWindow::tty_askname()
                 }
                 continue;
             }
+
             if (ct < (int)(sizeof plname) - 1) {
                 core_putc(c);
                 plname[ct++] = c;

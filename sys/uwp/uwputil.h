@@ -12,10 +12,11 @@ namespace Nethack
     const char kBackspace = '\b';
     const char kCarriageReturn = '\r';
     const char kTab = '\t';
-    const char kEndOfText = '\003';
+    const char kControlC = '\003';
     const char kNull = '\0';
     const char kSpace = ' ';
     const char kControlP = '\020';
+    const char kEOF = -1;
 
 
     enum class ScanCode

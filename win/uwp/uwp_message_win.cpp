@@ -459,13 +459,14 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
     assert(!m_nextIsPrompt);
     *obufp = 0;
     for (;;) {
+
         strncpy(toplines, query, sizeof(toplines) - 1);
         strncat(toplines, " ", sizeof(toplines) - strlen(toplines) - 1);
         strncat(toplines, obufp, sizeof(toplines) - strlen(toplines) - 1);
         c = pgetchar();
 
-        if (c == kEscape || c == EOF) {
-            if (c == kEscape && obufp[0] != kNull) {
+        if (c == kEscape) {
+            if (obufp[0] != kNull) {
                 obufp[0] = kNull;
                 bufp = obufp;
                 Clear();
@@ -475,19 +476,19 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
                 addtopl(obufp);
             } else {
                 obufp[0] = kEscape;
-                obufp[1] = '\0';
+                obufp[1] = kNull;
                 break;
             }
         }
 
         if (c == kControlP) { /* ctrl-P */
             if (iflags.prevmsg_window != 's') {
-                (void)tty_doprev_message();
+                doprev_message();
                 Clear();
                 m_msgIter = m_msgList.end();
                 addtopl(query);
                 addtopl(" ");
-                *bufp = 0;
+                *bufp = kNull;
                 addtopl(obufp);
             } else {
                 if (!doprev)
@@ -502,7 +503,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
             doprev = 0;
             addtopl(query);
             addtopl(" ");
-            *bufp = 0;
+            *bufp = kNull;
             addtopl(obufp);
         }
 
@@ -515,18 +516,18 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
                     putsyms(" ", TextColor::NoColor, TextAttribute::None);
                 for (; i > bufp; --i)
                     putsyms("\b", TextColor::NoColor, TextAttribute::None);
-                *bufp = 0;
+                *bufp = kNull;
             } else
                 tty_nhbell();
         } else if (c == kNewline) {
             break;
-        } else if (' ' <= (unsigned char)c && c != kDelete
+        } else if (kSpace <= (unsigned char)c && c != kDelete
             && (bufp - obufp < BUFSZ - 1 && bufp - obufp < COLNO)) {
             /* avoid isprint() - some people don't have it
             ' ' is not always a printing char */
             char *i = eos(bufp);
             *bufp = c;
-            bufp[1] = 0;
+            bufp[1] = kNull;
             putsyms(bufp, TextColor::NoColor, TextAttribute::None);
             bufp++;
             if (hook && (*hook)(obufp)) {
@@ -549,7 +550,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
                 putsyms(" ", TextColor::NoColor, TextAttribute::None);
             for (; bufp != obufp; --bufp)
                 putsyms("\b \b", TextColor::NoColor, TextAttribute::None);
-            *bufp = 0;
+            *bufp = kNull;
         } else
             tty_nhbell();
     }

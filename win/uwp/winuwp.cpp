@@ -457,6 +457,8 @@ tty_nhgetch()
  * return a key, or 0, in which case a mouse button was pressed
  * mouse events should be returned as character postitions in the map window.
  * Since normal tty's don't have mice, just return a key.
+ *
+ * will never return kEOF.
  */
 /*ARGSUSED*/
 int
@@ -479,7 +481,7 @@ tty_nh_poskey(int *x, int *y, int *mod)
             e = g_eventQueue.PopFront();
 
         if (e.m_type == Event::Type::Char) {
-            if (e.m_char == EOF) {
+            if (e.m_char == kEOF) {
                 hangup(0);
                 e.m_char = kEscape;
             }
