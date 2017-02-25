@@ -231,7 +231,7 @@ void NethackMain::OnCharacterReceived(Windows::UI::Core::CoreWindow^ sender, Win
 {
     char c = args->KeyCode;
 
-    if (c == '\r') c = '\n';
+    if (c == kCarriageReturn) c = kNewline;
     g_eventQueue.PushBack(Event(c));
 }
 

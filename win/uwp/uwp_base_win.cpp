@@ -96,19 +96,19 @@ void BaseWindow::tty_askname()
         core_puts(who_are_you);
 
         ct = 0;
-        while ((c = tty_nhgetch()) != '\n') {
+        while ((c = tty_nhgetch()) != kNewline) {
             if (c == EOF)
-                c = '\033';
-            if (c == '\033') {
+                c = kEscape;
+            if (c == kEscape) {
                 ct = 0;
                 break;
             } /* continue outer loop */
 #if defined(WIN32CON)
-            if (c == '\003')
+            if (c == kEndOfText)
                 bail("^C abort.\n");
 #endif
             /* some people get confused when their erase char is not ^H */
-            if (c == '\b' || c == '\177') {
+            if (c == kBackspace || c == kDelete) {
                 if (ct) {
                     ct--;
                     core_puts("\b \b");

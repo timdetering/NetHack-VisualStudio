@@ -346,7 +346,7 @@ tty_display_file(const char *fname, boolean complain)
                     g_wins[datawin]->m_offy = 0;
         }
         while (dlb_fgets(buf, BUFSZ, f)) {
-            if ((cr = index(buf, '\n')) != 0)
+            if ((cr = index(buf, kNewline)) != 0)
                 *cr = 0;
             if (index(buf, '\t') != 0)
                 (void) tabexpand(buf);
@@ -379,7 +379,7 @@ tty_wait_synch()
     if (g_rawprint) {
         while (1) {
             int c = tty_nhgetch();
-            if (c == '\n' || c == ESCAPE) 
+            if (c == kNewline || c == kEscape)
                 break;
         }
         g_rawprint = 0;
@@ -465,7 +465,7 @@ tty_nh_poskey(int *x, int *y, int *mod)
     int i;
 
     if (program_state.done_hup) {
-        i = ESCAPE;
+        i = kEscape;
     } else {
 
         /* we checking for input -- flush our output */
@@ -481,7 +481,7 @@ tty_nh_poskey(int *x, int *y, int *mod)
         if (e.m_type == Event::Type::Char) {
             if (e.m_char == EOF) {
                 hangup(0);
-                e.m_char = ESCAPE;
+                e.m_char = kEscape;
             }
 
             i = e.m_char;
@@ -591,7 +591,7 @@ tty_get_ext_cmd()
         int j;
         for (j = 0; buf[j]; j++)
             savech(buf[j]);
-        savech('\n');
+        savech(kNewline);
     }
 
     if (extcmdlist[i].ef_txt == (char *)0) {

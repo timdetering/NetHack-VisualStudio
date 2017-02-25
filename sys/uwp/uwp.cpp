@@ -357,7 +357,7 @@ char MapScanCode(const Event & e)
 int raw_getchar()
 {
     if (program_state.done_hup)
-        return ESCAPE;
+        return kEscape;
 
     /* we checking for input -- flush our output */
     g_textGrid.Flush();
@@ -1131,7 +1131,7 @@ void uwp_wait_for_return()
     {
         char c = pgetchar();
 
-        if (c == ESCAPE || c == '\n')
+        if (c == kEscape || c == kNewline)
             break;
     }
 }

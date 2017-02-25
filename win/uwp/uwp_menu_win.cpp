@@ -391,7 +391,7 @@ void MenuWindow::process_menu()
             /* else only stop count */
             break;
         case '\0': /* finished (commit) */
-        case '\n':
+        case kNewline:
         case '\r':
             /* only finished if we are actually picking something */
             if (m_how != PICK_NONE) {

@@ -86,11 +86,11 @@ CoreWindow::wait_for_response(
 #endif
         (c = tty_nhgetch()) != EOF) {
 
-        if (c == '\n')
+        if (c == kNewline)
             break;
 
-        if (c == '\033') {
-            response = '\033';
+        if (c == kEscape) {
+            response = kEscape;
             break;
         }
 
@@ -138,23 +138,23 @@ CoreWindow::compress_str(const char * str)
     /* compress out consecutive spaces if line is too long;
     topline wrapping converts space at wrap point into newline,
     we reverse that here */
-    if ((int)strlen(str) >= CO || index(str, '\n')) {
+    if ((int)strlen(str) >= CO || index(str, kNewline)) {
         const char *in_str = str;
         char c, *outstr = cbuf, *outend = &cbuf[sizeof cbuf - 1];
         boolean was_space = TRUE; /* True discards all leading spaces;
                                   False would retain one if present */
 
-        while ((c = *in_str++) != '\0' && outstr < outend) {
-            if (c == '\n')
-                c = ' ';
-            if (was_space && c == ' ')
+        while ((c = *in_str++) != kNull && outstr < outend) {
+            if (c == kNewline)
+                c = kSpace;
+            if (was_space && c == kSpace)
                 continue;
             *outstr++ = c;
-            was_space = (c == ' ');
+            was_space = (c == kSpace);
         }
         if ((was_space && outstr > cbuf) || outstr == outend)
             --outstr; /* remove trailing space or make room for terminator */
-        *outstr = '\0';
+        *outstr = kNull;
         str = cbuf;
     }
     return str;

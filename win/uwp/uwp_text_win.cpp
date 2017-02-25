@@ -102,7 +102,7 @@ void TextWindow::Display(bool blocking)
             clear_to_end_of_screen();
             set_cursor(0, m_rows - 1);
             int response = dmore(quitchars);
-            if (response == ESCAPE) {
+            if (response == kEscape) {
                 m_cancelled = true;
                 break;
             }

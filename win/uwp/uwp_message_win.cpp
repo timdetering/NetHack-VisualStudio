@@ -132,11 +132,11 @@ void MessageWindow::Putstr(int attr, const char *str)
                 break;
         if (tl == otl) {
             /* Eek!  A huge token.  Try splitting after it. */
-            tl = index(otl, ' ');
+            tl = index(otl, kSpace);
             if (!tl)
                 break; /* No choice but to spit it out whole. */
         }
-        *tl++ = '\n';
+        *tl++ = kNewline;
         n0 = strlen(tl);
     }
     if (!notdied)
@@ -309,8 +309,8 @@ char MessageWindow::yn_function(
                 break;
             }
         /* any acceptable responses that follow <esc> aren't displayed */
-        if ((rb = index(respbuf, '\033')) != 0)
-            *rb = '\0';
+        if ((rb = index(respbuf, kEscape)) != 0)
+            *rb = kNull;
         (void)strncpy(prompt, query, QBUFSZ - 1);
         prompt[QBUFSZ - 1] = '\0';
         Sprintf(eos(prompt), " [%s]", respbuf);
@@ -335,7 +335,7 @@ char MessageWindow::yn_function(
         q = readchar();
         if (!preserve_case)
             q = lowc(q);
-        if (q == '\020') { /* ctrl-P */
+        if (q == kControlP) { /* ctrl-P */
             if (iflags.prevmsg_window != 's') {
                 doprev_message();
                 Clear();
@@ -361,7 +361,7 @@ char MessageWindow::yn_function(
             continue;
         }
         digit_ok = allow_num && digit(q);
-        if (q == '\033') {
+        if (q == kEscape) {
             if (index(resp, 'q'))
                 q = 'q';
             else if (index(resp, 'n'))
@@ -399,10 +399,10 @@ char MessageWindow::yn_function(
                     digit_string[0] = z;
                     addtopl(digit_string), n_len++;
                 } else if (z == 'y' || index(quitchars, z)) {
-                    if (z == '\033')
+                    if (z == kEscape)
                         value = -1; /* abort */
-                    z = '\n';       /* break */
-                } else if (z == '\b') {
+                    z = kNewline;       /* break */
+                } else if (z == kBackspace) {
                     if (n_len <= 1) {
                         value = -1;
                         break;
@@ -416,7 +416,7 @@ char MessageWindow::yn_function(
                     tty_nhbell();
                     break;
                 }
-            } while (z != '\n');
+            } while (z != kNewline);
             if (value > 0)
                 yn_number = value;
             else if (value == 0)
@@ -444,8 +444,8 @@ clean_up:
 
 void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook_proc hook)
 {
-    register char *obufp = bufp;
-    register int c;
+    char *obufp = bufp;
+    int c;
     boolean doprev = 0;
 
     if (m_mustBeSeen && !m_stop)
@@ -463,9 +463,10 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
         strncat(toplines, " ", sizeof(toplines) - strlen(toplines) - 1);
         strncat(toplines, obufp, sizeof(toplines) - strlen(toplines) - 1);
         c = pgetchar();
-        if (c == '\033' || c == EOF) {
-            if (c == '\033' && obufp[0] != '\0') {
-                obufp[0] = '\0';
+
+        if (c == kEscape || c == EOF) {
+            if (c == kEscape && obufp[0] != kNull) {
+                obufp[0] = kNull;
                 bufp = obufp;
                 Clear();
                 m_msgIter = m_msgList.end();
@@ -473,12 +474,13 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
                 addtopl(" ");
                 addtopl(obufp);
             } else {
-                obufp[0] = '\033';
+                obufp[0] = kEscape;
                 obufp[1] = '\0';
                 break;
             }
         }
-        if (c == '\020') { /* ctrl-P */
+
+        if (c == kControlP) { /* ctrl-P */
             if (iflags.prevmsg_window != 's') {
                 (void)tty_doprev_message();
                 Clear();
@@ -503,7 +505,8 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
             *bufp = 0;
             addtopl(obufp);
         }
-        if (c == '\b') {
+
+        if (c == kBackspace) {
             if (bufp != obufp) {
                 char *i;
                 bufp--;
@@ -515,9 +518,9 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
                 *bufp = 0;
             } else
                 tty_nhbell();
-        } else if (c == '\n') {
+        } else if (c == kNewline) {
             break;
-        } else if (' ' <= (unsigned char)c && c != '\177'
+        } else if (' ' <= (unsigned char)c && c != kDelete
             && (bufp - obufp < BUFSZ - 1 && bufp - obufp < COLNO)) {
             /* avoid isprint() - some people don't have it
             ' ' is not always a printing char */
@@ -540,7 +543,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
                 for (; s > bufp; --s)
                     putsyms("\b", TextColor::NoColor, TextAttribute::None);
             }
-        } else if (c == kKillChar || c == '\177') { /* Robert Viduya */
+        } else if (c == kKillChar || c == kDelete) { /* Robert Viduya */
                                                     /* this test last - @ might be the kill_char */
             for (; *bufp; ++bufp)
                 putsyms(" ", TextColor::NoColor, TextAttribute::None);
@@ -569,23 +572,23 @@ void MessageWindow::remember_topl()
     m_msgList.push_back(std::string(toplines));
     while (m_msgList.size() > m_rows)
         m_msgList.pop_front();
-    *toplines = '\0';
+    *toplines = kNull;
     m_msgIter = m_msgList.end();
 }
 
 void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute)
 {
     switch (c) {
-    case '\b':
-        core_putc('\b');
+    case kBackspace:
+        core_putc(kBackspace);
         return;
-    case '\n':
+    case kNewline:
         clear_to_end_of_line();
-        core_putc('\n');
+        core_putc(kNewline);
         break;
     default:
         if (m_curx + m_offx == CO - 1)
-            topl_putsym('\n', TextColor::NoColor, TextAttribute::None); /* 1 <= curx < CO; avoid CO */
+            topl_putsym(kNewline, TextColor::NoColor, TextAttribute::None); /* 1 <= curx < CO; avoid CO */
         core_putc(c);
     }
 
@@ -608,7 +611,7 @@ int MessageWindow::more(int dismiss_more)
     if (m_mustBeErased) {
         set_cursor(m_curx, m_cury);
         if (m_curx >= CO - 8)
-            topl_putsym('\n', TextColor::NoColor, TextAttribute::None);
+            topl_putsym(kNewline, TextColor::NoColor, TextAttribute::None);
     }
 
     putsyms(defmorestr, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
@@ -618,7 +621,7 @@ int MessageWindow::more(int dismiss_more)
     /* if the message is more then one line or message was cancelled then erase the entire message. 
      * otherwise we leave the message visible.
      */
-    if ((m_mustBeErased && m_cury != 0) || response == ESCAPE)
+    if ((m_mustBeErased && m_cury != 0) || response == kEscape)
         erase_message();
 
     /* message has been seen and confirmed */
@@ -627,7 +630,7 @@ int MessageWindow::more(int dismiss_more)
     /* note: if we are stopping messages there are no messages to be seen
      *       or messages that need erasing.
      */
-    if (response == ESCAPE)
+    if (response == kEscape)
         m_stop = true;
 
     return response;

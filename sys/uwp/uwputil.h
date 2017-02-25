@@ -6,7 +6,17 @@
 
 namespace Nethack
 {
-    const char ESCAPE = 27;
+    const char kEscape = 27; /* '\033' */
+    const char kDelete = 127;
+    const char kNewline = '\n';
+    const char kBackspace = '\b';
+    const char kCarriageReturn = '\r';
+    const char kTab = '\t';
+    const char kEndOfText = '\003';
+    const char kNull = '\0';
+    const char kSpace = ' ';
+    const char kControlP = '\020';
+
 
     enum class ScanCode
     {
