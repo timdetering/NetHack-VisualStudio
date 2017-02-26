@@ -447,6 +447,10 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
     char *obufp = bufp;
     int c;
     boolean doprev = 0;
+    std::string prompt = std::string(query);
+    std::string input;
+    std::string guess;
+    std::string line;
 
     if (m_mustBeSeen && !m_stop)
         more();
@@ -455,41 +459,50 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
     m_stop = false;
 
     m_nextIsPrompt = true;
-    pline("%s ", query);
+
+    prompt += ' ';
+
+    Putstr(0, prompt.c_str());
+
     assert(!m_nextIsPrompt);
-    *obufp = 0;
+
     for (;;) {
 
-        strncpy(toplines, query, sizeof(toplines) - 1);
-        strncat(toplines, " ", sizeof(toplines) - strlen(toplines) - 1);
-        strncat(toplines, obufp, sizeof(toplines) - strlen(toplines) - 1);
+        line = std::string(prompt);
+        line += input;
+        line += guess;
+
+        strncpy(toplines, line.c_str(), sizeof(toplines) - 1);
+
+        if (doprev == 0) {
+            set_cursor(0, 0);
+            core_puts(line.c_str());
+            clear_to_end_of_line();
+            set_cursor(prompt.size() + input.size(), 0);
+            m_mustBeErased = true;
+            m_mustBeSeen = true;
+        }
+
         c = pgetchar();
 
-        if (c == kEscape) {
-            if (obufp[0] != kNull) {
-                obufp[0] = kNull;
-                bufp = obufp;
-                Clear();
-                m_msgIter = m_msgList.end();
-                addtopl(query);
-                addtopl(" ");
-                addtopl(obufp);
-            } else {
-                obufp[0] = kEscape;
-                obufp[1] = kNull;
-                break;
-            }
+        if (c == kEscape && input.size() == 0) {
+            input = std::string("\033");
+            toplines[0] = kNull;
+            break;
+        }
+
+        if (c == kEscape || c == kKillChar || c == kDelete) {
+            guess.clear();
+            input.clear();
+            m_msgIter = m_msgList.end();
         }
 
         if (c == kControlP) { /* ctrl-P */
+            guess.clear();
             if (iflags.prevmsg_window != 's') {
                 doprev_message();
-                Clear();
                 m_msgIter = m_msgList.end();
-                addtopl(query);
-                addtopl(" ");
-                *bufp = kNull;
-                addtopl(obufp);
+                continue;
             } else {
                 if (!doprev)
                     doprev_message(); /* need two initially */
@@ -498,64 +511,39 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
                 continue;
             }
         } else if (doprev && iflags.prevmsg_window == 's') {
-            Clear();
             m_msgIter = m_msgList.end();
             doprev = 0;
-            addtopl(query);
-            addtopl(" ");
-            *bufp = kNull;
-            addtopl(obufp);
         }
 
         if (c == kBackspace) {
-            if (bufp != obufp) {
-                char *i;
-                bufp--;
-                putsyms("\b", TextColor::NoColor, TextAttribute::None);
-                for (i = bufp; *i; ++i)
-                    putsyms(" ", TextColor::NoColor, TextAttribute::None);
-                for (; i > bufp; --i)
-                    putsyms("\b", TextColor::NoColor, TextAttribute::None);
-                *bufp = kNull;
+            if (input.size() > 0) {
+                input = input.substr(0, input.size() - 1);
+                guess.clear();
             } else
                 tty_nhbell();
         } else if (c == kNewline) {
             break;
         } else if (kSpace <= (unsigned char)c && c != kDelete
-            && (bufp - obufp < BUFSZ - 1 && bufp - obufp < COLNO)) {
-            /* avoid isprint() - some people don't have it
-            ' ' is not always a printing char */
-            char *i = eos(bufp);
-            *bufp = c;
-            bufp[1] = kNull;
-            putsyms(bufp, TextColor::NoColor, TextAttribute::None);
-            bufp++;
-            if (hook && (*hook)(obufp)) {
-                putsyms(bufp, TextColor::NoColor, TextAttribute::None);
-                /* pointer and cursor left where they were */
-                for (i = bufp; *i; ++i)
-                    putsyms("\b", TextColor::NoColor, TextAttribute::None);
-            } else if (i > bufp) {
-                char *s = i;
+            && (input.size() < BUFSZ - 1 && input.size() < COLNO)) {
 
-                /* erase rest of prior guess */
-                for (; i > bufp; --i)
-                    putsyms(" ", TextColor::NoColor, TextAttribute::None);
-                for (; s > bufp; --s)
-                    putsyms("\b", TextColor::NoColor, TextAttribute::None);
-            }
-        } else if (c == kKillChar || c == kDelete) { /* Robert Viduya */
-                                                    /* this test last - @ might be the kill_char */
-            for (; *bufp; ++bufp)
-                putsyms(" ", TextColor::NoColor, TextAttribute::None);
-            for (; bufp != obufp; --bufp)
-                putsyms("\b \b", TextColor::NoColor, TextAttribute::None);
-            *bufp = kNull;
+            input += c;
+            guess.clear();
+            strcpy(obufp, input.c_str());
+
+            if (hook && (*hook)(obufp))
+                guess = std::string(obufp + input.size());
+
         } else
             tty_nhbell();
     }
-    m_mustBeSeen = false;
+
+    strcpy(obufp, input.c_str());
+    strcat(obufp, guess.c_str());
+
+    assert(!m_mustBeSeen);
     Clear();
+
+    /* toplines has the result of the getlin */
 }
 
 void

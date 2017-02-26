@@ -876,8 +876,12 @@ void MenuWindow::uwp_end_menu(
 int MenuWindow::dmore(
     const char *s) /* valid responses */
 {
-    assert(m_morestr.size() > 0);
-    core_puts(m_morestr.c_str(), TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
+    if (m_morestr.size() > 0) {
+        core_puts(m_morestr.c_str(), TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
+    } else {
+        core_putc(' ');
+        core_puts(defmorestr, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
+    }
     return wait_for_response(s);
 }
 

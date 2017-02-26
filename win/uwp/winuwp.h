@@ -89,6 +89,8 @@ struct MessageWindow : public CoreWindow {
     char uwp_message_menu(char let, int how, const char *mesg);
     void erase_message();
 
+    int handle_prev_message();
+
     void uwp_putmsghistory(const char *msg, boolean restoring_msghist);
     char *uwp_getmsghistory(boolean init);
     void msghistory_snapshot(boolean purge);
