@@ -450,9 +450,19 @@ int MessageWindow::handle_prev_message()
         m_msgIter--;
         do {
             c = doprev_message();
-            if (m_msgIter == m_msgList.end() || c == kEscape)
+
+            if (m_msgIter == m_msgList.end()) {
+                c = kNull;
                 break;
-            c = pgetchar();
+            }
+
+            if (c == kNull)
+                c = pgetchar();
+
+            if (c == kSpace || c == kEscape || c == kNewline)
+                c = kNull;
+
+
         } while (c == kControlP);
     }
 
@@ -492,10 +502,10 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
 
         strncpy(toplines, line.c_str(), sizeof(toplines) - 1);
 
-        set_cursor(0, 0);
+        erase_message();
         core_puts(line.c_str());
-        clear_to_end_of_line();
-        set_cursor(prompt.size() + input.size(), 0);
+        if (guess.size())
+            set_cursor(prompt.size() + input.size(), 0);
         m_mustBeErased = true;
         m_mustBeSeen = true;
 
@@ -506,13 +516,13 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
             c = handle_prev_message();
         }
 
-        if (c == kEscape && input.size() == 0) {
+        if (c == kEscape) {
             input = std::string("\033");
             toplines[0] = kNull;
             break;
         }
 
-        if (c == kEscape || c == kKillChar || c == kDelete) {
+        if (c == kKillChar || c == kDelete) {
             guess.clear();
             input.clear();
         }
