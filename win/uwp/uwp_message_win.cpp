@@ -442,6 +442,32 @@ clean_up:
     return q;
 }
 
+int MessageWindow::handle_prev_message()
+{
+    bool doprev = false;
+    int c = kControlP;
+
+    while(c == kControlP) {
+
+        if (iflags.prevmsg_window != 's') {
+            doprev_message();
+            m_msgIter = m_msgList.end();
+        } else {
+            if (!doprev)
+                doprev_message(); /* need two initially */
+            doprev_message();
+            doprev = true;
+        }
+
+        c = pgetchar();
+    }
+
+    if (iflags.prevmsg_window == 's')
+        m_msgIter = m_msgList.end();
+
+    return c;
+}
+
 void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook_proc hook)
 {
     char *obufp = bufp;
@@ -485,6 +511,13 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
 
         c = pgetchar();
 
+#if 0
+        if (c == kControlP) {
+            guess.clear();
+            c = handle_prev_message();
+        }
+#endif
+
         if (c == kEscape && input.size() == 0) {
             input = std::string("\033");
             toplines[0] = kNull;
@@ -494,9 +527,12 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
         if (c == kEscape || c == kKillChar || c == kDelete) {
             guess.clear();
             input.clear();
+#if 1
             m_msgIter = m_msgList.end();
+#endif
         }
 
+#if 1
         if (c == kControlP) { /* ctrl-P */
             guess.clear();
             if (iflags.prevmsg_window != 's') {
@@ -514,6 +550,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
             m_msgIter = m_msgList.end();
             doprev = 0;
         }
+#endif
 
         if (c == kBackspace) {
             if (input.size() > 0) {
