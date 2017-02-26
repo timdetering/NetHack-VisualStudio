@@ -98,6 +98,7 @@ void MenuWindow::Dismiss()
     if (m_active) {
         assert(iflags.window_inited);
         docrt();
+        flush_screen(0);
         m_active = 0;
     }
     m_cancelled = false;

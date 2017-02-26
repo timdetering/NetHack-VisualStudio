@@ -90,6 +90,7 @@ struct MessageWindow : public CoreWindow {
     void erase_message();
 
     int handle_prev_message();
+    int display_message_history(bool reverse = false);
 
     void uwp_putmsghistory(const char *msg, boolean restoring_msghist);
     char *uwp_getmsghistory(boolean init);

@@ -175,81 +175,79 @@ int MessageWindow::redotoplin(const char *str, int dismiss_more)
     return response;
 }
 
-int MessageWindow::doprev_message()
+int MessageWindow::display_message_history(bool reverse)
 {
     winid prevmsg_win;
-    int i;
-    if (iflags.prevmsg_window != 's') {           /* not single */
-        if (iflags.prevmsg_window == 'f') { /* full */
-            prevmsg_win = create_nhwindow(NHW_MENU);
-            putstr(prevmsg_win, 0, "Message History");
-            putstr(prevmsg_win, 0, "");
+    int response = 0;
 
-            m_msgIter = m_msgList.end();
+    prevmsg_win = create_nhwindow(NHW_MENU);
+    MenuWindow * menuWin = (MenuWindow *)g_wins[prevmsg_win];
+    menuWin->Putstr(0, "Message History");
+    menuWin->Putstr(0, "");
 
-            for (auto & msg : m_msgList)
-                putstr(prevmsg_win, 0, msg.c_str());
+    if (!reverse) {
+        m_msgIter = m_msgList.end();
 
-            putstr(prevmsg_win, 0, toplines);
-            display_nhwindow(prevmsg_win, TRUE);
-            destroy_nhwindow(prevmsg_win);
-        } else if (iflags.prevmsg_window == 'c') { /* combination */
-            int response = 0;
-            do {
-                if (m_msgIter == m_msgList.end()) {
-                    response = redotoplin(toplines, C('p'));
+        for (auto & msg : m_msgList)
+            menuWin->Putstr(0, msg.c_str());
+
+        menuWin->Putstr(0, toplines);
+    } else {
+        menuWin->Putstr(0, toplines);
+
+        auto iter = m_msgList.end();
+        while (iter != m_msgList.begin())
+        {
+            iter--;
+            menuWin->Putstr(0, iter->c_str());
+        }
+    }
+
+    menuWin->Display(true);
+    if (menuWin->m_cancelled) response = kEscape;
+    menuWin->Destroy();
+
+    m_msgIter = m_msgList.end();
+
+    return response;
+}
+
+int MessageWindow::doprev_message()
+{
+    int response = 0;
+
+    if (iflags.prevmsg_window == 'f') { /* full */
+        response = display_message_history();
+    } else if (iflags.prevmsg_window == 'c') { /* combination */
+        do {
+            if (m_msgIter == m_msgList.end()) {
+                response = redotoplin(toplines, C('p'));
+
+                if (m_msgIter != m_msgList.begin())
+                    m_msgIter--;
+
+            } else {
+                auto iter = m_msgIter;
+                iter++;
+
+                if (iter == m_msgList.end()) {
+                    iter--;
+                    response = redotoplin(iter->c_str(), C('p'));
 
                     if (m_msgIter != m_msgList.begin())
                         m_msgIter--;
-
-                } else {
-                    auto iter = m_msgIter;
-                    iter++;
-
-                    if (iter == m_msgList.end()) {
-                       response = redotoplin(iter->c_str(), C('p'));
-
-                        if (m_msgIter != m_msgList.begin())
-                            m_msgIter--;
-                        else
-                            m_msgIter = m_msgList.end();
-
-                    } else {
-                        prevmsg_win = create_nhwindow(NHW_MENU);
-                        putstr(prevmsg_win, 0, "Message History");
-                        putstr(prevmsg_win, 0, "");
-
+                    else
                         m_msgIter = m_msgList.end();
 
-                        for (auto & msg : m_msgList)
-                            putstr(prevmsg_win, 0, msg.c_str());
-
-                        putstr(prevmsg_win, 0, toplines);
-                        display_nhwindow(prevmsg_win, TRUE);
-                        destroy_nhwindow(prevmsg_win);
-                    }
+                } else {
+                    response = display_message_history();
                 }
-
-            } while (response == C('p'));
-        } else { /* reversed */
-            prevmsg_win = create_nhwindow(NHW_MENU);
-            putstr(prevmsg_win, 0, "Message History");
-            putstr(prevmsg_win, 0, "");
-            putstr(prevmsg_win, 0, toplines);
-
-            auto iter = m_msgList.end();
-            while (iter != m_msgList.begin())
-            {
-                putstr(prevmsg_win, 0, iter->c_str());
-                iter--;
             }
 
-            display_nhwindow(prevmsg_win, TRUE);
-            destroy_nhwindow(prevmsg_win);
-            m_msgIter = m_msgList.end();
-        }
+        } while (response == C('p'));
+    } else if (iflags.prevmsg_window == 'r') { /* reversed */
+        response = display_message_history(true);
     } else if (iflags.prevmsg_window == 's') { /* single */
-        int response = 0;
         do {
             if (m_msgIter == m_msgList.end()) {
                 response = redotoplin(toplines, C('p'));
@@ -264,7 +262,8 @@ int MessageWindow::doprev_message()
 
         } while (response == C('p'));
     }
-    return 0;
+
+    return response;
 }
 
 char MessageWindow::yn_function(
@@ -444,26 +443,20 @@ clean_up:
 
 int MessageWindow::handle_prev_message()
 {
-    bool doprev = false;
     int c = kControlP;
 
-    while(c == kControlP) {
-
-        if (iflags.prevmsg_window != 's') {
-            doprev_message();
-            m_msgIter = m_msgList.end();
-        } else {
-            if (!doprev)
-                doprev_message(); /* need two initially */
-            doprev_message();
-            doprev = true;
-        }
-
-        c = pgetchar();
+    if (m_msgList.size() > 0) {
+        m_msgIter = m_msgList.end();
+        m_msgIter--;
+        do {
+            c = doprev_message();
+            if (m_msgIter == m_msgList.end() || c == kEscape)
+                break;
+            c = pgetchar();
+        } while (c == kControlP);
     }
 
-    if (iflags.prevmsg_window == 's')
-        m_msgIter = m_msgList.end();
+    m_msgIter = m_msgList.end();
 
     return c;
 }
@@ -472,7 +465,6 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
 {
     char *obufp = bufp;
     int c;
-    boolean doprev = 0;
     std::string prompt = std::string(query);
     std::string input;
     std::string guess;
@@ -500,23 +492,19 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
 
         strncpy(toplines, line.c_str(), sizeof(toplines) - 1);
 
-        if (doprev == 0) {
-            set_cursor(0, 0);
-            core_puts(line.c_str());
-            clear_to_end_of_line();
-            set_cursor(prompt.size() + input.size(), 0);
-            m_mustBeErased = true;
-            m_mustBeSeen = true;
-        }
+        set_cursor(0, 0);
+        core_puts(line.c_str());
+        clear_to_end_of_line();
+        set_cursor(prompt.size() + input.size(), 0);
+        m_mustBeErased = true;
+        m_mustBeSeen = true;
 
         c = pgetchar();
 
-#if 0
         if (c == kControlP) {
             guess.clear();
             c = handle_prev_message();
         }
-#endif
 
         if (c == kEscape && input.size() == 0) {
             input = std::string("\033");
@@ -527,30 +515,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
         if (c == kEscape || c == kKillChar || c == kDelete) {
             guess.clear();
             input.clear();
-#if 1
-            m_msgIter = m_msgList.end();
-#endif
         }
-
-#if 1
-        if (c == kControlP) { /* ctrl-P */
-            guess.clear();
-            if (iflags.prevmsg_window != 's') {
-                doprev_message();
-                m_msgIter = m_msgList.end();
-                continue;
-            } else {
-                if (!doprev)
-                    doprev_message(); /* need two initially */
-                doprev_message();
-                doprev = 1;
-                continue;
-            }
-        } else if (doprev && iflags.prevmsg_window == 's') {
-            m_msgIter = m_msgList.end();
-            doprev = 0;
-        }
-#endif
 
         if (c == kBackspace) {
             if (input.size() > 0) {

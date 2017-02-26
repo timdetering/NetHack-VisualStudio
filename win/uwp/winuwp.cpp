@@ -609,7 +609,8 @@ STATIC_DCL void FDECL(msghistory_snapshot, (BOOLEAN_P));
 int
 tty_doprev_message()
 {
-    return GetMessageWindow()->doprev_message();
+    GetMessageWindow()->doprev_message();
+    return 0;
 }
 
 char
