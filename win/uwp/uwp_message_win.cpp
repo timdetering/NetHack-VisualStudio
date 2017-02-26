@@ -221,7 +221,7 @@ int MessageWindow::doprev_message()
     } else if (iflags.prevmsg_window == 'c') { /* combination */
         do {
             if (m_msgIter == m_msgList.end()) {
-                response = redotoplin(toplines, C('p'));
+                response = redotoplin(toplines, kControlP);
 
                 if (m_msgIter != m_msgList.begin())
                     m_msgIter--;
@@ -232,7 +232,7 @@ int MessageWindow::doprev_message()
 
                 if (iter == m_msgList.end()) {
                     iter--;
-                    response = redotoplin(iter->c_str(), C('p'));
+                    response = redotoplin(iter->c_str(), kControlP);
 
                     if (m_msgIter != m_msgList.begin())
                         m_msgIter--;
@@ -244,15 +244,15 @@ int MessageWindow::doprev_message()
                 }
             }
 
-        } while (response == C('p'));
+        } while (response == kControlP);
     } else if (iflags.prevmsg_window == 'r') { /* reversed */
         response = display_message_history(true);
     } else if (iflags.prevmsg_window == 's') { /* single */
         do {
             if (m_msgIter == m_msgList.end()) {
-                response = redotoplin(toplines, C('p'));
+                response = redotoplin(toplines, kControlP);
             } else {
-                response = redotoplin(m_msgIter->c_str(), C('p'));
+                response = redotoplin(m_msgIter->c_str(), kControlP);
             }
 
             if (m_msgIter != m_msgList.begin())
@@ -260,7 +260,7 @@ int MessageWindow::doprev_message()
             else
                 m_msgIter = m_msgList.end();
 
-        } while (response == C('p'));
+        } while (response == kControlP);
     }
 
     return response;
