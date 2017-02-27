@@ -100,10 +100,17 @@ struct MessageWindow : public CoreWindow {
     std::list<std::string> m_snapshot_msgList;
     std::list<std::string> m_msgList;
     std::list<std::string>::iterator m_msgIter;
-    bool m_mustBeSeen;       /* message must be seen */
-    bool m_mustBeErased;     /* message must be erased */
-    bool m_nextIsPrompt;     /* next output message is a prompt */
-    bool m_stop;
+    bool m_mustBeSeen;      /* message must be seen */
+    bool m_mustBeErased;    /* message must be erased */
+    bool m_nextIsPrompt;    /* next output message is a prompt */
+    bool m_outputMessages;  /* output messages.  Outputting of message can be turned off.
+                             * when the player hits escape when they are prompted to acknowledge a
+                             * message, the player is indicating that
+                             * the game should stop outputting messages and thus stop requiring
+                             * acknowledgement for the remainder of the turn processing.
+                             * messages are always recorded in message history.
+                             * if the game needs player input, it must set output messages.
+                             */
 };
 
 struct MenuWindow : public CoreWindow {

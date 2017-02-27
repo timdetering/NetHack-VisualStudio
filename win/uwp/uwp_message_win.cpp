@@ -37,7 +37,7 @@ void MessageWindow::Init()
     m_msgIter = m_msgList.end();
     m_toplines.clear();
 
-    m_stop = false;
+    m_outputMessages = true;
 }
 
 MessageWindow::~MessageWindow()
@@ -63,7 +63,7 @@ void MessageWindow::Clear()
 
 void MessageWindow::Display(bool blocking)
 {
-    if (m_stop)
+    if (!m_outputMessages)
         return;
 
     g_rawprint = 0;
@@ -85,7 +85,7 @@ void MessageWindow::Dismiss()
         Display(true);
 
     CoreWindow::Dismiss();
-    m_stop = false;
+    m_outputMessages = true;
 }
 
 void MessageWindow::Putstr(int attr, const char *str)
@@ -104,7 +104,7 @@ void MessageWindow::Putstr(int attr, const char *str)
     /* If there is room on the line, print message on same line */
     /* But messages like "You die..." deserve their own line */
     n0 = strlen(bp);
-    if ((m_mustBeSeen || m_stop) && m_cury == 0
+    if ((m_mustBeSeen || !m_outputMessages) && m_cury == 0
         && n0 + (int)strlen(toplines) + 3 < CO - 8 /* room for --More-- */
         && (notdied = strncmp(bp, "You die", 7)) != 0) {
 
@@ -114,12 +114,12 @@ void MessageWindow::Putstr(int attr, const char *str)
         m_toplines += "  ";
         m_toplines += bp;
 
-        if (!m_stop) {
+        if (m_outputMessages) {
             m_curx += 2;
             addtopl(bp);
         }
         return;
-    } else if (!m_stop) {
+    } else if (m_outputMessages) {
         if (m_mustBeSeen) {
             more();
         } else if (m_cury) {
@@ -149,8 +149,9 @@ void MessageWindow::Putstr(int attr, const char *str)
     m_toplines = toplines;
 
     if (!notdied)
-        m_stop = false;
-    if (!m_stop)
+        m_outputMessages = true;
+
+    if (m_outputMessages)
         redotoplin(toplines);
 }
 
@@ -298,10 +299,10 @@ char MessageWindow::yn_function(
     char prompt[BUFSZ];
     char *tl;
 
-    if (m_mustBeSeen && !m_stop)
+    if (m_mustBeSeen && m_outputMessages)
         more();
 
-    m_stop = false;
+    m_outputMessages = true;
     m_nextIsPrompt = true;
 
     if (resp) {
@@ -527,11 +528,11 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
     std::string guess;
     std::string line;
 
-    if (m_mustBeSeen && !m_stop)
+    if (m_mustBeSeen && m_outputMessages)
         more();
 
     /* getting input ... new messages should be seen (stop == false) */
-    m_stop = false;
+    m_outputMessages = true;
 
     m_nextIsPrompt = true;
 
@@ -683,7 +684,7 @@ int MessageWindow::more(int dismiss_more)
      *       or messages that need erasing.
      */
     if (response == kEscape)
-        m_stop = true;
+        m_outputMessages = false;
 
     return response;
 }
@@ -714,7 +715,7 @@ char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
     /* normally <ESC> means skip further messages, but in this case
     it means cancel the current prompt; any other messages should
     continue to be output normally */
-    m_stop = false;
+    m_outputMessages = true;
 
     return ((how == PICK_ONE && response == let) || response == '\033') ? response : '\0';
 }
