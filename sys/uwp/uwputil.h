@@ -271,5 +271,19 @@ namespace Nethack
         CONDITION_VARIABLE m_conditionVariable;
     };
 
+    class TestInput
+    {
+    public:
+        TestInput() : m_c(kNull) {}
+        TestInput(
+            int c, const char * inToplines = NULL, const char * inScreen = NULL, void (* inFunc)() = NULL)
+            : m_c(c), m_toplines(inToplines), m_screen(inScreen), m_func(inFunc) {}
+
+        int          m_c;
+        const char * m_toplines;
+        const char * m_screen;
+        void       (*m_func)();
+    };
+
 }
 

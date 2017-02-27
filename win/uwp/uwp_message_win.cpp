@@ -35,6 +35,7 @@ void MessageWindow::Init()
     m_nextIsPrompt = false;
 
     m_msgIter = m_msgList.end();
+    m_toplines.clear();
 
     m_stop = false;
 }
@@ -106,8 +107,13 @@ void MessageWindow::Putstr(int attr, const char *str)
     if ((m_mustBeSeen || m_stop) && m_cury == 0
         && n0 + (int)strlen(toplines) + 3 < CO - 8 /* room for --More-- */
         && (notdied = strncmp(bp, "You die", 7)) != 0) {
+
         strncat(toplines, "  ", sizeof(toplines) - strlen(toplines) - 1);
         strncat(toplines, bp, sizeof(toplines) - strlen(toplines) - 1);
+
+        m_toplines += "  ";
+        m_toplines += bp;
+
         if (!m_stop) {
             m_curx += 2;
             addtopl(bp);
@@ -139,6 +145,9 @@ void MessageWindow::Putstr(int attr, const char *str)
         *tl++ = kNewline;
         n0 = strlen(tl);
     }
+
+    m_toplines = toplines;
+
     if (!notdied)
         m_stop = false;
     if (!m_stop)
@@ -282,11 +291,12 @@ char MessageWindow::yn_function(
     *   be shown in the prompt to the user but will be acceptable as input.
     */
 {
-    register char q;
+    char q;
     char rtmp[40];
     boolean digit_ok, allow_num, preserve_case = FALSE;
     boolean doprev = 0;
     char prompt[BUFSZ];
+    char *tl;
 
     if (m_mustBeSeen && !m_stop)
         more();
@@ -327,10 +337,20 @@ char MessageWindow::yn_function(
         assert(!m_nextIsPrompt);
 
         q = readchar();
+
+        Sprintf(rtmp, "%c", q);
+        addtopl(rtmp);
+
+        m_toplines += q;
+        tl = eos(toplines);
+        *tl++ = q;
+        *tl = kNull;
+
         goto clean_up;
     }
 
     do { /* loop until we get valid input */
+        assert(m_toplines.compare(toplines) == 0);
         q = readchar();
         if (!preserve_case)
             q = lowc(q);
@@ -380,10 +400,18 @@ char MessageWindow::yn_function(
             int n_len = 0;
             long value = 0;
             addtopl("#"), n_len++;
+            m_toplines += '#';
+            tl = eos(toplines);
+            *tl++ = '#';
+            *tl = kNull;
             digit_string[1] = '\0';
             if (q != '#') {
                 digit_string[0] = q;
                 addtopl(digit_string), n_len++;
+                m_toplines += q;
+                tl = eos(toplines);
+                *tl++ = q;
+                *tl = kNull;
                 value = q - '0';
                 q = '#';
             }
@@ -397,6 +425,10 @@ char MessageWindow::yn_function(
                         break; /* overflow: try again */
                     digit_string[0] = z;
                     addtopl(digit_string), n_len++;
+                    m_toplines += z;
+                    tl = eos(toplines);
+                    *tl++ = z;
+                    *tl = kNull;
                 } else if (z == 'y' || index(quitchars, z)) {
                     if (z == kEscape)
                         value = -1; /* abort */
@@ -408,6 +440,11 @@ char MessageWindow::yn_function(
                     } else {
                         value /= 10;
                         removetopl(1);
+                        assert(m_toplines.size() > 0);
+                        m_toplines = m_toplines.substr(0, m_toplines.size() - 1);
+                        tl = eos(toplines);
+                        tl--;
+                        *tl = kNull;
                         n_len--;
                     }
                 } else {
@@ -422,6 +459,11 @@ char MessageWindow::yn_function(
                 q = 'n'; /* 0 => "no" */
             else {       /* remove number from top line, then try again */
                 removetopl(n_len);
+                assert(m_toplines.size() >= n_len);
+                m_toplines = m_toplines.substr(0, m_toplines.size() - n_len);
+                tl = eos(toplines);
+                tl -= n_len;
+                *tl = kNull;
                 n_len = 0;
                 q = '\0';
             }
@@ -431,6 +473,10 @@ char MessageWindow::yn_function(
     if (q != '#') {
         Sprintf(rtmp, "%c", q);
         addtopl(rtmp);
+        m_toplines += rtmp;
+        tl = eos(toplines);
+        *tl++ = q;
+        *tl = kNull;
     }
 clean_up:
     m_mustBeSeen = false;
@@ -446,8 +492,10 @@ int MessageWindow::handle_prev_message()
     int c = kControlP;
 
     if (m_msgList.size() > 0) {
+
         m_msgIter = m_msgList.end();
         m_msgIter--;
+
         do {
             c = doprev_message();
 
@@ -461,7 +509,6 @@ int MessageWindow::handle_prev_message()
 
             if (c == kSpace || c == kEscape || c == kNewline)
                 c = kNull;
-
 
         } while (c == kControlP);
     }
@@ -502,6 +549,8 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
 
         strncpy(toplines, line.c_str(), sizeof(toplines) - 1);
 
+        m_toplines = toplines;
+
         erase_message();
         core_puts(line.c_str());
         if (guess.size())
@@ -519,6 +568,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
         if (c == kEscape) {
             input = std::string("\033");
             toplines[0] = kNull;
+            m_toplines.clear();
             break;
         }
 
@@ -574,6 +624,7 @@ void MessageWindow::remember_topl()
     while (m_msgList.size() > m_rows)
         m_msgList.pop_front();
     *toplines = kNull;
+    m_toplines.clear();
     m_msgIter = m_msgList.end();
 }
 
@@ -713,12 +764,14 @@ MessageWindow::uwp_putmsghistory(
         */
         remember_topl();
         strncpy(toplines, msg, sizeof(toplines) - 1);
+        m_toplines = msg;
     } else {
 
         assert(initd);
         for (auto & msg : m_snapshot_msgList) {
             remember_topl();
             strncpy(toplines, msg.c_str(), sizeof(toplines) - 1);
+            m_toplines = msg;
         }
 
         /* now release the snapshot */

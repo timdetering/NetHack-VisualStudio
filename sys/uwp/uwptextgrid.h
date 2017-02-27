@@ -51,7 +51,7 @@ namespace Nethack
     {
     public:
 
-        TextCell() : m_char(' '), m_attribute(TextAttribute::None), m_color(TextColor::NoColor) {}
+        TextCell() : m_char(kNull), m_attribute(TextAttribute::None), m_color(TextColor::NoColor) {}
         TextCell(TextColor color, TextAttribute attribute, unsigned char c) :
             m_color(color), m_attribute(attribute), m_char(c) 
         {
@@ -160,6 +160,11 @@ namespace Nethack
             m_flush = true;
             m_cellsLock.ReleaseExclusive();
         }
+
+        std::string ReadScreen(int x, int y);
+
+        bool IsRowClear(int minx, int y);
+        bool IsCornerClear(int minx, int maxy);
 
     private:
 

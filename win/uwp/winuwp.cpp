@@ -473,29 +473,47 @@ tty_nh_poskey(int *x, int *y, int *mod)
         /* we checking for input -- flush our output */
         g_textGrid.Flush();
 
-        Event e;
+        if (g_testInput.size() > 0) {
+            TestInput testInput = g_testInput.front();
+            g_testInput.pop_front();
 
-        while (e.m_type == Event::Type::Undefined ||
-            (e.m_type == Event::Type::Mouse && !iflags.wc_mouse_support) ||
-            (e.m_type == Event::Type::ScanCode && MapScanCode(e) == 0))
-            e = g_eventQueue.PopFront();
-
-        if (e.m_type == Event::Type::Char) {
-            if (e.m_char == kEOF) {
-                hangup(0);
-                e.m_char = kEscape;
+            if (testInput.m_toplines != NULL) {
+                assert(g_messageWindow.m_toplines.compare(testInput.m_toplines) == 0);
             }
 
-            i = e.m_char;
-        } else if (e.m_type == Event::Type::Mouse) {
-            *x = e.m_pos.m_x;
-            *y = e.m_pos.m_y;
-            *mod = (e.m_tap == Event::Tap::Left ? CLICK_1 : CLICK_2);
+            if (testInput.m_screen != NULL) {
+                std::string screen = g_textGrid.ReadScreen(0, 0);
+                assert(screen.compare(testInput.m_screen) == 0);
+            }
 
-            i = 0;
+            if (testInput.m_func != NULL) testInput.m_func();
+            
+            i = testInput.m_c;
         } else {
-            assert(e.m_type == Event::Type::ScanCode);
-            i = MapScanCode(e);
+            Event e;
+
+            while (e.m_type == Event::Type::Undefined ||
+                (e.m_type == Event::Type::Mouse && !iflags.wc_mouse_support) ||
+                (e.m_type == Event::Type::ScanCode && MapScanCode(e) == 0))
+                e = g_eventQueue.PopFront();
+
+            if (e.m_type == Event::Type::Char) {
+                if (e.m_char == kEOF) {
+                    hangup(0);
+                    e.m_char = kEscape;
+                }
+
+                i = e.m_char;
+            } else if (e.m_type == Event::Type::Mouse) {
+                *x = e.m_pos.m_x;
+                *y = e.m_pos.m_y;
+                *mod = (e.m_tap == Event::Tap::Left ? CLICK_1 : CLICK_2);
+
+                i = 0;
+            } else {
+                assert(e.m_type == Event::Type::ScanCode);
+                i = MapScanCode(e);
+            }
         }
     }
 

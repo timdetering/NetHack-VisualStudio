@@ -96,6 +96,7 @@ struct MessageWindow : public CoreWindow {
     char *uwp_getmsghistory(boolean init);
     void msghistory_snapshot(boolean purge);
 
+    std::string m_toplines;
     std::list<std::string> m_snapshot_msgList;
     std::list<std::string> m_msgList;
     std::list<std::string>::iterator m_msgIter;

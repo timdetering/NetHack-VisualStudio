@@ -542,7 +542,7 @@ MenuWindow::process_lines()
     m_rows = kScreenHeight - m_offy;
     int row = 0;
 
-    while (iter != m_lines.end()) {
+    while (iter != m_lines.end() && !m_cancelled) {
         auto line = *iter++;
 
         set_cursor(0, row++);
@@ -567,10 +567,9 @@ MenuWindow::process_lines()
             set_cursor(0, row);
             clear_to_end_of_line();
             int response = dmore(quitchars);
-            if (response == '\033') {
+
+            if (response == '\033')
                 m_cancelled = true;
-                break;
-            }
 
             set_cursor(0, 0);
             clear_to_end_of_screen();

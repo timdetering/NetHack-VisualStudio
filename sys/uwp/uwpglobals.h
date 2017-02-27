@@ -7,22 +7,23 @@
 namespace Nethack
 {
     extern const DirectX::XMFLOAT3 g_colorTable[];
-    extern EventQueue       g_eventQueue;
-    extern TextGrid         g_textGrid;
-    extern jmp_buf          g_mainLoopJmpBuf;
-    extern Options          g_options;
-    extern FontCollection   g_fontCollection;
-    extern std::string      g_localDir;
-    extern std::string      g_installDir;
-    extern std::string      g_defaultsFileName;
-    extern std::string      g_defaultsFilePath;
-    extern std::string      g_nethackOptionsFileName;
-    extern std::string      g_nethackOptionsFilePath;
-    extern std::string      g_guidebookFileName;
-    extern std::string      g_guidebookFilePath;
-    extern std::string      g_licenseFileName;
-    extern std::string      g_licenseFilePath;
-    extern std::string      g_defaultFontMap;
+    extern EventQueue           g_eventQueue;
+    extern TextGrid             g_textGrid;
+    extern jmp_buf              g_mainLoopJmpBuf;
+    extern Options              g_options;
+    extern FontCollection       g_fontCollection;
+    extern std::string          g_localDir;
+    extern std::string          g_installDir;
+    extern std::string          g_defaultsFileName;
+    extern std::string          g_defaultsFilePath;
+    extern std::string          g_nethackOptionsFileName;
+    extern std::string          g_nethackOptionsFilePath;
+    extern std::string          g_guidebookFileName;
+    extern std::string          g_guidebookFilePath;
+    extern std::string          g_licenseFileName;
+    extern std::string          g_licenseFilePath;
+    extern std::string          g_defaultFontMap;
+    extern std::list<TestInput> g_testInput;
 
 }
 

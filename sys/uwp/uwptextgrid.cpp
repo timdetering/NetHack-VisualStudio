@@ -845,6 +845,41 @@ namespace Nethack
         if(takeLock) m_cellsLock.ReleaseExclusive();
     }
 
+    std::string TextGrid::ReadScreen(int x, int y)
+    {
+        std::string line;
+
+        int offset = (y * m_gridDimensions.m_x) + x;
+        int sentinel = (y + 1) * m_gridDimensions.m_x;
+
+        while (offset < sentinel) {
+            if (!m_cells[offset].m_char)
+                break;
+            line += m_cells[offset++].m_char;
+        }
+
+        return line;
+    }
+
+    bool TextGrid::IsRowClear(int minx, int y)
+    {
+        int offset = (y * m_gridDimensions.m_x) + minx;
+        int sentinel = (y + 1) * m_gridDimensions.m_x;
+
+        while(offset < sentinel)
+            if (m_cells[offset++].m_char)
+                return false;
+        return true;
+    }
+
+    bool TextGrid::IsCornerClear(int minx, int maxy)
+    {
+        for (int y = 0; y <= maxy; y++)
+            if (!IsRowClear(minx, y))
+                return false;
+        return true;
+    }
+
     void TextGrid::SetFontFamilyName(std::string & fontFamilyName)
     {
         m_fontFamilyName = fontFamilyName;

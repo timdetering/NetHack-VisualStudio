@@ -3,6 +3,7 @@
 /* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
 #include "uwp.h"
+#include "..\..\win\uwp\winuwp.h"
 
 using namespace Nethack;
 
@@ -769,6 +770,149 @@ static void reset_defaults_file(void)
     uwp_wait_for_return();
 }
 
+static void unit_test_yn_function()
+{
+    int result;
+
+    g_testInput.push_back(TestInput('y', "test 1? [yn#aqB] (y) "));
+    result = yn_function("test 1?", "yn#aqB\033b", 'y');
+    assert(g_testInput.size() == 0);
+    assert(result == 'y');
+    assert(strcmp("test 1? [yn#aqB] (y) y", g_messageWindow.m_toplines.c_str()) == 0);
+    assert(g_textGrid.ReadScreen(0, 0).compare("test 1? [yn#aqB] (y) y") == 0);
+
+    g_testInput.push_back(TestInput('b', "test 2? [yn#aqB] (y) "));
+    result = yn_function("test 2?", "yn#aqB\033b", 'y');
+    assert(g_testInput.size() == 0);
+    assert(result == 'b');
+    assert(strcmp("test 2? [yn#aqB] (y) b", g_messageWindow.m_toplines.c_str()) == 0);
+
+    g_testInput.push_back(TestInput('B', "test 3? [yn#aqB] (y) "));
+    result = yn_function("test 3?", "yn#aqB\033b", 'y');
+    assert(g_testInput.size() == 0);
+    assert(result == 'B');
+    assert(strcmp("test 3? [yn#aqB] (y) B", g_messageWindow.m_toplines.c_str()) == 0);
+
+    g_testInput.push_back(TestInput('n', "test 4? [yn#aqB] (y) "));
+    result = yn_function("test 4?", "yn#aqB\033b", 'y');
+    assert(g_testInput.size() == 0);
+    assert(result == 'n');
+    assert(strcmp("test 4? [yn#aqB] (y) n", g_messageWindow.m_toplines.c_str()) == 0);
+
+    g_testInput.push_back(TestInput('1', "test 5? [yn#aqB] (y) "));
+    g_testInput.push_back(TestInput('0', "test 5? [yn#aqB] (y) #1"));
+    g_testInput.push_back(TestInput('\n', "test 5? [yn#aqB] (y) #10"));
+    result = yn_function("test 5?", "yn#aqB\033b", 'y');
+    assert(g_testInput.size() == 0);
+    assert(result == '#');
+    assert(yn_number == 10);
+    assert(strcmp("test 5? [yn#aqB] (y) #10", g_messageWindow.m_toplines.c_str()) == 0);
+
+    g_testInput.push_back(TestInput('#', "test 6? [yn#aqB] (y) "));
+    g_testInput.push_back(TestInput('1', "test 6? [yn#aqB] (y) #"));
+    g_testInput.push_back(TestInput('\b', "test 6? [yn#aqB] (y) #1"));
+    g_testInput.push_back(TestInput('\n', "test 6? [yn#aqB] (y) #"));
+    result = yn_function("test 6?", "yn#aqB\033b", 'y');
+    assert(g_testInput.size() == 0);
+    assert(result == 'n');
+    assert(strcmp("test 6? [yn#aqB] (y) #n", g_messageWindow.m_toplines.c_str()) == 0);
+
+    iflags.prevmsg_window = 's';
+    g_testInput.push_back(TestInput(kControlP, "test 7? [yn#aqB] (y) "));
+    g_testInput.push_back(TestInput(kControlP, "test 7? [yn#aqB] (y) ", "test 6? [yn#aqB] (y) #n"));
+    g_testInput.push_back(TestInput(kControlP, "test 7? [yn#aqB] (y) ", "test 5? [yn#aqB] (y) #10"));
+    g_testInput.push_back(TestInput(kEscape, "test 7? [yn#aqB] (y) ", "test 4? [yn#aqB] (y) n"));
+    g_testInput.push_back(TestInput(kEscape, "test 7? [yn#aqB] (y) ", "test 7? [yn#aqB] (y) "));
+    result = yn_function("test 7?", "yn#aqB\033b", 'y');
+    assert(g_testInput.size() == 0);
+    assert(result == 'q');
+    assert(strcmp("test 7? [yn#aqB] (y) q", g_messageWindow.m_toplines.c_str()) == 0);
+
+    iflags.prevmsg_window = 'f';
+    g_testInput.push_back(TestInput(kControlP, "test 8? [yn#aqB] (y) "));
+    g_testInput.push_back(TestInput(kSpace, "test 8? [yn#aqB] (y) ", NULL, []() {
+        auto line = g_textGrid.ReadScreen(40, 0);  assert(line.compare(" Message History") == 0);
+        line = g_textGrid.ReadScreen(40, 9);  assert(line.compare(" test 8? [yn#aqB] (y) ") == 0);
+        line = g_textGrid.ReadScreen(40, 10);  assert(line.compare(" --More--") == 0);
+    }));
+    g_testInput.push_back(TestInput(kEscape, "test 8? [yn#aqB] (y) ", "test 8? [yn#aqB] (y) "));
+    result = yn_function("test 8?", "yn#aqB\033b", 'y');
+    assert(g_testInput.size() == 0);
+    assert(result == 'q');
+    assert(g_messageWindow.m_toplines.compare("test 8? [yn#aqB] (y) q") == 0);
+    assert(g_textGrid.IsCornerClear(40, 10));
+
+    g_testInput.push_back(TestInput(kControlP, "test 9? [yn#aqB] (y) "));
+    g_testInput.push_back(TestInput(kEscape, "test 9? [yn#aqB] (y) "));
+    g_testInput.push_back(TestInput(kEscape, "test 9? [yn#aqB] (y) "));
+    result = yn_function("test 9?", "yn#aqB\033b", 'y');
+    assert(g_testInput.size() == 0);
+    assert(result == 'q');
+    assert(g_messageWindow.m_toplines.compare("test 9? [yn#aqB] (y) q") == 0);
+    assert(g_textGrid.IsCornerClear(40, 10));
+
+    g_testInput.push_back(TestInput('x', "test 10? "));
+    result = yn_function("test 10?", NULL, 'y');
+    assert(g_testInput.size() == 0);
+    assert(result == 'x');
+    assert(g_messageWindow.m_toplines.compare("test 10? x") == 0);
+    assert(g_textGrid.ReadScreen(0, 0).compare("test 10? x") == 0);
+
+    g_testInput.push_back(TestInput('Y', "test 11? [yn] (y) "));
+    result = yn_function("test 11?", "yn", 'y');
+    assert(g_testInput.size() == 0);
+    assert(result == 'y');
+
+    g_testInput.push_back(TestInput(kEscape));
+    result = yn_function("test 12?", "yn", 'y');
+    assert(g_testInput.size() == 0);
+    assert(result == 'n');
+
+    g_testInput.push_back(TestInput(kEscape));
+    result = yn_function("test 13?", "ab", 'a');
+    assert(g_testInput.size() == 0);
+    assert(result == 'a');
+
+    g_testInput.push_back(TestInput(kEscape));
+    result = yn_function("test 14?", "abq", 'a');
+    assert(g_testInput.size() == 0);
+    assert(result == 'q');
+
+    g_testInput.push_back(TestInput(kNewline));
+    result = yn_function("test 15?", "ab", 'a');
+    assert(g_testInput.size() == 0);
+    assert(result == 'a');
+
+    g_testInput.push_back(TestInput(kCarriageReturn));
+    result = yn_function("test 16?", "ab", 'a');
+    assert(g_testInput.size() == 0);
+    assert(result == 'a');
+
+    g_testInput.push_back(TestInput(kEscape));
+    result = yn_function("test 17?", "#", 'a');
+    assert(g_testInput.size() == 0);
+    assert(result == 'a');
+
+    g_testInput.push_back(TestInput('5'));
+    g_testInput.push_back(TestInput(kEscape));
+    g_testInput.push_back(TestInput(kEscape));
+    result = yn_function("test 18?", "#", 'a');
+    assert(g_testInput.size() == 0);
+    assert(result == 'a');
+
+    g_testInput.push_back(TestInput('5'));
+    g_testInput.push_back(TestInput(kNewline));
+    result = yn_function("test 19?", "#", 'a');
+    assert(g_testInput.size() == 0);
+    assert(result == '#');
+    assert(yn_number == 5);
+}
+
+static void unit_tests()
+{
+    unit_test_yn_function();
+}
+
 /* using the windowing system, show a menu that allows the player
  * to perform various actions prior to playing a game.
  */
@@ -778,6 +922,8 @@ static bool main_menu(void)
     init_nhwindows(NULL, NULL);
 
     display_gamewindows();
+
+    unit_tests();
 
 #if 0
 
@@ -812,6 +958,7 @@ static bool main_menu(void)
 #endif
 
 
+#if 0
     int picked;
     for (int i = 0; i < 10; i++) {
         picked = message_menu('a', 1, "pick object a 0123456789012345678901 23456789012345678901234 5678901234567 8901234567890123456789");
@@ -821,7 +968,7 @@ static bool main_menu(void)
         curs(BASE_WINDOW, 1, 3);
         putstr(BASE_WINDOW, 0, line);
     }
-
+#endif
 
 #endif
 
