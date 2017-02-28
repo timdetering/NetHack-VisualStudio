@@ -44,6 +44,16 @@ MessageWindow::~MessageWindow()
 {
 }
 
+void MessageWindow::PrepareForInput()
+{
+    /* we are asking for input so lets start displaying messages again. */
+    m_outputMessages = true;
+
+    /* any messages shown are about to be seen. */
+    m_mustBeSeen = false;
+
+}
+
 void MessageWindow::Destroy()
 {
     CoreWindow::Destroy();
@@ -118,8 +128,11 @@ void MessageWindow::Putstr(int attr, const char *str)
             m_curx += 2;
             addtopl(bp);
         }
+
         return;
-    } else if (m_outputMessages) {
+    }
+    
+    if (m_outputMessages) {
         if (m_mustBeSeen) {
             more();
         } else if (m_cury) {
@@ -128,6 +141,7 @@ void MessageWindow::Putstr(int attr, const char *str)
             m_cury = 0;
         }
     }
+
     remember_topl();
     strncpy(toplines, bp, TBUFSZ - 1);
 
@@ -167,8 +181,10 @@ void MessageWindow::removetopl(int n)
  */
 int MessageWindow::redotoplin(const char *str, int dismiss_more)
 {
+    assert(m_cury == 0);
     m_curx = 0;
     m_cury = 0;
+    m_output.clear();
 
     putsyms(str, TextColor::NoColor, TextAttribute::None);
     clear_to_end_of_line();
@@ -629,24 +645,48 @@ void MessageWindow::remember_topl()
     m_msgIter = m_msgList.end();
 }
 
+void MessageWindow::compare_output()
+{
+    int x = 0;
+    int y = 0;
+
+    for (auto cell : m_output) {
+        if (cell.m_char == kNewline) {
+            x = 0;
+            y++;
+        } else {
+            assert(cell == g_textGrid.GetCell(x, y));
+            x++;
+        }
+    }
+}
+
 void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute)
 {
     switch (c) {
     case kBackspace:
         core_putc(kBackspace);
+        m_output.pop_back();
+        compare_output();
         return;
     case kNewline:
         clear_to_end_of_line();
         core_putc(kNewline);
+        m_output.push_back(TextCell(kNewline));
         break;
     default:
-        if (m_curx + m_offx == CO - 1)
+        if (m_curx + m_offx == CO - 1) {
             topl_putsym(kNewline, TextColor::NoColor, TextAttribute::None); /* 1 <= curx < CO; avoid CO */
+            m_output.push_back(TextCell(kNewline));
+        }
         core_putc(c);
+        m_output.push_back(TextCell(c));
     }
 
     if (m_curx == 0)
         clear_to_end_of_line();
+
+    compare_output();
 }
 
 void MessageWindow::addtopl(const char *s)
@@ -740,6 +780,8 @@ void MessageWindow::erase_message()
 
     set_cursor(0, 0);
     m_mustBeErased = false;
+
+    m_output.clear();
 }
 
 void

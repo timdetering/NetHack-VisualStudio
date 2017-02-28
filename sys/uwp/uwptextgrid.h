@@ -52,6 +52,7 @@ namespace Nethack
     public:
 
         TextCell() : m_char(kNull), m_attribute(TextAttribute::None), m_color(TextColor::NoColor) {}
+        TextCell(unsigned char c) : m_color(TextColor::NoColor), m_attribute(TextAttribute::None), m_char(c) {}
         TextCell(TextColor color, TextAttribute attribute, unsigned char c) :
             m_color(color), m_attribute(attribute), m_char(c) 
         {
@@ -67,6 +68,11 @@ namespace Nethack
             default:
                 assert(0);
             }
+        }
+
+        bool operator==(const TextCell & a) const
+        {
+            return a.m_char == m_char && a.m_attribute == m_attribute && a.m_color == m_color;
         }
 
         unsigned char   m_char;
@@ -165,6 +171,12 @@ namespace Nethack
 
         bool IsRowClear(int minx, int y);
         bool IsCornerClear(int minx, int maxy);
+
+        TextCell & GetCell(int x, int y) {
+            assert(x >= 0 && x < m_gridDimensions.m_x);
+            assert(y >= 0 && y < m_gridDimensions.m_y);
+            return m_cells[(m_gridDimensions.m_x * y) + x];
+        }
 
     private:
 

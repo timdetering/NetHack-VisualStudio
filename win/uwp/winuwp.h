@@ -76,6 +76,8 @@ struct MessageWindow : public CoreWindow {
     virtual void Putstr(int attr, const char *str);
     virtual void Destroy();
 
+    virtual void PrepareForInput();
+
     char yn_function(const char *query, const char *resp, char def);
     void removetopl(int n);
     int doprev_message();
@@ -96,6 +98,8 @@ struct MessageWindow : public CoreWindow {
     char *uwp_getmsghistory(boolean init);
     void msghistory_snapshot(boolean purge);
 
+    void compare_output();
+
     std::string m_toplines;
     std::list<std::string> m_snapshot_msgList;
     std::list<std::string> m_msgList;
@@ -111,6 +115,7 @@ struct MessageWindow : public CoreWindow {
                              * messages are always recorded in message history.
                              * if the game needs player input, it must set output messages.
                              */
+    std::vector<Nethack::TextCell> m_output;
 };
 
 struct MenuWindow : public CoreWindow {

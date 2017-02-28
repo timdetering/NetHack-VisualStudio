@@ -466,6 +466,8 @@ tty_nh_poskey(int *x, int *y, int *mod)
 {
     int i;
 
+    g_messageWindow.PrepareForInput();
+
     if (program_state.done_hup) {
         i = kEscape;
     } else {
@@ -516,12 +518,6 @@ tty_nh_poskey(int *x, int *y, int *mod)
             }
         }
     }
-
-    /* we asked for input so lets start displaying messages again. */
-    g_messageWindow.m_outputMessages = true;
-
-    /* any messsages that have been displayed have been seen. */
-    g_messageWindow.m_mustBeSeen = false;
 
     return i;
 }
