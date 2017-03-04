@@ -7,6 +7,19 @@
 #include "..\..\sys\uwp\uwp.h"
 #include "winuwp.h"
 
+/*
+    NOTES:
+
+    Toplines is the input buffer for the message window.
+
+    Therea are three ways for toplines to get input.
+    1. Putstr
+    2. yn_function
+    3. uwp_getmessagehistory
+    
+
+*/
+
 using namespace Nethack;
 
 MessageWindow g_messageWindow;
@@ -34,8 +47,10 @@ void MessageWindow::Init()
     m_mustBeErased = false;
     m_nextIsPrompt = false;
 
+    m_msgList.clear();
     m_msgIter = m_msgList.end();
     m_toplines.clear();
+    toplines[0] = kNull;
 
     m_outputMessages = true;
 }
@@ -107,16 +122,24 @@ void MessageWindow::Putstr(int attr, const char *str)
 
     char *tl, *otl;
     int n0;
-    int notdied = 1;
 
     const char * bp = input.c_str();
 
+    bool died = (input.compare(0, 7, "You die") == 0);
+
+    assert(m_toplines.compare(toplines) == 0);
+
     /* If there is room on the line, print message on same line */
     /* But messages like "You die..." deserve their own line */
-    n0 = strlen(bp);
+    n0 = input.size();
     if ((m_mustBeSeen || !m_outputMessages) && m_cury == 0
-        && n0 + (int)strlen(toplines) + 3 < CO - 8 /* room for --More-- */
-        && (notdied = strncmp(bp, "You die", 7)) != 0) {
+        && n0 + m_toplines.size() + 3 < CO - 8 /* room for --More-- */
+        && !died) {
+
+        /* why don't we just check that toplines is non-empty?
+
+        Can toplines be non-empty and !m_mustBeSeen && m_outputMessages
+        */
 
         strncat(toplines, "  ", sizeof(toplines) - strlen(toplines) - 1);
         strncat(toplines, bp, sizeof(toplines) - strlen(toplines) - 1);
@@ -125,7 +148,7 @@ void MessageWindow::Putstr(int attr, const char *str)
         m_toplines += bp;
 
         if (m_outputMessages) {
-            m_curx += 2;
+            addtopl("  ");
             addtopl(bp);
         }
 
@@ -143,26 +166,23 @@ void MessageWindow::Putstr(int attr, const char *str)
     }
 
     remember_topl();
-    strncpy(toplines, bp, TBUFSZ - 1);
 
-    for (tl = toplines; n0 >= CO; ) {
-        otl = tl;
-        for (tl += CO - 1; tl != otl; --tl)
-            if (*tl == ' ')
-                break;
-        if (tl == otl) {
-            /* Eek!  A huge token.  Try splitting after it. */
-            tl = index(otl, kSpace);
-            if (!tl)
-                break; /* No choice but to spit it out whole. */
+    int offset = 0;
+    while (input.size() - offset > CO) {
+        size_t space_offset = input.find_last_of(' ', offset + CO);
+
+        if (space_offset <= offset || space_offset == std::string::npos) {
+            offset += CO;
+        } else {
+            offset = space_offset;
+            input[offset] = '\n';
         }
-        *tl++ = kNewline;
-        n0 = strlen(tl);
     }
 
-    m_toplines = toplines;
+    m_toplines = input;
+    strncpy(toplines, input.c_str(), TBUFSZ - 1);
 
-    if (!notdied)
+    if (died)
         m_outputMessages = true;
 
     if (m_outputMessages)
@@ -501,6 +521,9 @@ clean_up:
     if (m_cury)
         Clear();
 
+    /* output can not be disabled via yn_function */
+    assert(m_outputMessages);
+
     return q;
 }
 
@@ -640,6 +663,7 @@ void MessageWindow::remember_topl()
     m_msgList.push_back(std::string(toplines));
     while (m_msgList.size() > m_rows)
         m_msgList.pop_front();
+    assert(m_toplines.compare(toplines) == 0);
     *toplines = kNull;
     m_toplines.clear();
     m_msgIter = m_msgList.end();
@@ -655,7 +679,10 @@ void MessageWindow::compare_output()
             x = 0;
             y++;
         } else {
-            assert(cell == g_textGrid.GetCell(x, y));
+            if (cell != g_textGrid.GetCell(x, y)) {
+                assert(0);
+                return;
+            }
             x++;
         }
     }
@@ -675,12 +702,17 @@ void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute
         m_output.push_back(TextCell(kNewline));
         break;
     default:
-        if (m_curx + m_offx == CO - 1) {
-            topl_putsym(kNewline, TextColor::NoColor, TextAttribute::None); /* 1 <= curx < CO; avoid CO */
-            m_output.push_back(TextCell(kNewline));
-        }
+        {
+        bool forceNewLine = (m_curx + m_offx == CO - 1);
+
         core_putc(c);
         m_output.push_back(TextCell(c));
+        
+        if (forceNewLine)
+            m_output.push_back(TextCell(kNewline));
+
+        break;
+        }
     }
 
     if (m_curx == 0)
@@ -762,6 +794,9 @@ char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
 
 void MessageWindow::erase_message()
 {
+    assert(m_mustBeErased);
+    assert(!m_mustBeSeen);
+
     int ymax = m_cury + 1;
 
     for (int y = 0; y < ymax; y++) {

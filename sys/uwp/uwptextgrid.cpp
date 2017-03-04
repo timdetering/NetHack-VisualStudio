@@ -799,6 +799,11 @@ namespace Nethack
                 offset--;
             }
         }
+        else if (c == '\n')
+        {
+//            assert(0);
+            offset = ((offset / m_gridDimensions.m_x) + 1) * m_gridDimensions.m_x;
+        }
         else
         {
             m_cells[offset++] = TextCell(color, attribute, c);

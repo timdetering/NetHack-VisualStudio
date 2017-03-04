@@ -774,6 +774,8 @@ static void unit_test_yn_function()
 {
     int result;
 
+    g_messageWindow.Init();
+
     g_testInput.push_back(TestInput('y', "test 1? [yn#aqB] (y) "));
     result = yn_function("test 1?", "yn#aqB\033b", 'y');
     assert(g_testInput.size() == 0);
@@ -831,9 +833,12 @@ static void unit_test_yn_function()
     iflags.prevmsg_window = 'f';
     g_testInput.push_back(TestInput(kControlP, "test 8? [yn#aqB] (y) "));
     g_testInput.push_back(TestInput(kSpace, "test 8? [yn#aqB] (y) ", NULL, []() {
-        auto line = g_textGrid.ReadScreen(40, 0);  assert(line.compare(" Message History") == 0);
-        line = g_textGrid.ReadScreen(40, 9);  assert(line.compare(" test 8? [yn#aqB] (y) ") == 0);
-        line = g_textGrid.ReadScreen(40, 10);  assert(line.compare(" --More--") == 0);
+        auto line = g_textGrid.ReadScreen(40, 0);  
+        assert(line.compare(" Message History") == 0);
+        line = g_textGrid.ReadScreen(40, 9);  
+        assert(line.compare(" test 8? [yn#aqB] (y) ") == 0);
+        line = g_textGrid.ReadScreen(40, 10); 
+        assert(line.compare(" --More--") == 0);
     }));
     g_testInput.push_back(TestInput(kEscape, "test 8? [yn#aqB] (y) ", "test 8? [yn#aqB] (y) "));
     result = yn_function("test 8?", "yn#aqB\033b", 'y');
@@ -908,9 +913,149 @@ static void unit_test_yn_function()
     assert(yn_number == 5);
 }
 
+static void unit_test_display_message_window()
+{
+    /* notes: the blocking flag to display_nhwindow() is ignored. */ 
+
+    pline("Test 1");
+    g_testInput.push_back(TestInput(kSpace, NULL, NULL, []() {
+        auto line = g_textGrid.ReadScreen(0, 0);  assert(line.compare("Test 1--More--") == 0);
+    }));
+    display_nhwindow(WIN_MESSAGE, TRUE);
+    assert(g_testInput.size() == 0);
+    assert(g_textGrid.ReadScreen(0, 0).compare("") == 0);
+
+    pline("Test 2");
+    pline("Test 2");
+    g_testInput.push_back(TestInput(kSpace, NULL, NULL, []() {
+        auto line = g_textGrid.ReadScreen(0, 0);
+        assert(line.compare("Test 2  Test 2--More--") == 0);
+    }));
+    display_nhwindow(WIN_MESSAGE, TRUE);
+    assert(g_testInput.size() == 0);
+    assert(g_textGrid.ReadScreen(0, 0).compare("") == 0);
+
+    pline("Test 3");
+    g_testInput.push_back(TestInput(kEscape));
+    display_nhwindow(WIN_MESSAGE, TRUE);
+    assert(g_testInput.size() == 0);
+
+}
+
+static void unit_test_putstr()
+{
+    std::string long_msg("012345678 012345678 012345678 012345678 012345678 01234567.");
+    std::string two_line_msg("012345678 012345678 012345678 012345678 012345678 012345678 012345678 012345678 01234567.");
+    std::string three_line_msg(
+        "012345678 012345678 012345678 012345678 012345678 012345678 012345678 012345678"
+        " 012345678 012345678 012345678 012345678 012345678 012345678 012345678 012345678"
+        " 012345678.");
+    std::string long_word_msg("012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789 test.");
+
+    g_messageWindow.Init();
+
+    /* test wrap */
+    g_testInput.push_back(TestInput(kSpace, NULL, NULL, []() {
+        auto line = g_textGrid.ReadScreen(0, 0);
+        assert(line.compare("012345678 012345678 012345678 012345678 012345678 01234567.--More--") == 0);
+    }));
+    g_testInput.push_back(TestInput(kSpace, NULL, NULL, []() {
+        auto line = g_textGrid.ReadScreen(0, 0);
+        assert(line.compare("012345678 012345678 012345678 012345678 012345678 012345678 012345678 012345678") == 0);
+        line = g_textGrid.ReadScreen(0, 1);
+        assert(line.compare("01234567.--More--")==0);
+    }));
+    g_testInput.push_back(TestInput(kSpace, NULL, NULL, []() {
+        auto line = g_textGrid.ReadScreen(0, 0);
+        assert(line.compare("012345678 012345678 012345678 012345678 012345678 012345678 012345678 012345678") == 0);
+        line = g_textGrid.ReadScreen(0, 1);
+        assert(line.compare("012345678 012345678 012345678 012345678 012345678 012345678 012345678 012345678") == 0);
+        line = g_textGrid.ReadScreen(0, 2);
+        assert(line.compare("012345678.--More--") == 0);
+    }));
+    g_testInput.push_back(TestInput(kSpace, NULL, NULL, []() {
+        auto line = g_textGrid.ReadScreen(0, 0);
+        assert(line.compare("01234567890123456789012345678901234567890123456789012345678901234567890123456789") == 0);
+        line = g_textGrid.ReadScreen(0, 1);
+        assert(line.compare("0123456789 test.--More--") == 0);
+    }));
+    g_messageWindow.Putstr(0, long_msg.c_str());
+    g_messageWindow.Putstr(0, two_line_msg.c_str());
+    g_messageWindow.Putstr(0, three_line_msg.c_str());
+    g_messageWindow.Putstr(0, long_word_msg.c_str());
+    auto line = g_textGrid.ReadScreen(0, 0);
+    assert(line.compare("")==0);
+
+    g_testInput.push_back(TestInput(kEscape));
+    g_messageWindow.Putstr(0, two_line_msg.c_str());
+    assert(g_testInput.size() == 0);
+    line = g_textGrid.ReadScreen(0, 1);
+    assert(line.compare("01234567."));
+
+    /* test accumulation */
+    g_messageWindow.PrepareForInput();
+    g_messageWindow.Putstr(0, "test");
+    g_messageWindow.Putstr(0, "test");
+    g_testInput.push_back(TestInput(kEscape));
+    display_nhwindow(WIN_MESSAGE, TRUE);
+    assert(g_testInput.size() == 0);
+    line = g_textGrid.ReadScreen(0, 0);
+    assert(line.compare("")==0);
+
+    g_messageWindow.Putstr(0, "test");
+    g_messageWindow.PrepareForInput();
+    g_messageWindow.Putstr(0, "test");
+    line = g_textGrid.ReadScreen(0, 0);
+    assert(line.compare("test") == 0);
+    g_messageWindow.PrepareForInput();
+    g_messageWindow.Putstr(0, long_msg.c_str());
+    g_testInput.push_back(TestInput(kEscape));
+    g_messageWindow.Putstr(0, "012345678901234567.");
+    line = g_textGrid.ReadScreen(0, 0);
+    /* last message should not have been written to screen */
+    assert(line.compare("") == 0);
+    /* but m_toplines should still be accumulating the message */
+    assert(g_messageWindow.m_toplines.compare("012345678901234567.") == 0);
+    g_messageWindow.Putstr(0, "test.");
+
+    assert(g_testInput.size() == 0);
+    line = g_textGrid.ReadScreen(0, 0);
+    assert(line.compare("") == 0);
+    assert(g_messageWindow.m_toplines.compare("012345678901234567.  test.") == 0);
+
+    /* long message does not fit, should be on its own line */
+    g_messageWindow.Putstr(0, long_msg.c_str());
+    assert(g_messageWindow.m_toplines.compare(long_msg) == 0);
+
+    /* test clear */
+    g_messageWindow.PrepareForInput();
+    g_messageWindow.Clear();
+    g_messageWindow.Putstr(0, "test.");
+    g_messageWindow.PrepareForInput();
+    g_messageWindow.Clear();
+    line = g_textGrid.ReadScreen(0, 0);
+    assert(line.compare("") == 0);
+    g_messageWindow.Putstr(0, "test.");
+    g_messageWindow.Putstr(0, "test.");
+    line = g_textGrid.ReadScreen(0, 0);
+    assert(line.compare("test.  test.") == 0);
+
+//    g_textGrid.Flush();
+//    Sleep(5000);
+
+
+}
+
+static void unit_test_message_window()
+{
+    unit_test_putstr();
+    unit_test_yn_function();
+    unit_test_display_message_window();
+}
+
 static void unit_tests()
 {
-    unit_test_yn_function();
+    unit_test_message_window();
 }
 
 /* using the windowing system, show a menu that allows the player

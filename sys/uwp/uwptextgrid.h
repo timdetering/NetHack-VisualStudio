@@ -75,6 +75,11 @@ namespace Nethack
             return a.m_char == m_char && a.m_attribute == m_attribute && a.m_color == m_color;
         }
 
+        bool operator!=(const TextCell & a) const
+        {
+            return !(*this == a);
+        }
+
         unsigned char   m_char;
         TextAttribute   m_attribute;
         TextColor       m_color;
