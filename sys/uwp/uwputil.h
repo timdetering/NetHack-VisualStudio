@@ -15,7 +15,7 @@ namespace Nethack
     const char kControlC = '\003';
     const char kNull = '\0';
     const char kSpace = ' ';
-    const char kControlP = '\020'; /* C('p') */
+    const char kControlP = '\020'; /* C('p') 0x10 */
     const char kEOF = -1;
 
 

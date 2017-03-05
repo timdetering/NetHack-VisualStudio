@@ -1039,10 +1039,65 @@ static void unit_test_putstr()
     g_messageWindow.Putstr(0, "test.");
     line = g_textGrid.ReadScreen(0, 0);
     assert(line.compare("test.  test.") == 0);
+    assert(g_testInput.size() == 0);
 
 //    g_textGrid.Flush();
 //    Sleep(5000);
 
+
+}
+
+static void unit_test_get_ext_cmd()
+{
+    g_messageWindow.Init();
+
+    g_testInput.push_back(TestInput('l', "# ", "# ", NULL));
+    g_testInput.push_back(TestInput('o', "# loot", "# loot", NULL));
+    g_testInput.push_back(TestInput(kNewline, "# loot", "# loot", NULL));
+    int cmd = get_ext_cmd();
+    assert(strcmp("loot", extcmdlist[cmd].ef_txt) == 0);
+    assert(g_testInput.size() == 0);
+
+    iflags.prevmsg_window = 'f';
+    g_testInput.push_back(TestInput('j', "# ", "# ", NULL));
+    g_testInput.push_back(TestInput(kControlP, "# jump", "# jump", NULL));
+    g_testInput.push_back(TestInput(kEscape, NULL, NULL, []() {
+        auto line = g_textGrid.ReadScreen(40, 0);
+        assert(line.compare(" Message History") == 0);
+        line = g_textGrid.ReadScreen(40, 2);
+        assert(line.compare(" # loot") == 0);
+        line = g_textGrid.ReadScreen(40, 3);
+        assert(line.compare(" # jump") == 0);
+        line = g_textGrid.ReadScreen(40, 4);
+        assert(line.compare(" --More--") == 0);
+    }));
+    g_testInput.push_back(TestInput(kNewline, "# jump", "# jump", NULL));
+    cmd = get_ext_cmd();
+    assert(cmd != -1 && strcmp("jump", extcmdlist[cmd].ef_txt) == 0);
+    assert(g_testInput.size() == 0);
+
+    iflags.prevmsg_window = 's';
+    g_testInput.push_back(TestInput('d', "# ", "# ", NULL));
+    g_testInput.push_back(TestInput(kControlP, "# dip", "# dip", NULL));
+    g_testInput.push_back(TestInput(kControlP, "# dip", "# jump", NULL));
+    g_testInput.push_back(TestInput(kControlP, "# dip", "# dip", NULL));
+    g_testInput.push_back(TestInput(kNewline, "# dip", "# jump", NULL));
+    g_testInput.push_back(TestInput(kNewline, "# dip", "# dip",  NULL));
+    cmd = get_ext_cmd();
+    assert(cmd != -1 && strcmp("dip", extcmdlist[cmd].ef_txt) == 0);
+    assert(g_testInput.size() == 0);
+    auto line = g_textGrid.ReadScreen(0, 0);
+    assert(line.compare("") == 0);
+
+    iflags.prevmsg_window = 's';
+    g_testInput.push_back(TestInput('d', "# ", "# ", NULL));
+    g_testInput.push_back(TestInput(kControlP, "# dip", "# dip", NULL));
+    g_testInput.push_back(TestInput(kControlP, "# dip", "# dip", NULL));
+    g_testInput.push_back(TestInput(kNewline, "# dip", "# jump", NULL));
+    g_testInput.push_back(TestInput(kEscape, "# dip", "# dip", NULL));
+    cmd = get_ext_cmd();
+    assert(cmd == -1);
+    assert(g_testInput.size() == 0);
 
 }
 
@@ -1051,6 +1106,7 @@ static void unit_test_message_window()
     unit_test_putstr();
     unit_test_yn_function();
     unit_test_display_message_window();
+    unit_test_get_ext_cmd();
 }
 
 static void unit_tests()
