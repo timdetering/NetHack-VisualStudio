@@ -182,17 +182,6 @@ void MessageWindow::Putstr(int attr, const char *str)
         redotoplin(input.c_str());
 }
 
-#if 0
-void MessageWindow::removetopl(int n)
-{
-    while (n-- > 0) {
-        topl_putsym('\b', TextColor::NoColor, TextAttribute::None);
-        topl_putsym(kNull, TextColor::NoColor, TextAttribute::None);
-        topl_putsym('\b', TextColor::NoColor, TextAttribute::None);
-    }
-}
-#endif
-
 void MessageWindow::put_topline(const char *str)
 {
     if (m_mustBeErased) {
@@ -361,6 +350,14 @@ char MessageWindow::yn_function(
     std::string prompt = query;
     prompt += ' ';
 
+#if 0
+    if (vision_full_recalc)
+        vision_recalc(0);
+
+    if (u.ux)
+        flush_screen(1); /* %% */
+#endif
+
     if (resp) {
 
         std::string response = resp;
@@ -385,14 +382,6 @@ char MessageWindow::yn_function(
         }
 
         prompt += ' ';
-
-#if 0
-        if (vision_full_recalc)
-            vision_recalc(0);
-
-        if (u.ux)
-            flush_screen(1); /* %% */
-#endif
 
         do { /* loop until we get valid input */
 
