@@ -79,14 +79,16 @@ struct MessageWindow : public CoreWindow {
     virtual void PrepareForInput();
 
     char yn_function(const char *query, const char *resp, char def);
-    void removetopl(int n);
+//    void removetopl(int n);
     int doprev_message();
     int redotoplin(const char *str, int dismiss_more = 0);
+    void put_topline(const char *str);
     void hooked_tty_getlin(const char *, char *, getlin_hook_proc);
     void putsyms(const char *str, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
     void topl_putsym(char c, Nethack::TextColor color, Nethack::TextAttribute attribute);
     void remember_topl();
     void addtopl(const char *s);
+    void addtopl(char c);
     int more(int dismiss_more = 0);
     char uwp_message_menu(char let, int how, const char *mesg);
     void erase_message();

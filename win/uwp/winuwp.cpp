@@ -476,6 +476,7 @@ tty_nh_poskey(int *x, int *y, int *mod)
         g_textGrid.Flush();
 
         if (g_testInput.size() > 0) {
+//            Sleep(1000);
             TestInput testInput = g_testInput.front();
             g_testInput.pop_front();
 

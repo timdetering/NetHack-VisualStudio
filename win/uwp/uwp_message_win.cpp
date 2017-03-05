@@ -182,10 +182,33 @@ void MessageWindow::Putstr(int attr, const char *str)
         redotoplin(input.c_str());
 }
 
+#if 0
 void MessageWindow::removetopl(int n)
 {
-    while (n-- > 0)
-        putsyms("\b \b", TextColor::NoColor, TextAttribute::None);
+    while (n-- > 0) {
+        topl_putsym('\b', TextColor::NoColor, TextAttribute::None);
+        topl_putsym(kNull, TextColor::NoColor, TextAttribute::None);
+        topl_putsym('\b', TextColor::NoColor, TextAttribute::None);
+    }
+}
+#endif
+
+void MessageWindow::put_topline(const char *str)
+{
+    if (m_mustBeErased) {
+        m_mustBeSeen = false;
+        erase_message();
+    }
+
+    m_curx = 0;
+    m_cury = 0;
+    m_output.clear();
+
+    putsyms(str, TextColor::NoColor, TextAttribute::None);
+
+    clear_to_end_of_line();
+    m_mustBeSeen = true;
+    m_mustBeErased = true;
 }
 
 /* set the topline message with the given string.
@@ -321,9 +344,8 @@ char MessageWindow::yn_function(
     *   be shown in the prompt to the user but will be acceptable as input.
     */
 {
+    std::string input;
     char q;
-    char rtmp[40];
-    boolean digit_ok;
     boolean doprev = 0;
     char *tl;
     bool preserve_case = false;
@@ -332,11 +354,15 @@ char MessageWindow::yn_function(
     if (m_mustBeSeen && m_outputMessages)
         more();
 
+    remember_topl();
+
     m_outputMessages = true;
+
+    std::string prompt = query;
+    prompt += ' ';
 
     if (resp) {
 
-        std::string prompt;
         std::string response = resp;
 
         allow_num = (response.find_first_of('#') != std::string::npos);
@@ -348,8 +374,7 @@ char MessageWindow::yn_function(
         if (offset != std::string::npos)
             displayed_response = displayed_response.substr(0, offset);
 
-        prompt = query;
-        prompt += " [";
+        prompt += "[";
         prompt += displayed_response;
         prompt += ']';
 
@@ -361,40 +386,34 @@ char MessageWindow::yn_function(
 
         prompt += ' ';
 
-        m_nextIsPrompt = true;
-        pline("%s", prompt.c_str());
-        assert(!m_nextIsPrompt);
+#if 0
+        if (vision_full_recalc)
+            vision_recalc(0);
+
+        if (u.ux)
+            flush_screen(1); /* %% */
+#endif
 
         do { /* loop until we get valid input */
+
+            input.clear();
+            m_toplines = prompt;
+            assert(m_toplines.compare(prompt) == 0);
+
+            put_topline(m_toplines.c_str());
+
             q = readchar();
+
+            if (q == kControlP) {
+                q = handle_prev_message();
+                Clear();
+                if (q == kNull)
+                    continue;
+            }
+
             if (!preserve_case)
                 q = lowc(q);
-            if (q == kControlP) { /* ctrl-P */
-                if (iflags.prevmsg_window != 's') {
-                    doprev_message();
-                    Clear();
-                    m_msgIter = m_msgList.end();
-                    addtopl(prompt.c_str());
-                } else {
-                    if (!doprev)
-                        doprev_message(); /* need two initially */
-                    doprev_message();
-                    doprev = 1;
-                }
-                q = '\0'; /* force another loop iteration */
-                continue;
-            } else if (doprev) {
-                /* BUG[?]: this probably ought to check whether the
-                character which has just been read is an acceptable
-                response; if so, skip the reprompt and use it. */
-                Clear();
-                m_msgIter = m_msgList.end();
-                doprev = 0;
-                addtopl(prompt.c_str());
-                q = '\0'; /* force another loop iteration */
-                continue;
-            }
-            digit_ok = allow_num && digit(q);
+
             if (q == kEscape) {
                 if (index(resp, 'q'))
                     q = 'q';
@@ -403,52 +422,63 @@ char MessageWindow::yn_function(
                 else
                     q = def;
                 break;
-            } else if (index(quitchars, q)) {
+            }
+            
+            if (index(quitchars, q)) {
                 q = def;
                 break;
             }
+
+            bool digit_ok = allow_num && digit(q);
+
             if (!index(resp, q) && !digit_ok) {
                 tty_nhbell();
-                q = (char)0;
-            } else if (q == '#' || digit_ok) {
-                char z, digit_string[2];
-                int n_len = 0;
-                long value = 0;
-                addtopl("#"), n_len++;
-                m_toplines += '#';
-                digit_string[1] = '\0';
-                if (q != '#') {
-                    digit_string[0] = q;
-                    addtopl(digit_string), n_len++;
-                    m_toplines += q;
-                    value = q - '0';
-                    q = '#';
-                }
+                q = kNull;
+                continue;
+            }
+            
+            char z;
+
+            if (q == '#' || digit_ok) {
+                long value;
+
+                input += '#';
+
+                if (q != '#')
+                    input += q;
+
                 do { /* loop until we get a non-digit */
+                    value = atoi(input.c_str() + 1);
+
+                    m_toplines = prompt;
+                    m_toplines += input;
+
+                    put_topline(m_toplines.c_str());
+
                     z = readchar();
+
                     if (!preserve_case)
                         z = lowc(z);
+
                     if (digit(z)) {
-                        value = (10 * value) + (z - '0');
-                        if (value < 0)
-                            break; /* overflow: try again */
-                        digit_string[0] = z;
-                        addtopl(digit_string), n_len++;
-                        m_toplines += z;
+                        input += z;
+
+                        value = atoi(input.c_str() + 1);
+
+                        if (value == INT_MAX) {
+                            value = -1;
+                            break;
+                        }
                     } else if (z == 'y' || index(quitchars, z)) {
                         if (z == kEscape)
                             value = -1; /* abort */
                         z = kNewline;       /* break */
                     } else if (z == kBackspace) {
-                        if (n_len <= 1) {
+                        if (input.size() <= 1) {
                             value = -1;
                             break;
                         } else {
-                            value /= 10;
-                            removetopl(1);
-                            assert(m_toplines.size() > 0);
-                            m_toplines = m_toplines.substr(0, m_toplines.size() - 1);
-                            n_len--;
+                            input = input.substr(0, input.size() - 1);
                         }
                     } else {
                         value = -1; /* abort */
@@ -456,41 +486,41 @@ char MessageWindow::yn_function(
                         break;
                     }
                 } while (z != kNewline);
-                if (value > 0)
+
+                if (value > 0) {
                     yn_number = value;
-                else if (value == 0)
+                    q = '#';
+                    break;
+                } else if (value == 0) {
                     q = 'n'; /* 0 => "no" */
-                else {       /* remove number from top line, then try again */
-                    removetopl(n_len);
-                    assert(m_toplines.size() >= n_len);
-                    m_toplines = m_toplines.substr(0, m_toplines.size() - n_len);
-                    n_len = 0;
-                    q = '\0';
+                    break;
+                } else {
+                    q = kNull;
+                    continue;
                 }
             }
+
         } while (!q);
 
         if (q != '#') {
-            Sprintf(rtmp, "%c", q);
-            addtopl(rtmp);
-            m_toplines += q;
+            input += q;
         }
 
     } else {
 
-        /* no restriction on allowed response, so always preserve case */
-        /* preserve_case = TRUE; -- moot since we're jumping to the end */
-        m_nextIsPrompt = true;
-        pline("%s ", query);
-        assert(!m_nextIsPrompt);
+        m_toplines = prompt;
+
+        put_topline(m_toplines.c_str());
 
         q = readchar();
 
-        Sprintf(rtmp, "%c", q);
-        addtopl(rtmp);
-
-        m_toplines += q;
+        input += q;
     }
+
+    m_toplines = prompt;
+    m_toplines += input;
+
+    put_topline(m_toplines.c_str());
 
     m_mustBeSeen = false;
 
@@ -577,9 +607,8 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
 
         c = pgetchar();
 
-        if (c == kControlP) {
+        if (c == kControlP)
             c = handle_prev_message();
-        }
 
         if (c == kEscape) {
             input = std::string("\033");
@@ -698,6 +727,14 @@ void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute
 void MessageWindow::addtopl(const char *s)
 {
     putsyms(s, TextColor::NoColor, TextAttribute::None);
+    clear_to_end_of_line();
+    m_mustBeSeen = true;
+    m_mustBeErased = true;
+}
+
+void MessageWindow::addtopl(char c)
+{
+    topl_putsym(c, TextColor::NoColor, TextAttribute::None);
     clear_to_end_of_line();
     m_mustBeSeen = true;
     m_mustBeErased = true;

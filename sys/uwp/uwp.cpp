@@ -801,9 +801,11 @@ static void unit_test_yn_function()
     assert(result == 'n');
     assert(strcmp("test 4? [yn#aqB] (y) n", g_messageWindow.m_toplines.c_str()) == 0);
 
-    g_testInput.push_back(TestInput('1', "test 5? [yn#aqB] (y) "));
-    g_testInput.push_back(TestInput('0', "test 5? [yn#aqB] (y) #1"));
-    g_testInput.push_back(TestInput('\n', "test 5? [yn#aqB] (y) #10"));
+    g_testInput.push_back(TestInput('1', "test 5? [yn#aqB] (y) ", "test 5? [yn#aqB] (y) "));
+    g_testInput.push_back(TestInput('0', "test 5? [yn#aqB] (y) #1", "test 5? [yn#aqB] (y) #1"));
+    g_testInput.push_back(TestInput('5', "test 5? [yn#aqB] (y) #10", "test 5? [yn#aqB] (y) #10"));
+    g_testInput.push_back(TestInput('\b', "test 5? [yn#aqB] (y) #105", "test 5? [yn#aqB] (y) #105"));
+    g_testInput.push_back(TestInput('\n', "test 5? [yn#aqB] (y) #10", "test 5? [yn#aqB] (y) #10"));
     result = yn_function("test 5?", "yn#aqB\033b", 'y');
     assert(g_testInput.size() == 0);
     assert(result == '#');
@@ -911,6 +913,30 @@ static void unit_test_yn_function()
     assert(g_testInput.size() == 0);
     assert(result == '#');
     assert(yn_number == 5);
+
+    g_testInput.push_back(TestInput('c'));
+    g_testInput.push_back(TestInput('b'));
+    result = yn_function("test 20?", "ab", 'a');
+    assert(g_testInput.size() == 0);
+    assert(result == 'b');
+
+    g_testInput.push_back(TestInput('5', "test 19? [#] (a) ", "test 19? [#] (a) "));
+    g_testInput.push_back(TestInput('9', "test 19? [#] (a) #5", "test 19? [#] (a) #5"));
+    g_testInput.push_back(TestInput('8', "test 19? [#] (a) #59", "test 19? [#] (a) #59"));
+    g_testInput.push_back(TestInput('7', "test 19? [#] (a) #598", "test 19? [#] (a) #598"));
+    g_testInput.push_back(TestInput('6', "test 19? [#] (a) #5987", "test 19? [#] (a) #5987"));
+    g_testInput.push_back(TestInput('5', "test 19? [#] (a) #59876", "test 19? [#] (a) #59876"));
+    g_testInput.push_back(TestInput('4', "test 19? [#] (a) #598765", "test 19? [#] (a) #598765"));
+    g_testInput.push_back(TestInput('3', "test 19? [#] (a) #5987654", "test 19? [#] (a) #5987654"));
+    g_testInput.push_back(TestInput('2', "test 19? [#] (a) #59876543", "test 19? [#] (a) #59876543"));
+    g_testInput.push_back(TestInput('1', "test 19? [#] (a) #598765432", "test 19? [#] (a) #598765432"));
+    g_testInput.push_back(TestInput('4', "test 19? [#] (a) ", "test 19? [#] (a) "));
+    g_testInput.push_back(TestInput('2', "test 19? [#] (a) #4", "test 19? [#] (a) #4"));
+    g_testInput.push_back(TestInput(kNewline, "test 19? [#] (a) #42", "test 19? [#] (a) #42"));
+    result = yn_function("test 19?", "#", 'a');
+    assert(g_testInput.size() == 0);
+    assert(result == '#');
+    assert(yn_number == 42);
 }
 
 static void unit_test_display_message_window()
