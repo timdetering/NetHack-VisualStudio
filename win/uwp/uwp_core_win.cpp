@@ -11,9 +11,13 @@ using namespace Nethack;
 
 CoreWindow::CoreWindow(int inType, winid window) : m_type(inType), m_window(window)
 {
-    Init();
-
     g_wins[m_window] = this;
+
+    m_dimx = 0;
+    m_dimy = 0;
+    m_cell_count = 0;
+
+    Init();
 }
 
 void CoreWindow::Init()
@@ -21,6 +25,9 @@ void CoreWindow::Init()
     m_active = FALSE;
     m_curx = 0;
     m_cury = 0;
+
+    for (auto & cell : m_cells)
+        cell = TextCell();
 }
 
 CoreWindow::~CoreWindow()
@@ -28,6 +35,21 @@ CoreWindow::~CoreWindow()
     g_wins[m_window] = NULL;
 }
 
+void CoreWindow::Render(std::vector<TextCell> & cells)
+{
+    if (m_active) {
+        assert(m_cols + m_offx <= kScreenWidth);
+        assert(m_cols <= m_dimx);
+        assert(m_rows <= m_dimy);
+
+        for (int y = 0; y < m_rows; y++) {
+            int dst_offset = ((m_offy + y) * kScreenWidth) + m_offx;
+            int src_offset = y * m_dimx;
+            for (int x = 0; x < m_cols; x++)
+                cells[dst_offset++] = m_cells[src_offset++];
+        }
+    }
+}
 
 void CoreWindow::Destroy()
 {
@@ -51,14 +73,36 @@ void CoreWindow::set_cursor(int x, int y)
 
 void CoreWindow::clear_to_end_of_line()
 {
+    assert((m_offx + m_cols) == kScreenWidth);
     g_textGrid.SetCursor(Int2D(m_curx + m_offx, m_cury + m_offy));
     g_textGrid.ClearToEndOfLine();
+    cells_clear_to_end_of_line(m_curx, m_cury);
 }
 
 void CoreWindow::clear_to_end_of_screen()
 {
+    assert(m_rows == kScreenHeight);
     g_textGrid.SetCursor(Int2D(m_curx + m_offx, m_cury + m_offy));
     g_textGrid.ClearToEndOfScreen();
+    cells_clear_to_end_of_window(m_curx, m_cury);
+}
+
+void CoreWindow::clear_whole_screen()
+{
+    g_textGrid.Clear();
+    assert(m_rows == kScreenHeight);
+    assert(m_cols == kScreenWidth);
+    cells_clear_window();
+}
+
+void CoreWindow::clear_window()
+{
+    m_curx = 0;
+    for (m_cury = 0; m_cury < m_rows; m_cury++)
+        clear_to_end_of_line();
+    m_cury = 0;
+
+    cells_clear_window();
 }
 
 void CoreWindow::Dismiss()
@@ -112,10 +156,18 @@ void CoreWindow::core_putc(char ch, Nethack::TextColor textColor, Nethack::TextA
     int x = m_curx + m_offx;
     int y = m_cury + m_offy;
 
+    cells_put(m_curx, m_cury, ch, textColor, textAttribute);
+
     g_textGrid.Put(x, y, ch, textColor, textAttribute);
+
+    assert(m_curx == g_textGrid.GetCursor().m_x - m_offx);
+    assert(m_cury == g_textGrid.GetCursor().m_y - m_offy);
 
     m_curx = g_textGrid.GetCursor().m_x - m_offx;
     m_cury = g_textGrid.GetCursor().m_y - m_offy;
+
+    assert(m_curx <= m_cols);
+    assert(m_cury < m_rows);
 }
 
 void CoreWindow::core_puts(
@@ -126,10 +178,18 @@ void CoreWindow::core_puts(
     int x = m_curx + m_offx;
     int y = m_cury + m_offy;
 
+    cells_puts(m_curx, m_cury, s, textColor, textAttribute);
+
     g_textGrid.Putstr(x, y, textColor, textAttribute, s);
+
+    assert(m_curx == g_textGrid.GetCursor().m_x - m_offx);
+    assert(m_cury == g_textGrid.GetCursor().m_y - m_offy);
 
     m_curx = g_textGrid.GetCursor().m_x - m_offx;
     m_cury = g_textGrid.GetCursor().m_y - m_offy;
+
+    assert(m_curx < m_cols);
+    assert(m_cury < m_rows);
 }
 
 const char *
@@ -178,4 +238,115 @@ void CoreWindow::Putsym(int x, int y, char ch)
         impossible("Can't putsym to window type %d", m_type);
         break;
     }
+}
+
+void CoreWindow::cells_set_dimensions(int x, int y)
+{
+    m_dimx = x;
+    m_dimy = y;
+    m_cell_count = m_dimx * m_dimy;
+    m_cells.resize(m_cell_count);
+}
+
+void CoreWindow::cells_clear_to_end_of_window(int x, int y)
+{
+    assert(x >= 0 && x < m_dimx);
+    assert(y >= 0 && y < m_dimy);
+
+    TextCell clearCell;
+    int offset = (y * m_dimx) + x;
+
+    while (offset < m_cell_count)
+        m_cells[offset++] = clearCell;
+}
+
+void CoreWindow::cells_clear_to_end_of_line(int x, int y)
+{
+    assert(x >= 0 && x < m_dimx);
+    assert(y >= 0 && y < m_dimy);
+
+    TextCell clearCell;
+    int offset = (y * m_dimx) + x;
+    int sentinel = (y + 1) * m_dimx;
+
+    while (offset < sentinel)
+        m_cells[offset++] = clearCell;
+}
+
+void CoreWindow::cells_clear_window()
+{
+    TextCell clearCell;
+    int offset = 0;
+    int sentinel = m_dimy * m_dimx;
+
+    while (offset < sentinel)
+        m_cells[offset++] = clearCell;
+}
+
+void CoreWindow::cells_puts(int x, int y, const char * str, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute)
+{
+    assert(x >= 0 && x < m_dimx);
+    assert(y >= 0 && y < m_dimy);
+
+    m_curx = x;
+    m_cury = y;
+
+    int offset = (m_cury * m_dimx) + m_curx;
+
+    while (*str) {
+        char c = *str++;
+
+        assert(offset >= 0 && offset < m_cell_count);
+
+        if (c == '\b') {
+            if (offset > 0)
+            {
+                offset--;
+            }
+        } else if (c == '\n')  {
+            offset = ((offset / m_dimx) + 1) * m_dimx;
+        } else {
+            m_cells[offset++] = TextCell(textColor, textAttribute, c);
+
+            if (offset == m_cell_count)
+            {
+                offset--;
+            }
+        }
+    }
+
+    m_cury = offset / m_dimx;
+    m_curx = offset % m_dimx;
+}
+
+void CoreWindow::cells_put(int x, int y, const char c, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute)
+{
+    assert(x >= 0 && x < m_dimx);
+    assert(y >= 0 && y < m_dimy);
+
+    m_curx = x;
+    m_cury = y;
+
+    int offset = (m_cury * m_dimx) + m_curx;
+
+    assert(offset >= 0 && offset < m_cell_count);
+
+    if (c == '\b') {
+        if (offset > 0)
+        {
+            offset--;
+        }
+    } else if (c == '\n') {
+        offset = ((offset / m_dimx) + 1) * m_dimx;
+    } else {
+        m_cells[offset++] = TextCell(textColor, textAttribute, c);
+
+        if (offset == m_cell_count)
+        {
+            offset--;
+        }
+    }
+
+    m_cury = offset / m_dimx;
+    m_curx = offset % m_dimx;
 }

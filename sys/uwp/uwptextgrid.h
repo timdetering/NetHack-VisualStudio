@@ -183,6 +183,8 @@ namespace Nethack
             return m_cells[(m_gridDimensions.m_x * y) + x];
         }
 
+        std::vector<TextCell> m_cells;
+
     private:
 
         void UpdateVertcies(void);
@@ -194,9 +196,7 @@ namespace Nethack
         Int2D m_gridDimensions;
 
         int m_cellCount;
-
         Lock                  m_cellsLock;
-        std::vector<TextCell> m_cells;
 
         static const int kCursorTicks = 550;
         Int2D   m_cursor;

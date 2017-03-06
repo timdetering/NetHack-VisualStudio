@@ -3,6 +3,7 @@
 /* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
 #include "uwp.h"
+#include "..\..\win\uwp\winuwp.h"
 
 using namespace Nethack;
 using namespace Windows::Foundation;

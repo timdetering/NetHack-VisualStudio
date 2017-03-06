@@ -19,6 +19,8 @@ MapWindow::MapWindow() : CoreWindow(NHW_MAP, MAP_WINDOW)
     m_offy = 1;
     m_rows = ROWNO;
     m_cols = COLNO;
+
+    cells_set_dimensions(m_cols, m_rows);
 }
 
 MapWindow::~MapWindow()
@@ -29,13 +31,19 @@ void MapWindow::Destroy()
 {
     CoreWindow::Destroy();
 
-    clear_screen();
+    clear_window();
 }
 
 void MapWindow::Clear()
 {
     context.botlx = 1;
-    clear_screen();
+
+    clear_window();
+    // TODO(bhouse): original code appears to clear entire display ... so we need to clear all three windows
+    //       the code really should have to clear them seperately.
+    //       We should see if we can do without clearing the status and message windows.
+    g_statusWindow.Clear();
+    g_messageWindow.Clear();
 
     CoreWindow::Clear();
 }

@@ -19,10 +19,13 @@ StatusWindow::StatusWindow() : CoreWindow(NHW_STATUS, STATUS_WINDOW)
     m_offy = min(kScreenHeight - kStatusHeight, ROWNO + 1);
     m_rows = kStatusHeight;
     m_cols = kStatusWidth;
+
+    cells_set_dimensions(kStatusWidth, kStatusHeight);
 }
 
 StatusWindow::~StatusWindow()
 {
+    // do noting
 }
 
 void StatusWindow::Clear()

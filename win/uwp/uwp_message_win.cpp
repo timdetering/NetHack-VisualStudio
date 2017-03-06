@@ -37,8 +37,9 @@ MessageWindow::MessageWindow() : CoreWindow(NHW_MESSAGE, MESSAGE_WINDOW)
     else if (iflags.msg_history > kMaxMessageHistoryLength)
         iflags.msg_history = kMaxMessageHistoryLength;
 
-    m_rows = iflags.msg_history;
     m_cols = kScreenWidth;
+
+    cells_set_dimensions(kScreenWidth, kScreenHeight);
 }
 
 void MessageWindow::Init()
@@ -52,6 +53,8 @@ void MessageWindow::Init()
     m_toplines.clear();
 
     m_outputMessages = true;
+
+    m_rows = 1;
 }
 
 MessageWindow::~MessageWindow()
@@ -81,6 +84,10 @@ void MessageWindow::Clear()
     if (m_mustBeErased) {
         erase_message();
     }
+
+    // TODO: We should not always need this clear window
+    assert(m_rows == 1);
+    clear_window();
 
     CoreWindow::Clear();
 }
@@ -586,7 +593,10 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
         m_mustBeSeen = false;
         erase_message();
 
+        // Should we let rows increase to some maximum?
+        m_rows = 3;
         core_puts(line.c_str());
+        m_rows = m_cury + 1;
 
         if (guess.size())
             set_cursor(prompt.size() + input.size(), 0);
@@ -654,7 +664,7 @@ void MessageWindow::remember_topl()
         return;
 
     m_msgList.push_back(m_toplines);
-    while (m_msgList.size() > m_rows)
+    while (m_msgList.size() > iflags.msg_history)
         m_msgList.pop_front();
 
     m_toplines.clear();
@@ -690,6 +700,9 @@ void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute
         return;
     case kNewline:
         clear_to_end_of_line();
+        assert(m_cury < m_rows);
+        // TODO: come up with a better way of keeping m_rows in range
+        if (m_cury == (m_rows - 1)) m_rows = m_cury + 2;
         core_putc(kNewline);
         m_output.push_back(TextCell(kNewline));
         break;
@@ -697,6 +710,8 @@ void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute
         {
         bool forceNewLine = (m_curx + m_offx == CO - 1);
 
+        // TODO: come up with a better way of keeping m_rows in range
+        if (forceNewLine) m_rows = m_cury + 2;
         core_putc(c);
         m_output.push_back(TextCell(c));
         
@@ -818,6 +833,7 @@ void MessageWindow::erase_message()
     m_mustBeErased = false;
 
     m_output.clear();
+    m_rows = 1;
 }
 
 void

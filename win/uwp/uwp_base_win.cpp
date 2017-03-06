@@ -18,6 +18,8 @@ BaseWindow::BaseWindow() : CoreWindow(NHW_BASE, BASE_WINDOW)
     m_offy = 0;
     m_rows = kScreenHeight;
     m_cols = kScreenWidth;
+
+    cells_set_dimensions(m_cols, m_rows);
 }
 
 BaseWindow::~BaseWindow()
@@ -26,7 +28,7 @@ BaseWindow::~BaseWindow()
 
 void BaseWindow::Clear()
 {
-    clear_screen();
+    clear_whole_screen();
 
     CoreWindow::Clear();
 }

@@ -130,6 +130,9 @@ tty_init_nhwindows(int *, char **)
     g_mapWindow.Init();
     g_statusWindow.Init();
 
+    g_render_list.push_back(&g_messageWindow);
+    g_render_list.push_back(&g_statusWindow);
+
     g_baseWindow.m_active = 1;
     g_baseWindow.Clear();
     g_baseWindow.Display(FALSE);
@@ -183,6 +186,9 @@ tty_exit_nhwindows(const char *str)
     g_mapWindow.Destroy();
     g_messageWindow.Destroy();
     g_baseWindow.Clear();
+
+    g_render_list.remove(&g_statusWindow);
+    g_render_list.remove(&g_messageWindow);
 
     /* core engine should do this */
     WIN_MAP = WIN_MESSAGE = WIN_INVEN = WIN_ERR; /* these are all gone now */
@@ -473,7 +479,7 @@ tty_nh_poskey(int *x, int *y, int *mod)
     } else {
 
         /* we checking for input -- flush our output */
-        g_textGrid.Flush();
+        uwp_render_windows();
 
         if (g_testInput.size() > 0) {
 //            Sleep(1000);
@@ -746,3 +752,22 @@ void uwp_puts(const char *s)
 }
 
 } /* extern "C" */
+
+std::list<CoreWindow *> g_render_list;
+
+// uwp_render_windows() is called when we are in a coherient state and wish for the user to see that
+// state.  Usually called right before getting input.
+void uwp_render_windows()
+{
+    std::vector<TextCell> cells = g_textGrid.m_cells;
+
+    assert(cells.size() == (kScreenHeight * kScreenWidth));
+
+    for (auto win : g_render_list)
+        win->Render(cells);
+
+    for (int offset = 0; offset < g_textGrid.m_cells.size(); offset++)
+        assert(g_textGrid.m_cells[offset] == cells[offset]);
+
+    g_textGrid.Flush();
+}

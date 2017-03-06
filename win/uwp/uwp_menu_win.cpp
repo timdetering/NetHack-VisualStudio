@@ -36,10 +36,15 @@ MenuWindow::MenuWindow(winid window) : CoreWindow(NHW_MENU, window)
     m_cols = 0;
 
     m_cancelled = false;
+
+    g_render_list.push_back(this);
+
+    cells_set_dimensions(kScreenWidth, kScreenHeight);
 }
 
 MenuWindow::~MenuWindow()
 {
+    g_render_list.remove(this);
 }
 
 void MenuWindow::Destroy()
@@ -60,6 +65,7 @@ void MenuWindow::Display(bool blocking)
     int screenHeight = kScreenHeight;
     m_offx = m_cols < screenWidth ? screenWidth - m_cols - 1 : 0;
     m_offx = min(screenWidth / 2, m_offx);
+    m_cols = screenWidth - m_offx;
 
     m_offy = 0;
 
@@ -76,7 +82,7 @@ void MenuWindow::Display(bool blocking)
             set_cursor(0, 0);
             clear_to_end_of_screen();
         } else
-            clear_screen();
+            clear_whole_screen();
 
         /* we just cleared the message area so we no longer need to erase */
         g_messageWindow.m_mustBeErased = false;
@@ -140,7 +146,7 @@ void MenuWindow::Putstr(int attr, const char *str)
 void MenuWindow::Clear()
 {
     if (m_active)
-        clear_screen();
+        clear_whole_screen();
 
     m_items.clear();
     m_pages.clear();
@@ -227,7 +233,7 @@ void MenuWindow::process_menu()
                     set_cursor(0, 0);
                     clear_to_end_of_screen();
                 } else
-                    clear_screen();
+                    clear_whole_screen();
             }
 
             rp = resp;
@@ -540,6 +546,8 @@ MenuWindow::process_lines()
 
     auto iter = m_lines.begin();
     m_rows = kScreenHeight - m_offy;
+    m_cols = kScreenWidth - m_offx;
+
     int row = 0;
 
     while (iter != m_lines.end() && !m_cancelled) {

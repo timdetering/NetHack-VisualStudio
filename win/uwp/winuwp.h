@@ -33,10 +33,13 @@ struct CoreWindow {
     virtual void Display(bool blocking) = 0;
     virtual void Dismiss();
     virtual void Destroy();
+    virtual void Render(std::vector<Nethack::TextCell> & cells);
 
     void set_cursor(int x, int y);
     void clear_to_end_of_line();
     void clear_to_end_of_screen();
+    void clear_whole_screen();
+    void clear_window();
 
     virtual void Putstr(int attr, const char *str) = 0;
     virtual void Putsym(int x, int y, char ch);
@@ -56,6 +59,17 @@ struct CoreWindow {
     long m_rows, m_cols;     /* dimensions */
     long m_curx, m_cury;     /* current cursor position */
     std::string m_morestr;         /* string to display instead of default */
+
+    void cells_set_dimensions(int x, int y);
+    void cells_puts(int x, int y, const char *, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
+    void cells_put(int x, int y, const char c, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
+    void cells_clear_to_end_of_window(int x, int y);
+    void cells_clear_to_end_of_line(int x, int y);
+    void cells_clear_window();
+
+    int m_dimx, m_dimy; /* dimension of cells */
+    int m_cell_count;
+    std::vector<Nethack::TextCell> m_cells;
 };
 
 static const int kMaxMessageHistoryLength = 60;
@@ -220,6 +234,9 @@ struct TextWindow : public CoreWindow {
     bool m_cancelled;
 
 };
+
+extern std::list<CoreWindow *> g_render_list;
+void uwp_render_windows();
 
 extern "C" {
 

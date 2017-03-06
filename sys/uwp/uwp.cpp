@@ -131,7 +131,7 @@ static void verify_record_file()
 int kbhit(void)
 {
     /* we checking for input -- flush our output */
-    g_textGrid.Flush();
+    uwp_render_windows();
     return !g_eventQueue.Empty();
 }
 
@@ -361,7 +361,7 @@ int raw_getchar()
         return kEscape;
 
     /* we checking for input -- flush our output */
-    g_textGrid.Flush();
+    uwp_render_windows();
 
     Event e;
 

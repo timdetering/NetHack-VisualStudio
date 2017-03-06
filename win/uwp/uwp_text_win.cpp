@@ -16,16 +16,21 @@ TextWindow::TextWindow(winid window) : CoreWindow(NHW_TEXT, window)
     m_rows = kScreenHeight;
     m_cols = kScreenWidth;
     m_cancelled = false;
+
+    g_render_list.push_back(this);
+
+    cells_set_dimensions(kScreenWidth, kScreenHeight);
 }
 
 TextWindow::~TextWindow()
 {
+    g_render_list.remove(this);
 }
 
 void TextWindow::Clear()
 {
     if (m_active) {
-        clear_screen();
+        clear_whole_screen();
     }
 
     CoreWindow::Clear();
@@ -91,6 +96,8 @@ void TextWindow::Display(bool blocking)
     set_cursor(0, 0);
     clear_to_end_of_screen();
 
+    m_active = 1;
+
     while (iter != m_lines.end()) {
         auto & line = *iter++;
 
@@ -112,8 +119,6 @@ void TextWindow::Display(bool blocking)
             row = 0;
         }
     }
-
-    m_active = 1;
 }
 
 int TextWindow::dmore(
