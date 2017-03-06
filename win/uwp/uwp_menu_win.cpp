@@ -69,14 +69,21 @@ void MenuWindow::Display(bool blocking)
 
     m_offy = 0;
 
+    if (m_offx == 0)
+        m_rows = kScreenHeight;
+
     if (g_messageWindow.m_mustBeSeen)
         g_messageWindow.Display(true);
+
+    assert(m_rows <= kScreenHeight);
 
     /* if we are going to have more then one page to display the use full screen */
     /* or if we are not supposed to use menu overlays */;
     if (m_rows >= screenHeight || !iflags.menu_overlay)
     {
         m_offx = 0;
+        m_cols = screenWidth;
+        m_rows = screenHeight;
         /* TODO(bhouse) why do we test and do something different for overlay? */
         if (iflags.menu_overlay) {
             set_cursor(0, 0);
@@ -229,6 +236,7 @@ void MenuWindow::process_menu()
 
             /* clear screen */
             if (!m_offx) { /* if not corner, do clearscreen */
+                assert(m_rows == kScreenHeight);
                 if (m_offy) {
                     set_cursor(0, 0);
                     clear_to_end_of_screen();
@@ -876,9 +884,11 @@ void MenuWindow::uwp_end_menu(
     * maximum size of the window.
     */
     if (m_npages > 1)
-        m_rows = lmax + 1;
+        m_rows = kScreenHeight;
     else
         m_rows = m_items.size() + 1;
+
+    assert(m_rows <= kScreenHeight);
 }
 
 int MenuWindow::dmore(

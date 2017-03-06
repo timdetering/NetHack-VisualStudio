@@ -130,6 +130,7 @@ tty_init_nhwindows(int *, char **)
     g_mapWindow.Init();
     g_statusWindow.Init();
 
+    g_render_list.push_back(&g_mapWindow);
     g_render_list.push_back(&g_messageWindow);
     g_render_list.push_back(&g_statusWindow);
 
@@ -189,6 +190,7 @@ tty_exit_nhwindows(const char *str)
 
     g_render_list.remove(&g_statusWindow);
     g_render_list.remove(&g_messageWindow);
+    g_render_list.remove(&g_mapWindow);
 
     /* core engine should do this */
     WIN_MAP = WIN_MESSAGE = WIN_INVEN = WIN_ERR; /* these are all gone now */
