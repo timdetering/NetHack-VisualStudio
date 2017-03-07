@@ -427,6 +427,9 @@
     <ClCompile Include="..\..\..\win\uwp\uwp_status_win.cpp">
       <Filter>win\uwp</Filter>
     </ClCompile>
+    <ClCompile Include="..\uwpunittest.cpp">
+      <Filter>sys\uwp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="$(SysDir)uwp\assets\StoreLogo.png">

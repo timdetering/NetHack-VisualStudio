@@ -770,8 +770,15 @@ int MessageWindow::more(int dismiss_more)
     /* note: if we are stopping messages there are no messages to be seen
      *       or messages that need erasing.
      */
-    if (response == kEscape)
+    if (response == kEscape) {
+        assert(!m_mustBeSeen);
+        assert(!m_mustBeErased);
+        assert(m_output.size() == 0);
+        assert(m_cury == 0);
+        assert(m_curx == 0);
+        assert(m_rows == 1);
         m_outputMessages = false;
+    }
 
     return response;
 }

@@ -297,6 +297,7 @@
     <ClCompile Include="..\uwpcolor.cpp" />
     <ClCompile Include="..\uwpfilehandler.cpp" />
     <ClCompile Include="..\uwpfont.cpp" />
+    <ClCompile Include="..\uwpunittest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(SrcDir)allmain.c">

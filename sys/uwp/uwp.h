@@ -108,6 +108,8 @@ extern"C" {
     extern char MapScanCode(const Nethack::Event & e);
     extern int raw_getchar();
 
+    void raw_clear_screen(void);
+
     void uwp_play_nethack(void);
     void uwp_main(std::wstring & localDirW, std::wstring & installDirW);
     void uwp_one_time_init(std::wstring & localDirW, std::wstring & installDirW);
@@ -122,6 +124,7 @@ extern"C" {
     const int kScreenWidth = 80;
     const int kScreenHeight = 24;
 
-
-
 }
+
+void unit_test_error_output(bool windowing_initialized);
+void unit_tests();
