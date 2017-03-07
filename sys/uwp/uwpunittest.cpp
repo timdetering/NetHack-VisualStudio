@@ -374,12 +374,30 @@ void unit_test_error_output(bool windowing_initialized)
 {
     if (windowing_initialized) {
         assert(iflags.window_inited);
-        clear_nhwindow(BASE_WINDOW);
-        putstr(BASE_WINDOW, 0, "test");
+
+        clear_nhwindow(MAP_WINDOW);
+        putstr(MAP_WINDOW, 0, "test\n");
+        putstr(MAP_WINDOW, 0, "Hit <ENTER> to exit.");
+        g_testInput.push_back(TestInput('\n', NULL, NULL, NULL));
+        uwp_wait_for_return();
+
+        clear_nhwindow(MAP_WINDOW);
+        g_testInput.push_back(TestInput('\n', NULL, NULL, NULL));
+        uwp_wait_for_return();
+
     } else {
         assert(!iflags.window_inited);
+
         raw_clear_screen();
         raw_printf("test");
+        raw_printf("Hit <ENTER> to exit.");
+        g_testInput.push_back(TestInput('\n', NULL, NULL, NULL));
+        uwp_wait_for_return();
+
+        raw_clear_screen();
+        g_testInput.push_back(TestInput('\n', NULL, NULL, NULL));
+        uwp_wait_for_return();
+
     }
 }
 

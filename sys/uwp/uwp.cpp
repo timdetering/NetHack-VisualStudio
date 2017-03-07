@@ -154,7 +154,7 @@ void nethack_exit(int result)
 {
     if(!program_state.done_hup) {
         if(iflags.window_inited) {
-            putstr(BASE_WINDOW, 0, "Hit <ENTER> to exit.");
+            putstr(MAP_WINDOW, 0, "Hit <ENTER> to exit.");
         } else {
             raw_printf("Hit <ENTER> to exit.");
         }
@@ -400,8 +400,8 @@ void uwp_error(const char * s, ...)
     (void)vsprintf(buf, s, the_args);
 
     if(iflags.window_inited) {
-        clear_nhwindow(BASE_WINDOW);
-        putstr(BASE_WINDOW, 0, buf);
+        clear_nhwindow(MAP_WINDOW);
+        putstr(MAP_WINDOW, 0, buf);
     } else {
         raw_clear_screen();
         raw_printf(buf);
@@ -423,9 +423,9 @@ void uwp_warn(const char * s, ...)
     (void)vsprintf(buf, s, the_args);
 
     if (iflags.window_inited) {
-        clear_nhwindow(BASE_WINDOW);
-        putstr(BASE_WINDOW, 0, buf);
-        putstr(BASE_WINDOW, 0, "Hit <ENTER> to continue.");
+        clear_nhwindow(MAP_WINDOW);
+        putstr(MAP_WINDOW, 0, buf);
+        putstr(MAP_WINDOW, 0, "Hit <ENTER> to continue.");
     }
     else {
         raw_clear_screen();
@@ -542,8 +542,6 @@ static void process_font_map()
 /* allow the user to add to NETHACKOPTIONS */
 static void add_option()
 {
-    clear_nhwindow(BASE_WINDOW);
-
     char buf[BUFSZ];
     getlin("Option:", buf);
 
@@ -568,8 +566,6 @@ static void add_option()
 /* allow the user to remove one or more of the NETHACKOPTIONS */
 static void remove_options()
 {
-    clear_nhwindow(BASE_WINDOW);
-
     winid menu = create_nhwindow(NHW_MENU);
     start_menu(menu);
 
@@ -609,8 +605,6 @@ static void change_options()
 {
     bool done = false;
     while (!done) {
-
-        clear_nhwindow(BASE_WINDOW);
 
         std::string optionsString = "[ ]";
         optionsString += g_options.GetString();
@@ -659,8 +653,6 @@ static void change_options()
  */
 static void change_font(void)
 {
-    clear_nhwindow(BASE_WINDOW);
-
     winid menu = create_nhwindow(NHW_MENU);
     start_menu(menu);
 
@@ -764,9 +756,8 @@ void load_file(std::string & filePath)
 static void reset_defaults_file(void)
 {
     copy_to_local(g_defaultsFileName, false);
-    clear_nhwindow(BASE_WINDOW);
-
-    puts("Reset complete. Hit <Enter>");
+    clear_nhwindow(MESSAGE_WINDOW);
+    putstr(MESSAGE_WINDOW, 0, "Reset complete. Hit <Enter>");
     uwp_wait_for_return();
 }
 
@@ -788,7 +779,7 @@ static bool main_menu(void)
     // TODO(bhouse): Need to review use of BASE_WINDOW.  Really like to have this code be
     //               windowing system agnostic.  Use and knowledge of BASE_WINDOW breaks
     //               that goal.
-    clear_nhwindow(BASE_WINDOW);
+//    clear_nhwindow(BASE_WINDOW);
 
     bool play = false;
     bool done = false;

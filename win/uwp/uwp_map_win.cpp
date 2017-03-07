@@ -61,10 +61,18 @@ void MapWindow::Display(bool blocking)
         }
 
         g_messageWindow.Display(true);
-        return;
+    } else {
+        m_active = 1;
     }
 
-    m_active = 1;
+    auto cursor = g_textGrid.GetCursor();
+    int offset = 0;
+    for(int y = 0; y < m_rows; y++)
+        for (int x = 0; x < m_cols; x++)
+            g_textGrid.Put(x + m_offx, y + m_offy, m_cells[offset++]);
+
+    g_textGrid.SetCursor(cursor);
+
 }
 
 void MapWindow::Dismiss()
@@ -74,13 +82,8 @@ void MapWindow::Dismiss()
 
 void MapWindow::Putstr(int attr, const char *str)
 {
-    assert(0);  // not expected to get called
-
-    str = compress_str(str);
     TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
 
     core_puts(str, TextColor::NoColor, useAttribute);
-    m_curx = 0;
-    m_cury++;
 }
 
