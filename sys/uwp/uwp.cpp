@@ -154,14 +154,8 @@ void nethack_exit(int result)
 {
     if(!program_state.done_hup) {
         if(iflags.window_inited) {
-            putstr(MESSAGE_WINDOW, 0, "Hit <ENTER> to exit.");
-            uwp_wait_for_return();
             exit_nhwindows("");
-        } else {
-            raw_printf("Hit <ENTER> to exit.");
-            uwp_wait_for_return();
         }
-
     }
 
     longjmp(g_mainLoopJmpBuf, -1);
@@ -777,11 +771,6 @@ static bool main_menu(void)
     if (!iflags.window_inited) {
         uwp_error("Windowing system failed to initialize");
     }
-
-    // TODO(bhouse): Need to review use of BASE_WINDOW.  Really like to have this code be
-    //               windowing system agnostic.  Use and knowledge of BASE_WINDOW breaks
-    //               that goal.
-//    clear_nhwindow(BASE_WINDOW);
 
     bool play = false;
     bool done = false;

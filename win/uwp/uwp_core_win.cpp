@@ -321,3 +321,11 @@ void CoreWindow::cells_put(int x, int y, const char c, Nethack::TextColor textCo
     }
 
 }
+
+void CoreWindow::bail(const char *mesg)
+{
+    clearlocks();
+    tty_exit_nhwindows(mesg);
+    terminate(EXIT_SUCCESS);
+    /*NOTREACHED*/
+}

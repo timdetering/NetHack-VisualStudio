@@ -124,8 +124,7 @@ tty_init_nhwindows(int *, char **)
     g_rawprint = 0;
 
     set_option_mod_status("mouse_support", SET_IN_GAME);
-
-    g_baseWindow.Init();
+    
     g_messageWindow.Init();
     g_mapWindow.Init();
     g_statusWindow.Init();
@@ -134,9 +133,7 @@ tty_init_nhwindows(int *, char **)
     g_render_list.push_back(&g_messageWindow);
     g_render_list.push_back(&g_statusWindow);
 
-    g_baseWindow.m_active = 1;
-    g_baseWindow.Clear();
-    g_baseWindow.Display(FALSE);
+    g_textGrid.Clear();
 
     iflags.window_inited = TRUE;
 }
@@ -214,7 +211,6 @@ tty_exit_nhwindows(const char *str)
     g_statusWindow.Destroy();
     g_mapWindow.Destroy();
     g_messageWindow.Destroy();
-    g_baseWindow.Clear();
 
     g_render_list.remove(&g_statusWindow);
     g_render_list.remove(&g_messageWindow);
@@ -242,7 +238,7 @@ tty_create_nhwindow(int type)
         return WIN_ERR;
 
     switch (type) {
-    case NHW_BASE: return BASE_WINDOW;
+//    case NHW_BASE: return BASE_WINDOW;
     case NHW_MESSAGE: return MESSAGE_WINDOW;
     case NHW_STATUS: return STATUS_WINDOW;
     case NHW_MAP: return MAP_WINDOW;
@@ -778,11 +774,6 @@ void uwp_raw_printf(TextAttribute textAttribute, const char * fmt, ...)
 void clear_screen(void)
 {
     g_textGrid.Clear();
-}
-
-void uwp_puts(const char *s)
-{
-    g_baseWindow.core_puts(s, TextColor::NoColor, TextAttribute::None);
 }
 
 // uwp_render_windows() is called when we are in a coherient state and wish for the user to see that

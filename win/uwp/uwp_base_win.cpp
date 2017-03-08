@@ -2,7 +2,7 @@
 /* Copyright (c) Bart House, 2016-2017. */
 /* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
-#pragma once
+#if 0
 
 #include "..\..\sys\uwp\uwp.h"
 #include "winuwp.h"
@@ -55,11 +55,4 @@ void BaseWindow::Putstr(int attr, const char *str)
     m_curx = 0;
     m_cury++;
 }
-
-void CoreWindow::bail(const char *mesg)
-{
-    clearlocks();
-    tty_exit_nhwindows(mesg);
-    terminate(EXIT_SUCCESS);
-    /*NOTREACHED*/
-}
+#endif

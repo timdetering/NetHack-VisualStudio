@@ -390,7 +390,6 @@ static const int kKillChar = 21;
 
 extern int g_rawprint;
 
-extern BaseWindow g_baseWindow;
 extern MessageWindow g_messageWindow;
 extern StatusWindow g_statusWindow;
 extern MapWindow g_mapWindow;
