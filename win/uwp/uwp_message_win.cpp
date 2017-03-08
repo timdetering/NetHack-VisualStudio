@@ -560,7 +560,7 @@ int MessageWindow::handle_prev_message()
     return c;
 }
 
-void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook_proc hook)
+void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook_proc hook, int bufSize)
 {
     char *obufp = bufp;
     int c;
@@ -629,7 +629,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
         } else if (c == kNewline) {
             break;
         } else if (kSpace <= (unsigned char)c && c != kDelete
-            && (input.size() < BUFSZ - 1 && input.size() < COLNO)) {
+            && (input.size() < bufSize - 1 && input.size() < COLNO)) {
 
             input += c;
             guess.clear();

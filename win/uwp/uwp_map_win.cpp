@@ -85,5 +85,6 @@ void MapWindow::Putstr(int attr, const char *str)
     TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
 
     core_puts(str, TextColor::NoColor, useAttribute);
+    core_putc('\n', TextColor::NoColor, useAttribute);
 }
 

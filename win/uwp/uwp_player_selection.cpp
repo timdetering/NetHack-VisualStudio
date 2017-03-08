@@ -248,9 +248,9 @@ tty_player_selection()
         a - like 'y', but skips confirmation and starts game;
         q - quit
         */
-        tty_putstr(BASE_WINDOW, 0, "");
-        echoline = g_wins[BASE_WINDOW]->m_cury;
-        tty_putstr(BASE_WINDOW, 0, prompt);
+        tty_putstr(MAP_WINDOW, 0, "");
+        echoline = g_wins[MAP_WINDOW]->m_cury;
+        tty_putstr(MAP_WINDOW, 0, prompt);
         do {
             pick4u = lowc(readchar());
             if (index(quitchars, pick4u))
@@ -258,9 +258,9 @@ tty_player_selection()
         } while (!index(ynaqchars, pick4u));
         if ((int)strlen(prompt) + 1 < CO) {
             /* Echo choice and move back down line */
-            tty_putsym(BASE_WINDOW, (int)strlen(prompt) + 1, echoline,
+            tty_putsym(MAP_WINDOW, (int)strlen(prompt) + 1, echoline,
                 pick4u);
-            tty_putstr(BASE_WINDOW, 0, "");
+            tty_putstr(MAP_WINDOW, 0, "");
         }
         else
             /* Otherwise it's hard to tell where to echo, and things are
@@ -268,7 +268,7 @@ tty_player_selection()
             * question shows up well and doesn't get wrapped at the
             * bottom of the window.
             */
-            tty_clear_nhwindow(BASE_WINDOW);
+            tty_clear_nhwindow(MAP_WINDOW);
 
         if (pick4u != 'y' && pick4u != 'a' && pick4u != 'n')
             goto give_up;
@@ -288,14 +288,14 @@ makepicks:
                     /* Pick a random role */
                     k = pick_role(RACE, GEND, ALGN, PICK_RANDOM);
                     if (k < 0) {
-                        tty_putstr(BASE_WINDOW, 0, "Incompatible role!");
+                        tty_putstr(MAP_WINDOW, 0, "Incompatible role!");
                         k = randrole();
                     }
                 }
                 else {
                     /* Prompt for a role */
-                    tty_clear_nhwindow(BASE_WINDOW);
-                    role_selection_prolog(RS_ROLE, BASE_WINDOW);
+                    tty_clear_nhwindow(MAP_WINDOW);
+                    role_selection_prolog(RS_ROLE, MAP_WINDOW);
                     win = create_nhwindow(NHW_MENU);
                     start_menu(win);
                     /* populate the menu with role choices */
@@ -378,7 +378,7 @@ makepicks:
                 if (pick4u == 'y' || pick4u == 'a' || RACE == ROLE_RANDOM) {
                     k = pick_race(ROLE, GEND, ALGN, PICK_RANDOM);
                     if (k < 0) {
-                        tty_putstr(BASE_WINDOW, 0, "Incompatible race!");
+                        tty_putstr(MAP_WINDOW, 0, "Incompatible race!");
                         k = randrace(ROLE);
                     }
                 }
@@ -400,8 +400,8 @@ makepicks:
                     }
                     /* Permit the user to pick, if there is more than one */
                     if (n > 1) {
-                        tty_clear_nhwindow(BASE_WINDOW);
-                        role_selection_prolog(RS_RACE, BASE_WINDOW);
+                        tty_clear_nhwindow(MAP_WINDOW);
+                        role_selection_prolog(RS_RACE, MAP_WINDOW);
                         win = create_nhwindow(NHW_MENU);
                         start_menu(win);
                         any = zeroany; /* zero out all bits */
@@ -479,7 +479,7 @@ makepicks:
                 if (pick4u == 'y' || pick4u == 'a' || GEND == ROLE_RANDOM) {
                     k = pick_gend(ROLE, RACE, ALGN, PICK_RANDOM);
                     if (k < 0) {
-                        tty_putstr(BASE_WINDOW, 0, "Incompatible gender!");
+                        tty_putstr(MAP_WINDOW, 0, "Incompatible gender!");
                         k = randgend(ROLE, RACE);
                     }
                 }
@@ -501,8 +501,8 @@ makepicks:
                     }
                     /* Permit the user to pick, if there is more than one */
                     if (n > 1) {
-                        tty_clear_nhwindow(BASE_WINDOW);
-                        role_selection_prolog(RS_GENDER, BASE_WINDOW);
+                        tty_clear_nhwindow(MAP_WINDOW);
+                        role_selection_prolog(RS_GENDER, MAP_WINDOW);
                         win = create_nhwindow(NHW_MENU);
                         start_menu(win);
                         any = zeroany; /* zero out all bits */
@@ -578,7 +578,7 @@ makepicks:
                 if (pick4u == 'y' || pick4u == 'a' || ALGN == ROLE_RANDOM) {
                     k = pick_align(ROLE, RACE, GEND, PICK_RANDOM);
                     if (k < 0) {
-                        tty_putstr(BASE_WINDOW, 0, "Incompatible alignment!");
+                        tty_putstr(MAP_WINDOW, 0, "Incompatible alignment!");
                         k = randalign(ROLE, RACE);
                     }
                 }
@@ -600,8 +600,8 @@ makepicks:
                     }
                     /* Permit the user to pick, if there is more than one */
                     if (n > 1) {
-                        tty_clear_nhwindow(BASE_WINDOW);
-                        role_selection_prolog(RS_ALGNMNT, BASE_WINDOW);
+                        tty_clear_nhwindow(MAP_WINDOW);
+                        role_selection_prolog(RS_ALGNMNT, MAP_WINDOW);
                         win = create_nhwindow(NHW_MENU);
                         start_menu(win);
                         any = zeroany; /* zero out all bits */
@@ -687,8 +687,8 @@ makepicks:
     */
     getconfirmation = (picksomething && pick4u != 'a' && !flags.randomall);
     while (getconfirmation) {
-        tty_clear_nhwindow(BASE_WINDOW);
-        role_selection_prolog(ROLE_NONE, BASE_WINDOW);
+        tty_clear_nhwindow(MAP_WINDOW);
+        role_selection_prolog(ROLE_NONE, MAP_WINDOW);
         win = create_nhwindow(NHW_MENU);
         start_menu(win);
         any = zeroany; /* zero out all bits */
@@ -772,7 +772,7 @@ makepicks:
     }
 
     /* Success! */
-    tty_display_nhwindow(BASE_WINDOW, FALSE);
+    tty_display_nhwindow(MAP_WINDOW, FALSE);
     return;
 
 give_up:

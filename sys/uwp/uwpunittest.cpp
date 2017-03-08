@@ -375,30 +375,39 @@ void unit_test_error_output(bool windowing_initialized)
     if (windowing_initialized) {
         assert(iflags.window_inited);
 
-        clear_nhwindow(MAP_WINDOW);
-        putstr(MAP_WINDOW, 0, "test\n");
-        putstr(MAP_WINDOW, 0, "Hit <ENTER> to exit.");
-        g_testInput.push_back(TestInput('\n', NULL, NULL, NULL));
-        uwp_wait_for_return();
+        clear_nhwindow(MESSAGE_WINDOW);
 
-        clear_nhwindow(MAP_WINDOW);
+        g_testInput.push_back(TestInput('\n', NULL, NULL, NULL));
+        putstr(MESSAGE_WINDOW, 0, "test\n");
+        putstr(MESSAGE_WINDOW, 0, "Hit <ENTER> to exit.");
+        assert(g_testInput.size() == 0);
+
         g_testInput.push_back(TestInput('\n', NULL, NULL, NULL));
         uwp_wait_for_return();
+        assert(g_testInput.size() == 0);
+
+        clear_nhwindow(MESSAGE_WINDOW);
+        g_testInput.push_back(TestInput('\n', NULL, NULL, NULL));
+        uwp_wait_for_return();
+        assert(g_testInput.size() == 0);
 
     } else {
         assert(!iflags.window_inited);
 
         raw_clear_screen();
-        raw_printf("test");
+        raw_printf("test\n");
         raw_printf("Hit <ENTER> to exit.");
         g_testInput.push_back(TestInput('\n', NULL, NULL, NULL));
         uwp_wait_for_return();
+        assert(g_testInput.size() == 0);
 
         raw_clear_screen();
         g_testInput.push_back(TestInput('\n', NULL, NULL, NULL));
         uwp_wait_for_return();
+        assert(g_testInput.size() == 0);
 
     }
+
 }
 
 void unit_tests()

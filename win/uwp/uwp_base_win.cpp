@@ -56,79 +56,10 @@ void BaseWindow::Putstr(int attr, const char *str)
     m_cury++;
 }
 
-void BaseWindow::bail(const char *mesg)
+void CoreWindow::bail(const char *mesg)
 {
     clearlocks();
     tty_exit_nhwindows(mesg);
     terminate(EXIT_SUCCESS);
     /*NOTREACHED*/
-}
-
-void BaseWindow::tty_askname()
-{
-    static const char who_are_you[] = "Who are you? ";
-    register int c, ct, tryct = 0;
-
-#ifdef SELECTSAVED
-    if (iflags.wc2_selectsaved && !iflags.renameinprogress)
-        switch (restore_menu(BASE_WINDOW)) {
-        case -1:
-            bail("Until next time then..."); /* quit */
-                                             /*NOTREACHED*/
-        case 0:
-            break; /* no game chosen; start new game */
-        case 1:
-            return; /* plname[] has been set */
-        }
-#endif /* SELECTSAVED */
-
-    int startLine = m_cury;
-
-    do {
-        if (++tryct > 1) {
-            if (tryct > 10)
-                bail("Giving up after 10 tries.\n");
-            set_cursor(0, startLine);
-            core_puts("Enter a name for your character...");
-        }
-
-        set_cursor(0, startLine + 1);
-        clear_to_end_of_line();
-
-        core_puts(who_are_you);
-
-        ct = 0;
-        while ((c = tty_nhgetch()) != kNewline) {
-
-            if (c == kEscape) {
-                ct = 0;
-                break;
-            } /* continue outer loop */
-
-            if (c == kControlC)
-                bail("^C abort.\n");
-
-            /* some people get confused when their erase char is not ^H */
-            if (c == kBackspace || c == kDelete) {
-                if (ct) {
-                    ct--;
-                    core_puts("\b \b");
-                }
-                continue;
-            }
-
-            if (ct < (int)(sizeof plname) - 1) {
-                core_putc(c);
-                plname[ct++] = c;
-            }
-        }
-        plname[ct] = 0;
-    } while (ct == 0);
-
-    /* move to next line to simulate echo of user's <return> */
-    set_cursor(0, m_cury + 1);
-
-    /* since we let user pick an arbitrary name now, he/she can pick
-    another one during role selection */
-    iflags.renameallowed = TRUE;
 }

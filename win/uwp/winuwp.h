@@ -51,6 +51,8 @@ struct CoreWindow {
 
     const char *compress_str(const char *);
 
+    void bail(const char *mesg);
+
     winid m_window;         /* winid */
     int m_flags;           /* window flags */
     xchar m_type;          /* type of window */
@@ -97,7 +99,7 @@ struct MessageWindow : public CoreWindow {
     int doprev_message();
     int redotoplin(const char *str, int dismiss_more = 0);
     void put_topline(const char *str);
-    void hooked_tty_getlin(const char *, char *, getlin_hook_proc);
+    void hooked_tty_getlin(const char * query, char * buf, getlin_hook_proc = NULL, int bufSize = BUFSZ);
     void putsyms(const char *str, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
     void topl_putsym(char c, Nethack::TextColor color, Nethack::TextAttribute attribute);
     void remember_topl();
@@ -184,9 +186,6 @@ struct BaseWindow : public CoreWindow {
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
 
-    void tty_askname();
-    void bail(const char *mesg);
-
 };
 
 struct StatusWindow : public CoreWindow {
@@ -236,7 +235,6 @@ struct TextWindow : public CoreWindow {
 };
 
 extern std::list<CoreWindow *> g_render_list;
-void uwp_render_windows();
 
 extern "C" {
 
@@ -401,5 +399,7 @@ const winid MESSAGE_WINDOW = 1;
 const winid STATUS_WINDOW = 2;
 const winid MAP_WINDOW = 3;
 const winid FIRST_FREE_WINDOW = 4;
+
+void uwp_render_windows();
 
 }

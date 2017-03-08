@@ -556,6 +556,8 @@ MenuWindow::process_lines()
     m_rows = kScreenHeight - m_offy;
     m_cols = kScreenWidth - m_offx;
 
+    clear_window();
+
     int row = 0;
 
     while (iter != m_lines.end() && !m_cancelled) {
@@ -591,7 +593,6 @@ MenuWindow::process_lines()
             clear_to_end_of_screen();
             row = 0;
         }
-
     }
 }
 

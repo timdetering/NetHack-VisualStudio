@@ -66,9 +66,9 @@ static void check_game_in_progress()
 
     (void)nhclose(fd);
 
-    if (yn("There are files from a game in progress under your name. Recover?")) {
+    if (yn("There are files from a game in progress under your name. Recover?") == 'y') {
         if (!recover_savefile()) {
-            if (yn("Recovery failed.  Continue by removing corrupt saved files?")) {
+            if (yn("Recovery failed.  Continue by removing corrupt saved files?") == 'y') {
                 if (!erase_save_files()) {
                     uwp_error("Cound not remove corrupt saved files.");
                 }
@@ -154,12 +154,14 @@ void nethack_exit(int result)
 {
     if(!program_state.done_hup) {
         if(iflags.window_inited) {
-            putstr(MAP_WINDOW, 0, "Hit <ENTER> to exit.");
+            putstr(MESSAGE_WINDOW, 0, "Hit <ENTER> to exit.");
+            uwp_wait_for_return();
+            exit_nhwindows("");
         } else {
             raw_printf("Hit <ENTER> to exit.");
+            uwp_wait_for_return();
         }
 
-        uwp_wait_for_return();
     }
 
     longjmp(g_mainLoopJmpBuf, -1);
@@ -400,8 +402,8 @@ void uwp_error(const char * s, ...)
     (void)vsprintf(buf, s, the_args);
 
     if(iflags.window_inited) {
-        clear_nhwindow(MAP_WINDOW);
-        putstr(MAP_WINDOW, 0, buf);
+        clear_nhwindow(MESSAGE_WINDOW);
+        putstr(MESSAGE_WINDOW, 0, buf);
     } else {
         raw_clear_screen();
         raw_printf(buf);

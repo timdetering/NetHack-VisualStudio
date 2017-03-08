@@ -141,13 +141,41 @@ tty_init_nhwindows(int *, char **)
     iflags.window_inited = TRUE;
 }
 
-/*
- * Always called after init_nhwindows() and before display_gamewindows().
- */
 void
 tty_askname()
 {
-    g_baseWindow.tty_askname();
+    static const char who_are_you[] = "Who are you? ";
+    register int c, ct, tryct = 0;
+
+#ifdef SELECTSAVED
+    if (iflags.wc2_selectsaved && !iflags.renameinprogress)
+        switch (restore_menu(WIN_ERR)) {
+        case -1:
+            g_messageWindow.bail("Until next time then..."); /* quit */
+                                             /*NOTREACHED*/
+        case 0:
+            break; /* no game chosen; start new game */
+        case 1:
+            return; /* plname[] has been set */
+        }
+#endif /* SELECTSAVED */
+
+    do {
+        if (++tryct > 1) {
+            if (tryct > 10)
+                g_messageWindow.bail("Giving up after 10 tries.\n");
+
+            g_messageWindow.Putstr(0, "Enter a name for your character...");
+        }
+
+        g_messageWindow.hooked_tty_getlin(who_are_you, plname, NULL, sizeof(plname));
+
+    } while (plname[0] == kNull);
+
+
+    /* since we let user pick an arbitrary name now, he/she can pick
+    another one during role selection */
+    iflags.renameallowed = TRUE;
 }
 
 void
@@ -440,7 +468,7 @@ void
 tty_raw_print(const char *str)
 {
     g_rawprint++;
-    uwp_raw_printf(TextAttribute::None, "%s\n", str);
+    uwp_raw_printf(TextAttribute::None, "%s", str);
 }
 
 void
@@ -546,7 +574,7 @@ tty_getlin(
     const char *query,
     char *bufp)
 {
-    GetMessageWindow()->hooked_tty_getlin(query, bufp, (getlin_hook_proc)0);
+    GetMessageWindow()->hooked_tty_getlin(query, bufp);
 }
 
 /*
@@ -737,8 +765,12 @@ void uwp_raw_printf(TextAttribute textAttribute, const char * fmt, ...)
     va_start(the_args, fmt);
     vsprintf(buf, fmt, the_args);
 
-    g_baseWindow.core_puts(buf, TextColor::NoColor, textAttribute);
-    g_baseWindow.set_cursor(g_textGrid.GetCursor().m_x, g_textGrid.GetCursor().m_y);
+    if (iflags.window_inited) {
+        g_messageWindow.core_puts(buf, TextColor::NoColor, textAttribute);
+        //    g_mapWindow.set_cursor(g_textGrid.GetCursor().m_x, g_textGrid.GetCursor().m_y);
+    } else {
+        g_textGrid.Putstr(TextColor::NoColor, textAttribute, buf);
+    }
 
     va_end(the_args);
 }
@@ -752,10 +784,6 @@ void uwp_puts(const char *s)
 {
     g_baseWindow.core_puts(s, TextColor::NoColor, TextAttribute::None);
 }
-
-} /* extern "C" */
-
-std::list<CoreWindow *> g_render_list;
 
 // uwp_render_windows() is called when we are in a coherient state and wish for the user to see that
 // state.  Usually called right before getting input.
@@ -772,4 +800,10 @@ void uwp_render_windows()
         assert(g_textGrid.m_cells[offset] == cells[offset]);
 
     g_textGrid.Flush();
+
 }
+
+} /* extern "C" */
+
+std::list<CoreWindow *> g_render_list;
+
