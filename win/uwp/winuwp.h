@@ -90,14 +90,15 @@ struct MessageWindow : public CoreWindow {
     virtual void Display(bool blocking);
     virtual void Dismiss();
     virtual void Putstr(int attr, const char *str);
+    void Putstr(int attr, const char *str, bool isPrompt);
     virtual void Destroy();
+    virtual void Prompt(const char *str);
 
     virtual void PrepareForInput();
 
     char yn_function(const char *query, const char *resp, char def);
-//    void removetopl(int n);
     int doprev_message();
-    int redotoplin(const char *str, int dismiss_more = 0);
+    int redotoplin(const char *str, int dismiss_more = 0, bool isPrompt = false);
     void put_topline(const char *str);
     void hooked_tty_getlin(const char * query, char * buf, getlin_hook_proc = NULL, int bufSize = BUFSZ);
     void putsyms(const char *str, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute);
@@ -124,7 +125,6 @@ struct MessageWindow : public CoreWindow {
     std::list<std::string>::iterator m_msgIter;
     bool m_mustBeSeen;      /* message must be seen */
     bool m_mustBeErased;    /* message must be erased */
-    bool m_nextIsPrompt;    /* next output message is a prompt */
     bool m_outputMessages;  /* output messages.  Outputting of message can be turned off.
                              * when the player hits escape when they are prompted to acknowledge a
                              * message, the player is indicating that

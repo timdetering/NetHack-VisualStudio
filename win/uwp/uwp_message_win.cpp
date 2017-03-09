@@ -46,7 +46,6 @@ void MessageWindow::Init()
 {
     m_mustBeSeen = false;
     m_mustBeErased = false;
-    m_nextIsPrompt = false;
 
     m_msgList.clear();
     m_msgIter = m_msgList.end();
@@ -67,7 +66,10 @@ void MessageWindow::PrepareForInput()
     m_outputMessages = true;
 
     /* any messages shown are about to be seen. */
-    m_mustBeSeen = false;
+    if (m_mustBeSeen) {
+        m_mustBeSeen = false;
+        assert(m_cury == 0);
+    }
 
 }
 
@@ -102,6 +104,7 @@ void MessageWindow::Display(bool blocking)
     if (m_mustBeSeen) {
         more();
         Clear();
+        assert(!m_mustBeSeen);
     }
 
     m_curx = 0;
@@ -112,14 +115,22 @@ void MessageWindow::Display(bool blocking)
 
 void MessageWindow::Dismiss()
 {
-    if (m_mustBeSeen)
+    if (m_mustBeSeen) {
         Display(true);
+        m_mustBeSeen = false;
+        assert(m_cury == 0);
+    }
 
     CoreWindow::Dismiss();
     m_outputMessages = true;
 }
 
 void MessageWindow::Putstr(int attr, const char *str)
+{
+    Putstr(attr, str, false);
+}
+
+void MessageWindow::Putstr(int attr, const char *str, bool isPrompt)
 {
     /* TODO(bhouse) could we get non-zero attr? */
     assert(attr == 0);
@@ -141,8 +152,7 @@ void MessageWindow::Putstr(int attr, const char *str)
         && !died) {
 
         /* why don't we just check that m_toplines is non-empty?
-
-        Can m_toplines be non-empty and !m_mustBeSeen && m_outputMessages
+           Can m_toplines be non-empty and !m_mustBeSeen && m_outputMessages
         */
 
         m_toplines += "  ";
@@ -156,15 +166,13 @@ void MessageWindow::Putstr(int attr, const char *str)
         return;
     }
     
-    if (m_outputMessages) {
-        if (m_mustBeSeen) {
-            more();
-        } else if (m_cury) {
-            assert(0);
-            erase_message();
-            assert(m_curx == 0 && m_cury == 0);
-        }
+    if (m_mustBeSeen) {
+        assert(m_outputMessages);
+        more();
     }
+
+    assert(m_cury == 0);
+    assert(!m_mustBeSeen);
 
     remember_topl();
 
@@ -186,15 +194,15 @@ void MessageWindow::Putstr(int attr, const char *str)
         m_outputMessages = true;
 
     if (m_outputMessages)
-        redotoplin(input.c_str());
+        redotoplin(input.c_str(), 0, isPrompt);
 }
 
 void MessageWindow::put_topline(const char *str)
 {
-    if (m_mustBeErased) {
-        m_mustBeSeen = false;
+    assert(!m_mustBeSeen);
+
+    if (m_mustBeErased)
         erase_message();
-    }
 
     m_curx = 0;
     m_cury = 0;
@@ -211,8 +219,9 @@ void MessageWindow::put_topline(const char *str)
  * dismiss_more is an additional character that can be used to dismiss
  * a more prompt.
  */
-int MessageWindow::redotoplin(const char *str, int dismiss_more)
+int MessageWindow::redotoplin(const char *str, int dismiss_more, bool isPrompt)
 {
+    assert(!m_mustBeSeen);
     assert(m_cury == 0);
     m_curx = 0;
     m_cury = 0;
@@ -225,9 +234,7 @@ int MessageWindow::redotoplin(const char *str, int dismiss_more)
 
     int response = 0;
 
-    if (m_nextIsPrompt) {
-        m_nextIsPrompt = false;
-    } else if (m_cury != 0)
+    if (!isPrompt && m_cury != 0)
         response = more(dismiss_more);
 
     return response;
@@ -272,6 +279,8 @@ int MessageWindow::display_message_history(bool reverse)
 
 int MessageWindow::doprev_message()
 {
+    assert(!m_mustBeSeen);
+
     int response = 0;
 
     if (iflags.prevmsg_window == 'f') { /* full */
@@ -347,8 +356,12 @@ char MessageWindow::yn_function(
     bool preserve_case = false;
     bool allow_num = false;
 
-    if (m_mustBeSeen && m_outputMessages)
+    if (m_mustBeSeen) {
+        assert(m_outputMessages);
         more();
+    }
+
+    assert(!m_mustBeSeen);
 
     remember_topl();
 
@@ -518,13 +531,16 @@ char MessageWindow::yn_function(
 
     put_topline(m_toplines.c_str());
 
+    /* user has seen this message */
     m_mustBeSeen = false;
 
+    /* clear message if we are bleeding into map */
     if (m_cury)
         Clear();
 
     /* output can not be disabled via yn_function */
     assert(m_outputMessages);
+    assert(m_cury == 0);
 
     return q;
 }
@@ -560,6 +576,13 @@ int MessageWindow::handle_prev_message()
     return c;
 }
 
+void MessageWindow::Prompt(const char * prompt)
+{
+    assert(m_outputMessages);
+    assert(!m_mustBeSeen);
+    Putstr(0, prompt, true);
+}
+
 void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook_proc hook, int bufSize)
 {
     char *obufp = bufp;
@@ -569,17 +592,18 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
     std::string guess;
     std::string line;
 
-    if (m_mustBeSeen && m_outputMessages)
+    if (m_mustBeSeen) {
+        assert(m_outputMessages);
         more();
+        assert(!m_mustBeSeen);
+    }
 
     /* getting input ... new messages should be seen (stop == false) */
     m_outputMessages = true;
 
     prompt += ' ';
 
-    m_nextIsPrompt = true;
-    Putstr(0, prompt.c_str());
-    assert(!m_nextIsPrompt);
+    Prompt(prompt.c_str());
 
     for (;;) {
 
@@ -592,6 +616,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
         m_mustBeErased = true;
         m_mustBeSeen = false;
         erase_message();
+        assert(m_cury == 0);
 
         // Should we let rows increase to some maximum?
         m_rows = 3;
@@ -746,8 +771,6 @@ void MessageWindow::addtopl(char c)
 
 int MessageWindow::more(int dismiss_more)
 {
-    assert(!m_nextIsPrompt);
-
     if (m_mustBeErased) {
         set_cursor(m_curx, m_cury);
         if (m_curx >= CO - 8)
@@ -756,16 +779,22 @@ int MessageWindow::more(int dismiss_more)
 
     putsyms(defmorestr, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
 
+    /* message will be seen and confirmed */
+    m_mustBeSeen = false;
+
+    /* we need to erase the more message */
+    m_mustBeErased = true;
+
     int response = wait_for_response("\033 ", dismiss_more);
 
     /* if the message is more then one line or message was cancelled then erase the entire message. 
      * otherwise we leave the message visible.
      */
-    if ((m_mustBeErased && m_cury != 0) || response == kEscape)
+    if (m_cury != 0 || response == kEscape)
         erase_message();
 
-    /* message has been seen and confirmed */
-    m_mustBeSeen = false;
+    assert(m_cury == 0);
+
 
     /* note: if we are stopping messages there are no messages to be seen
      *       or messages that need erasing.
@@ -786,6 +815,11 @@ int MessageWindow::more(int dismiss_more)
 /* special hack for treating top line --More-- as a one item menu */
 char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
 {
+    assert(m_outputMessages);
+
+    /* not sure if this assertion holds for all scenarios */
+    assert(!m_mustBeSeen);
+
     /* "menu" without selection; use ordinary pline, no more() */
     if (how == PICK_NONE) {
         pline("%s", mesg);
@@ -794,19 +828,17 @@ char MessageWindow::uwp_message_menu(char let, int how, const char *mesg)
 
     int response = 0;
 
-    /* we set m_nextIsPrompt to ensure that we don't post a "more" prompt
-       and getting a response within putstr handling */
-    m_nextIsPrompt = true;
-    g_messageWindow.Putstr(0, mesg);
-    assert(!m_nextIsPrompt);
+    Prompt(mesg);
 
-    if (m_mustBeSeen) {
-        response = more(let);
-        assert(!m_mustBeSeen);
+    assert(m_mustBeSeen);
 
-        if (m_mustBeErased)
-            Clear();
-    }
+    response = more(let);
+    assert(!m_mustBeSeen);
+
+    assert(m_cury == 0);
+    if (m_mustBeErased)
+        Clear();
+
     /* normally <ESC> means skip further messages, but in this case
     it means cancel the current prompt; any other messages should
     continue to be output normally */
