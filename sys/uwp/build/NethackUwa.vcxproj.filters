@@ -421,9 +421,6 @@
     <ClCompile Include="..\..\..\win\uwp\uwp_map_win.cpp">
       <Filter>win\uwp</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\win\uwp\uwp_base_win.cpp">
-      <Filter>win\uwp</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\win\uwp\uwp_status_win.cpp">
       <Filter>win\uwp</Filter>
     </ClCompile>

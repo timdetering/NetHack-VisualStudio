@@ -272,7 +272,6 @@
     <ClCompile Include="$(SysDir)uwp\uwpdeviceresources.cpp" />
     <ClCompile Include="$(SysDir)uwp\uwpnethackmain.cpp" />
     <ClCompile Include="$(SysDir)uwp\uwp.cpp" />
-    <ClCompile Include="..\..\..\win\uwp\uwp_base_win.cpp" />
     <ClCompile Include="..\..\..\win\uwp\uwp_core_win.cpp" />
     <ClCompile Include="..\..\..\win\uwp\uwp_map_win.cpp" />
     <ClCompile Include="..\..\..\win\uwp\uwp_menu.cpp" />
