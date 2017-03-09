@@ -168,7 +168,13 @@ namespace Nethack
 
         void Flush() {
             m_cellsLock.AcquireExclusive();
-            m_flush = true;
+            if (m_dirty)
+            {
+                m_flushedCells = m_cells;
+                m_flushedCursor = m_cursor;
+                m_flush = true;
+                m_dirty = false;
+            }
             m_cellsLock.ReleaseExclusive();
         }
 
@@ -204,6 +210,9 @@ namespace Nethack
         int64   m_cursorBlinkTicks;
 
         bool m_flush;
+        std::vector<TextCell> m_flushedCells;
+        Int2D m_flushedCursor;
+
         bool m_dirty;
         int m_vertexCount;
         int m_normalVertexCount;

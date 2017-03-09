@@ -469,7 +469,7 @@ namespace Nethack
     {
         m_cellsLock.AcquireExclusive();
 
-        if (m_dirty && m_flush)
+        if (m_flush)
         {
             m_normalVertexCount = 0;
             m_boldVertexCount = 0;
@@ -488,7 +488,7 @@ namespace Nethack
 
             for (int i = 0; i < m_cellCount; i++)
             {
-                auto const & textCell = m_cells[i];
+                auto const & textCell = m_flushedCells[i];
 
                 if (textCell.m_attribute == TextAttribute::None)
                 {
@@ -525,7 +525,7 @@ namespace Nethack
 
                 for (int x = 0; x < m_gridDimensions.m_x; x++)
                 {
-                    auto const & textCell = m_cells[(y * m_gridDimensions.m_x) + x];
+                    auto const & textCell = m_flushedCells[(y * m_gridDimensions.m_x) + x];
 
                     FloatRect glyphRect;
                     unsigned char c = textCell.m_char;
@@ -609,8 +609,8 @@ namespace Nethack
                 topScreenY = bottomScreenY;
             }
 
-            float topCursorY = m_screenRect.m_topLeft.m_y - (m_cursor.m_y * m_cellScreenDimensions.m_y);
-            float leftCursorX = m_screenRect.m_topLeft.m_x + (m_cursor.m_x * m_cellScreenDimensions.m_x);
+            float topCursorY = m_screenRect.m_topLeft.m_y - (m_flushedCursor.m_y * m_cellScreenDimensions.m_y);
+            float leftCursorX = m_screenRect.m_topLeft.m_x + (m_flushedCursor.m_x * m_cellScreenDimensions.m_x);
             float rightCursorX = leftCursorX + m_cellScreenDimensions.m_x;
 
             topCursorY -= m_cursorScreenOffset;
@@ -642,7 +642,6 @@ namespace Nethack
             v->pos.x = leftCursorX; v->pos.y = bottomCursorY; v->pos.z = 0.0f;
             v++;
 
-            m_dirty = false;
             m_flush = false;
         }
 
