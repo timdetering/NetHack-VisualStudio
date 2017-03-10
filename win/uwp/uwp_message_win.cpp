@@ -68,7 +68,7 @@ void MessageWindow::PrepareForInput()
     /* any messages shown are about to be seen. */
     if (m_mustBeSeen) {
         m_mustBeSeen = false;
-        assert(m_cury == 0);
+        /* Note: m_cury can be > 0 here */
     }
 
 }
@@ -698,6 +698,7 @@ void MessageWindow::remember_topl()
 
 void MessageWindow::compare_output()
 {
+#if 0
     int x = 0;
     int y = 0;
 
@@ -717,22 +718,30 @@ void MessageWindow::compare_output()
             }
         }
     }
+#endif
+
 }
 
 void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute)
 {
+    int curx = m_curx;
+    int cury = m_cury;
+
     switch (c) {
     case kBackspace:
-        core_putc(kBackspace);
         m_output.pop_back();
-        compare_output();
-        return;
+
+        if (curx > 0) {
+            curx--;
+        } else if (cury > 0) {
+            cury--; curx = m_cols - 1;
+        }
+        break;
     case kNewline:
-        clear_to_end_of_line();
         assert(m_cury < m_rows);
         // TODO: come up with a better way of keeping m_rows in range
         if (m_cury == (m_rows - 1)) m_rows = m_cury + 2;
-        core_putc(kNewline);
+        curx = m_cols;
         m_output.push_back(TextCell(kNewline));
         break;
     default:
@@ -741,14 +750,32 @@ void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute
 
         // TODO: come up with a better way of keeping m_rows in range
         if (forceNewLine) m_rows = m_cury + 2;
-        core_putc(c);
+        curx++;
         m_output.push_back(TextCell(c));
         
         break;
         }
     }
 
-    if (m_curx == 0)
+    if (curx == m_cols) {
+        curx = 0;
+        cury++;
+    }
+
+    if (cury == m_rows) {
+        curx = m_cols - 1;
+        cury = m_rows - 1;
+    }
+
+    m_curx = curx;
+    m_cury = cury;
+
+    g_textGrid.SetCursor(Int2D(m_offx + m_curx, m_offy + m_cury));
+
+    assert(m_curx == curx);
+    assert(m_cury == cury);
+
+    if (m_curx == 0 && c != kBackspace)
         clear_to_end_of_line();
 
     compare_output();

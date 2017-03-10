@@ -189,6 +189,7 @@ namespace Nethack
             return m_cells[(m_gridDimensions.m_x * y) + x];
         }
 
+        bool m_dirty;
         std::vector<TextCell> m_cells;
 
     private:
@@ -213,7 +214,6 @@ namespace Nethack
         std::vector<TextCell> m_flushedCells;
         Int2D m_flushedCursor;
 
-        bool m_dirty;
         int m_vertexCount;
         int m_normalVertexCount;
         int m_boldVertexCount;
