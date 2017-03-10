@@ -620,7 +620,7 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
 
         // Should we let rows increase to some maximum?
         m_rows = 3;
-        core_puts(line.c_str());
+        putsyms(line.c_str(), TextColor::NoColor, TextAttribute::None);
         m_rows = m_cury + 1;
 
         if (guess.size())
@@ -711,6 +711,10 @@ void MessageWindow::compare_output()
                 return;
             }
             x++;
+            if (x == kScreenWidth) {
+                x = 0;
+                y++;
+            }
         }
     }
 }
@@ -740,9 +744,6 @@ void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute
         core_putc(c);
         m_output.push_back(TextCell(c));
         
-        if (forceNewLine)
-            m_output.push_back(TextCell(kNewline));
-
         break;
         }
     }
@@ -943,5 +944,32 @@ MessageWindow::msghistory_snapshot(
         m_msgList.clear();
         m_msgIter = m_msgList.end();
     }
+}
+
+void MessageWindow::Render(std::vector<Nethack::TextCell> & cells)
+{
+    int x = 0;
+
+    int offset = 0;
+    for (auto cell : m_output) {
+        if (cell.m_char == kNewline) {
+            while (x < kScreenWidth) {
+                m_cells[offset++] = TextCell();
+                x++;
+            }
+        } else {
+            m_cells[offset++] = cell;
+            x++;
+        }
+
+        x %= kScreenWidth;
+    }
+
+    while (x < kScreenWidth) {
+        m_cells[offset++] = TextCell();
+        x++;
+    }
+
+    CoreWindow::Render(cells);
 }
 

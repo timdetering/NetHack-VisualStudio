@@ -33,6 +33,7 @@ struct CoreWindow {
     virtual void Display(bool blocking) = 0;
     virtual void Dismiss();
     virtual void Destroy();
+
     virtual void Render(std::vector<Nethack::TextCell> & cells);
 
     void set_cursor(int x, int y);
@@ -93,6 +94,8 @@ struct MessageWindow : public CoreWindow {
     void Putstr(int attr, const char *str, bool isPrompt);
     virtual void Destroy();
     virtual void Prompt(const char *str);
+
+    virtual void Render(std::vector<Nethack::TextCell> & cells);
 
     virtual void PrepareForInput();
 
