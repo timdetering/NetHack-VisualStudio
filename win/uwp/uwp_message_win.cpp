@@ -356,6 +356,8 @@ char MessageWindow::yn_function(
     bool preserve_case = false;
     bool allow_num = false;
 
+    g_focus_stack.push_front(&g_messageWindow);
+
     if (m_mustBeSeen) {
         assert(m_outputMessages);
         more();
@@ -542,6 +544,8 @@ char MessageWindow::yn_function(
     assert(m_outputMessages);
     assert(m_cury == 0);
 
+    g_focus_stack.pop_front();
+
     return q;
 }
 
@@ -591,6 +595,8 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
     std::string input;
     std::string guess;
     std::string line;
+
+    g_focus_stack.push_front(&g_messageWindow);
 
     if (m_mustBeSeen) {
         assert(m_outputMessages);
@@ -672,6 +678,8 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
 
     assert(!m_mustBeSeen);
     Clear();
+
+    g_focus_stack.pop_front();
 
     /* m_toplines has the result of the getlin */
 }

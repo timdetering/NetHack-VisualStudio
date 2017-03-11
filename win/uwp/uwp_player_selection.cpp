@@ -248,6 +248,7 @@ tty_player_selection()
         a - like 'y', but skips confirmation and starts game;
         q - quit
         */
+        g_focus_stack.push_front(&g_mapWindow);
         tty_putstr(MAP_WINDOW, 0, "");
         echoline = g_wins[MAP_WINDOW]->m_cury;
         tty_putstr(MAP_WINDOW, 0, prompt);
@@ -269,6 +270,8 @@ tty_player_selection()
             * bottom of the window.
             */
             tty_clear_nhwindow(MAP_WINDOW);
+
+        g_focus_stack.pop_front();
 
         if (pick4u != 'y' && pick4u != 'a' && pick4u != 'n')
             goto give_up;

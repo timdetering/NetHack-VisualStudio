@@ -124,6 +124,8 @@ CoreWindow::wait_for_response(
     int c;
     int response = 0;
 
+    g_focus_stack.push_front(this);
+
     while (
 #ifdef HANGUPHANDLING
         !program_state.done_hup &&
@@ -147,6 +149,8 @@ CoreWindow::wait_for_response(
 
         tty_nhbell();
     }
+
+    g_focus_stack.pop_front();
 
     return response;
 }

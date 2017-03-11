@@ -238,6 +238,7 @@ struct TextWindow : public CoreWindow {
 };
 
 extern std::list<CoreWindow *> g_render_list;
+extern std::list<CoreWindow *> g_focus_stack;
 
 extern "C" {
 

@@ -1072,6 +1072,9 @@ void uwp_main(std::wstring & localDirW, std::wstring & installDirW)
 
 void uwp_wait_for_return()
 {
+    if (iflags.window_inited)
+        g_focus_stack.push_front(&g_messageWindow);
+
     while (1)
     {
         char c = pgetchar();
@@ -1079,6 +1082,9 @@ void uwp_wait_for_return()
         if (c == kEscape || c == kNewline)
             break;
     }
+
+    if (iflags.window_inited)
+        g_focus_stack.pop_front();
 }
 
 } // extern "C"

@@ -136,6 +136,10 @@ tty_init_nhwindows(int *, char **)
     g_textGrid.Clear();
 
     iflags.window_inited = TRUE;
+
+    assert(g_focus_stack.empty());
+    g_focus_stack.clear();
+    g_focus_stack.push_front(&g_mapWindow);
 }
 
 void
@@ -223,6 +227,8 @@ tty_exit_nhwindows(const char *str)
 #endif
 
     iflags.window_inited = FALSE;
+    g_focus_stack.clear();
+
 }
 
 winid
@@ -791,6 +797,14 @@ void uwp_render_windows()
         g_textGrid.m_cells[offset] = cells[offset];
     }
 
+    if (iflags.window_inited) {
+        assert(!g_focus_stack.empty());
+        CoreWindow * coreWindow = g_focus_stack.front();
+        int x = coreWindow->m_curx + coreWindow->m_offx;
+        int y = coreWindow->m_cury + coreWindow->m_offy;
+        g_textGrid.SetCursor(Int2D(x, y));
+    }
+
     g_textGrid.m_dirty = true;
     g_textGrid.Flush();
 
@@ -799,4 +813,5 @@ void uwp_render_windows()
 } /* extern "C" */
 
 std::list<CoreWindow *> g_render_list;
+std::list<CoreWindow *> g_focus_stack;
 
