@@ -83,15 +83,12 @@ void MessageWindow::Destroy()
 
 void MessageWindow::Clear()
 {
-    if (m_mustBeErased) {
+    if (m_mustBeErased)
         erase_message();
-    }
 
-    // TODO: We should not always need this clear window
     assert(m_rows == 1);
-    clear_window();
-
-    CoreWindow::Clear();
+    m_curx = 0;
+    m_cury = 0;
 }
 
 void MessageWindow::Display(bool blocking)
@@ -103,7 +100,10 @@ void MessageWindow::Display(bool blocking)
 
     if (m_mustBeSeen) {
         more();
-        Clear();
+
+        if (m_mustBeErased)
+            erase_message();
+
         assert(!m_mustBeSeen);
     }
 
@@ -210,7 +210,6 @@ void MessageWindow::put_topline(const char *str)
 
     putsyms(str, TextColor::NoColor, TextAttribute::None);
 
-    clear_to_end_of_line();
     m_mustBeSeen = true;
     m_mustBeErased = true;
 }
@@ -228,7 +227,7 @@ int MessageWindow::redotoplin(const char *str, int dismiss_more, bool isPrompt)
     m_output.clear();
 
     putsyms(str, TextColor::NoColor, TextAttribute::None);
-    clear_to_end_of_line();
+
     m_mustBeSeen = true;
     m_mustBeErased = true;
 
@@ -371,14 +370,6 @@ char MessageWindow::yn_function(
 
     std::string prompt = query;
     prompt += ' ';
-
-#if 0
-    if (vision_full_recalc)
-        vision_recalc(0);
-
-    if (u.ux)
-        flush_screen(1); /* %% */
-#endif
 
     if (resp) {
 
@@ -704,32 +695,6 @@ void MessageWindow::remember_topl()
     m_msgIter = m_msgList.end();
 }
 
-void MessageWindow::compare_output()
-{
-#if 0
-    int x = 0;
-    int y = 0;
-
-    for (auto cell : m_output) {
-        if (cell.m_char == kNewline) {
-            x = 0;
-            y++;
-        } else {
-            if (cell != g_textGrid.GetCell(x, y)) {
-                assert(0);
-                return;
-            }
-            x++;
-            if (x == kScreenWidth) {
-                x = 0;
-                y++;
-            }
-        }
-    }
-#endif
-
-}
-
 void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute)
 {
     int curx = m_curx;
@@ -739,17 +704,18 @@ void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute
     case kBackspace:
         m_output.pop_back();
 
-        if (curx > 0) {
-            curx--;
-        } else if (cury > 0) {
-            cury--; curx = m_cols - 1;
+        if (m_curx > 0) {
+            m_curx--;
+        } else if (m_cury > 0) {
+            m_cury--;
+            m_curx = m_cols - 1;
         }
         break;
     case kNewline:
         assert(m_cury < m_rows);
         // TODO: come up with a better way of keeping m_rows in range
         if (m_cury == (m_rows - 1)) m_rows = m_cury + 2;
-        curx = m_cols;
+        m_curx = m_cols;
         m_output.push_back(TextCell(kNewline));
         break;
     default:
@@ -758,41 +724,29 @@ void MessageWindow::topl_putsym(char c, TextColor color, TextAttribute attribute
 
         // TODO: come up with a better way of keeping m_rows in range
         if (forceNewLine) m_rows = m_cury + 2;
-        curx++;
+        m_curx++;
         m_output.push_back(TextCell(c));
         
         break;
         }
     }
 
-    if (curx == m_cols) {
-        curx = 0;
-        cury++;
+    if (m_curx == m_cols) {
+        m_curx = 0;
+        m_cury++;
     }
 
     if (cury == m_rows) {
-        curx = m_cols - 1;
-        cury = m_rows - 1;
+        m_curx = m_cols - 1;
+        m_cury = m_rows - 1;
     }
 
-    m_curx = curx;
-    m_cury = cury;
-
-    g_textGrid.SetCursor(Int2D(m_offx + m_curx, m_offy + m_cury));
-
-    assert(m_curx == curx);
-    assert(m_cury == cury);
-
-    if (m_curx == 0 && c != kBackspace)
-        clear_to_end_of_line();
-
-    compare_output();
 }
 
 void MessageWindow::addtopl(const char *s)
 {
     putsyms(s, TextColor::NoColor, TextAttribute::None);
-    clear_to_end_of_line();
+
     m_mustBeSeen = true;
     m_mustBeErased = true;
 }
@@ -800,7 +754,7 @@ void MessageWindow::addtopl(const char *s)
 void MessageWindow::addtopl(char c)
 {
     topl_putsym(c, TextColor::NoColor, TextAttribute::None);
-    clear_to_end_of_line();
+
     m_mustBeSeen = true;
     m_mustBeErased = true;
 }
@@ -808,7 +762,6 @@ void MessageWindow::addtopl(char c)
 int MessageWindow::more(int dismiss_more)
 {
     if (m_mustBeErased) {
-        set_cursor(m_curx, m_cury);
         if (m_curx >= CO - 8)
             topl_putsym(kNewline, TextColor::NoColor, TextAttribute::None);
     }
@@ -888,23 +841,8 @@ void MessageWindow::erase_message()
     assert(m_mustBeErased);
     assert(!m_mustBeSeen);
 
-    int ymax = m_cury + 1;
-
-    for (int y = 0; y < ymax; y++) {
-        set_cursor(0, y);
-        clear_to_end_of_line();
-        if (y < g_mapWindow.m_offy || y > ROWNO)
-            continue; /* only refresh board  */
-        row_refresh(0 - g_mapWindow.m_offx, COLNO - 1, y - g_mapWindow.m_offy);
-    }
-
-    if (ymax >= (int)g_statusWindow.m_offy) {
-        /* we have wrecked the bottom line */
-        context.botlx = 1;
-        bot();
-    }
-
-    set_cursor(0, 0);
+    m_curx = 0;
+    m_cury = 0;
     m_mustBeErased = false;
 
     m_output.clear();
