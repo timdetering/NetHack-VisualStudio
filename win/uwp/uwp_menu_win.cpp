@@ -93,7 +93,7 @@ void MenuWindow::Display(bool blocking)
         /* we just cleared the message area so we no longer need to erase */
         g_messageWindow.m_mustBeErased = false;
     } else {
-        g_messageWindow.Clear();
+//        g_messageWindow.Clear();
     }
 
     if (m_lines.size() > 0) {
@@ -231,15 +231,7 @@ void MenuWindow::process_menu()
             if (curr_page < 0 || (m_npages > 0 && curr_page >= m_npages))
                 panic("bad menu screen page #%d", curr_page);
 
-            /* clear screen */
-            if (!m_offx) { /* if not corner, do clearscreen */
-                assert(m_rows == kScreenHeight);
- 
-                if (m_offy)
-                    set_cursor(0, 0);
-
-                clear_window();
-            }
+            clear_window();
 
             rp = resp;
             if (m_npages > 0) {
@@ -254,8 +246,6 @@ void MenuWindow::process_menu()
                         *rp++ = curr.selector;
 
                     set_cursor(0, page_lines);
-                    if (m_offx)
-                        clear_to_end_of_line();
 
                     TextColor useColor = TextColor::NoColor;
                     TextAttribute useAttribute = TextAttribute::None;
@@ -287,7 +277,7 @@ void MenuWindow::process_menu()
                                     */
                     for (n = 0, cp = curr.str.c_str();
                         *cp &&
-                        g_textGrid.GetCursor().m_x < kScreenWidth;
+                        m_curx < kScreenWidth;
                         cp++, n++) {
 
                         if (n == attr_n && (color != NO_COLOR
@@ -316,14 +306,6 @@ void MenuWindow::process_menu()
             /* remember how many explicit menu choices there are */
             resp_len = (int)strlen(resp);
 
-            /* corner window - clear extra lines from last page */
-            if (m_offx) {
-                for (n = page_lines + 1; n < m_rows; n++) {
-                    set_cursor(0, n);
-                    clear_to_end_of_line();
-                }
-            }
-
             /* set extra chars.. */
             Strcat(resp, default_menu_cmds);
             Strcat(resp, " ");                  /* next page or end */
@@ -340,8 +322,8 @@ void MenuWindow::process_menu()
             }
 
             set_cursor(0, page_lines);
-            clear_to_end_of_line();
             response = dmore(resp);
+
         } else {
             /* just put the cursor back... */
             m_morestr = std::string(" (end) ");

@@ -37,11 +37,9 @@ void TextWindow::Clear()
 
 void TextWindow::Dismiss()
 {
-    if (m_active) {
-        assert(iflags.window_inited);
-        docrt();
+    if (m_active)
         m_active = 0;
-    }
+
     m_cancelled = false;
 }
 
@@ -85,18 +83,16 @@ void TextWindow::Display(bool blocking)
     if (g_messageWindow.m_mustBeSeen)
         g_messageWindow.Display(true);
 
-    g_messageWindow.Clear();
+//    g_messageWindow.Clear();
 
     assert(m_lines.size() > 0);
 
-    auto iter = m_lines.begin();
-    int row = 0;
-
-    set_cursor(0, 0);
     clear_window();
 
     m_active = 1;
 
+    auto iter = m_lines.begin();
+    int row = 0;
     while (iter != m_lines.end()) {
         auto & line = *iter++;
 
@@ -113,7 +109,6 @@ void TextWindow::Display(bool blocking)
                 break;
             }
 
-            set_cursor(0, 0);
             clear_window();
             row = 0;
         }
