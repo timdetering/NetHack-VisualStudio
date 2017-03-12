@@ -77,28 +77,19 @@ void MenuWindow::Display(bool blocking)
 
     assert(m_rows <= kScreenHeight);
 
-    /* if we are going to have more then one page to display the use full screen */
-    /* or if we are not supposed to use menu overlays */;
+    /* if we are going to have more then one page to display */
+    /* or if we are not supposed to use menu overlays */
+    /* then use full screen. */
     if (m_rows >= screenHeight || !iflags.menu_overlay)
     {
         m_offx = 0;
         m_cols = screenWidth;
         m_rows = screenHeight;
-        /* TODO(bhouse) why do we test and do something different for overlay? */
-        if (iflags.menu_overlay)
-            set_cursor(0, 0);
-
-        clear_window();
-
-        /* we just cleared the message area so we no longer need to erase */
-        g_messageWindow.m_mustBeErased = false;
-    } else {
-//        g_messageWindow.Clear();
     }
 
-    if (m_lines.size() > 0) {
+    if (m_lines.size() > 0)
         process_lines();
-    } else
+    else
         process_menu();
 
     assert(m_active);
@@ -107,10 +98,9 @@ void MenuWindow::Display(bool blocking)
 
 void MenuWindow::Dismiss()
 {
-    if (m_active) {
-        assert(iflags.window_inited);
+    if (m_active)
         m_active = 0;
-    }
+
     m_cancelled = false;
 }
 
@@ -568,8 +558,7 @@ MenuWindow::process_lines()
             if (response == '\033')
                 m_cancelled = true;
 
-            set_cursor(0, 0);
-            clear_window();
+           clear_window();
             row = 0;
         }
     }
