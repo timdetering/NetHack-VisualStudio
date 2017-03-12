@@ -463,7 +463,7 @@ tty_print_glyph(
         reverse_on = TRUE;
     }
 
-    coreWin->core_putc(ch, (TextColor)color, reverse_on ? TextAttribute::Inverse : TextAttribute::None);
+    coreWin->cells_putc(ch, (TextColor)color, reverse_on ? TextAttribute::Inverse : TextAttribute::None);
 }
 
 void
@@ -768,7 +768,7 @@ void uwp_raw_printf(TextAttribute textAttribute, const char * fmt, ...)
     vsprintf(buf, fmt, the_args);
 
     if (iflags.window_inited) {
-        g_messageWindow.core_puts(buf, TextColor::NoColor, textAttribute);
+        g_messageWindow.cells_puts(buf, TextColor::NoColor, textAttribute);
         //    g_mapWindow.set_cursor(g_textGrid.GetCursor().m_x, g_textGrid.GetCursor().m_y);
     } else {
         g_textGrid.Putstr(TextColor::NoColor, textAttribute, buf);

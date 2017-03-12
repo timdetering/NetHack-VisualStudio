@@ -29,9 +29,8 @@ TextWindow::~TextWindow()
 
 void TextWindow::Clear()
 {
-    if (m_active) {
-        clear_whole_screen();
-    }
+    if (m_active)
+        clear_window();
 
     CoreWindow::Clear();
 }
@@ -102,7 +101,7 @@ void TextWindow::Display(bool blocking)
         auto & line = *iter++;
 
         set_cursor(0, row++);
-        core_puts(line.second.c_str(), TextColor::NoColor, line.first);
+        cells_puts(line.second.c_str(), TextColor::NoColor, line.first);
 
         if (row == (m_rows - 1) || iter == m_lines.end()) {
             set_cursor(0, row);
@@ -127,7 +126,7 @@ int TextWindow::dmore(
     const char *prompt = m_morestr.size() ? m_morestr.c_str() : defmorestr;
 
     set_cursor(m_curx, m_cury);
-    core_puts(prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
+    cells_puts(prompt, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
 
     return wait_for_response(s);
 }

@@ -37,15 +37,9 @@ struct CoreWindow {
     virtual void Render(std::vector<Nethack::TextCell> & cells);
 
     void set_cursor(int x, int y);
-    void clear_to_end_of_line();
-    void clear_to_end_of_screen();
-    void clear_whole_screen();
 
     virtual void Putstr(int attr, const char *str) = 0;
     virtual void Putsym(int x, int y, char ch);
-
-    void core_putc(char ch, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
-    void core_puts(const char *s, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
 
     int wait_for_response(const char *s, int dismiss_more = 0);
 
@@ -63,7 +57,11 @@ struct CoreWindow {
     std::string m_morestr;         /* string to display instead of default */
 
     void cells_set_dimensions(int x, int y);
-    void cells_put(int x, int y, const char c, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
+
+    void cells_putc(const char c, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
+    void cells_puts(const char *s, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
+
+    void clear_to_end_of_line();
     void clear_to_end_of_window();
     void clear_window();
 

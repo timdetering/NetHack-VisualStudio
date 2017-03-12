@@ -85,11 +85,10 @@ void MenuWindow::Display(bool blocking)
         m_cols = screenWidth;
         m_rows = screenHeight;
         /* TODO(bhouse) why do we test and do something different for overlay? */
-        if (iflags.menu_overlay) {
+        if (iflags.menu_overlay)
             set_cursor(0, 0);
-            clear_window();
-        } else
-            clear_whole_screen();
+
+        clear_window();
 
         /* we just cleared the message area so we no longer need to erase */
         g_messageWindow.m_mustBeErased = false;
@@ -110,10 +109,6 @@ void MenuWindow::Dismiss()
 {
     if (m_active) {
         assert(iflags.window_inited);
-#if 0
-        docrt();
-        flush_screen(0);
-#endif
         m_active = 0;
     }
     m_cancelled = false;
@@ -155,7 +150,7 @@ void MenuWindow::Putstr(int attr, const char *str)
 void MenuWindow::Clear()
 {
     if (m_active)
-        clear_whole_screen();
+        clear_window();
 
     m_items.clear();
     m_pages.clear();
@@ -239,11 +234,11 @@ void MenuWindow::process_menu()
             /* clear screen */
             if (!m_offx) { /* if not corner, do clearscreen */
                 assert(m_rows == kScreenHeight);
-                if (m_offy) {
+ 
+                if (m_offy)
                     set_cursor(0, 0);
-                    clear_window();
-                } else
-                    clear_whole_screen();
+
+                clear_window();
             }
 
             rp = resp;
@@ -265,7 +260,7 @@ void MenuWindow::process_menu()
                     TextColor useColor = TextColor::NoColor;
                     TextAttribute useAttribute = TextAttribute::None;
 
-                    core_putc(' ', useColor, useAttribute);
+                    cells_putc(' ', useColor, useAttribute);
 
                     if (!iflags.use_menu_color
                         || !get_menu_coloring((char *) curr.str.c_str(), &color, &attr))
@@ -305,11 +300,11 @@ void MenuWindow::process_menu()
                             && curr.identifier.a_void != 0
                             && curr.selected) {
                             if (curr.count == -1L)
-                                core_putc('+', useColor, useAttribute);
+                                cells_putc('+', useColor, useAttribute);
                             else
-                                core_putc('#', useColor, useAttribute);
+                                cells_putc('#', useColor, useAttribute);
                         } else
-                            core_putc(*cp, useColor, useAttribute);
+                            cells_putc(*cp, useColor, useAttribute);
                     } /* for *cp */
                 } /* if npages > 0 */
             } else {
@@ -572,7 +567,7 @@ MenuWindow::process_lines()
             const char * str = line.second.c_str();
             int attr = line.first;
             if (m_offx) {
-                core_putc(' ');
+                cells_putc(' ');
             }
             TextAttribute useAttribute = (TextAttribute)(attr != 0 ? 1 << attr : 0);
             const char *cp;
@@ -580,7 +575,7 @@ MenuWindow::process_lines()
             for (cp = str;
                 *cp && g_textGrid.GetCursor().m_x < kScreenWidth;
                 cp++)
-                core_putc(*cp, TextColor::NoColor, useAttribute);
+                cells_putc(*cp, TextColor::NoColor, useAttribute);
         }
 
         if (row == (m_rows - 1) || iter == m_lines.end()) {
@@ -729,7 +724,7 @@ MenuWindow::set_item_state(
     char ch = item.selected ? (item.count == -1L ? '+' : '#') : '-';
 
     set_cursor(3, lineno);
-    core_putc(ch, TextColor::NoColor, (TextAttribute)(item.attr != 0 ? 1 << item.attr : 0));
+    cells_putc(ch, TextColor::NoColor, (TextAttribute)(item.attr != 0 ? 1 << item.attr : 0));
 
 }
 
@@ -898,10 +893,10 @@ int MenuWindow::dmore(
     const char *s) /* valid responses */
 {
     if (m_morestr.size() > 0) {
-        core_puts(m_morestr.c_str(), TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
+        cells_puts(m_morestr.c_str(), TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
     } else {
-        core_putc(' ');
-        core_puts(defmorestr, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
+        cells_putc(' ');
+        cells_puts(defmorestr, TextColor::NoColor, flags.standout ? TextAttribute::Bold : TextAttribute::None);
     }
     return wait_for_response(s);
 }

@@ -66,20 +66,6 @@ void CoreWindow::set_cursor(int x, int y)
     m_cury = y;
 }
 
-void CoreWindow::clear_to_end_of_screen()
-{
-    assert(0);
-//    assert(m_rows == kScreenHeight);
-//    clear_to_end_of_window();
-}
-
-void CoreWindow::clear_whole_screen()
-{
-    assert(m_rows == kScreenHeight);
-    assert(m_cols == kScreenWidth);
-    clear_window();
-}
-
 void CoreWindow::Dismiss()
 {
     m_active = 0;
@@ -130,27 +116,13 @@ CoreWindow::wait_for_response(
     return response;
 }
 
-void CoreWindow::core_putc(char ch, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute)
-{
-    assert(m_cols >= 0 && m_cols <= m_dimx);
-    assert(m_rows >= 0 && m_rows <= m_dimy);
-
-    assert(m_curx >= 0 && m_curx < m_cols);
-    assert(m_cury >= 0 && m_cury < m_rows);
-
-    cells_put(m_curx, m_cury, ch, textColor, textAttribute);
-
-    assert(m_curx <= m_cols);
-    assert(m_cury < m_rows);
-}
-
-void CoreWindow::core_puts(
+void CoreWindow::cells_puts(
     const char *s,
     TextColor textColor,
     TextAttribute textAttribute)
 {
     while (*s)
-        core_putc(*s++, textColor, textAttribute);
+        cells_putc(*s++, textColor, textAttribute);
 }
 
 const char *
@@ -191,7 +163,7 @@ void CoreWindow::Putsym(int x, int y, char ch)
     case NHW_MAP:
     case NHW_BASE:
         set_cursor(x - 1, y);
-        core_putc(ch);
+        cells_putc(ch);
         break;
     case NHW_MESSAGE:
     case NHW_MENU:
@@ -250,16 +222,13 @@ void CoreWindow::clear_window()
         m_cells[offset++] = clearCell;
 }
 
-void CoreWindow::cells_put(int x, int y, const char c, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute)
+void CoreWindow::cells_putc(const char c, Nethack::TextColor textColor, Nethack::TextAttribute textAttribute)
 {
     assert(m_cols >= 0 && m_cols <= m_dimx);
     assert(m_rows >= 0 && m_rows <= m_dimy);
 
-    assert(x >= 0 && x < m_cols);
-    assert(y >= 0 && y < m_rows);
-
-    m_curx = x;
-    m_cury = y;
+    assert(m_curx >= 0 && m_curx < m_cols);
+    assert(m_cury >= 0 && m_cury < m_rows);
 
     int offset = (m_cury * m_dimx) + m_curx;
 
@@ -288,6 +257,9 @@ void CoreWindow::cells_put(int x, int y, const char c, Nethack::TextColor textCo
         m_curx = m_cols - 1;
         m_cury = m_rows - 1;
     }
+
+    assert(m_curx <= m_cols);
+    assert(m_cury < m_rows);
 
 }
 
