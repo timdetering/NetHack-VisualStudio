@@ -94,7 +94,7 @@ void TextWindow::Display(bool blocking)
     int row = 0;
 
     set_cursor(0, 0);
-    clear_to_end_of_screen();
+    clear_window();
 
     m_active = 1;
 
@@ -106,7 +106,7 @@ void TextWindow::Display(bool blocking)
 
         if (row == (m_rows - 1) || iter == m_lines.end()) {
             set_cursor(0, row);
-            clear_to_end_of_screen();
+            clear_to_end_of_window();
             set_cursor(0, m_rows - 1);
             int response = dmore(quitchars);
             if (response == kEscape) {
@@ -115,7 +115,7 @@ void TextWindow::Display(bool blocking)
             }
 
             set_cursor(0, 0);
-            clear_to_end_of_screen();
+            clear_window();
             row = 0;
         }
     }

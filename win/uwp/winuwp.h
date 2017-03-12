@@ -40,7 +40,6 @@ struct CoreWindow {
     void clear_to_end_of_line();
     void clear_to_end_of_screen();
     void clear_whole_screen();
-    void clear_window();
 
     virtual void Putstr(int attr, const char *str) = 0;
     virtual void Putsym(int x, int y, char ch);
@@ -64,11 +63,9 @@ struct CoreWindow {
     std::string m_morestr;         /* string to display instead of default */
 
     void cells_set_dimensions(int x, int y);
-    void cells_puts(int x, int y, const char *, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
     void cells_put(int x, int y, const char c, Nethack::TextColor textColor = Nethack::TextColor::NoColor, Nethack::TextAttribute textAttribute = Nethack::TextAttribute::None);
-    void cells_clear_to_end_of_window(int x, int y);
-    void cells_clear_to_end_of_line(int x, int y);
-    void cells_clear_window();
+    void clear_to_end_of_window();
+    void clear_window();
 
     int m_dimx, m_dimy; /* dimension of cells */
     int m_cell_count;

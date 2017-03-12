@@ -945,4 +945,3 @@ void MessageWindow::Render(std::vector<Nethack::TextCell> & cells)
 
     CoreWindow::Render(cells);
 }
-

@@ -87,7 +87,7 @@ void MenuWindow::Display(bool blocking)
         /* TODO(bhouse) why do we test and do something different for overlay? */
         if (iflags.menu_overlay) {
             set_cursor(0, 0);
-            clear_to_end_of_screen();
+            clear_window();
         } else
             clear_whole_screen();
 
@@ -110,8 +110,10 @@ void MenuWindow::Dismiss()
 {
     if (m_active) {
         assert(iflags.window_inited);
+#if 0
         docrt();
         flush_screen(0);
+#endif
         m_active = 0;
     }
     m_cancelled = false;
@@ -239,7 +241,7 @@ void MenuWindow::process_menu()
                 assert(m_rows == kScreenHeight);
                 if (m_offy) {
                     set_cursor(0, 0);
-                    clear_to_end_of_screen();
+                    clear_window();
                 } else
                     clear_whole_screen();
             }
@@ -590,7 +592,7 @@ MenuWindow::process_lines()
                 m_cancelled = true;
 
             set_cursor(0, 0);
-            clear_to_end_of_screen();
+            clear_window();
             row = 0;
         }
     }
