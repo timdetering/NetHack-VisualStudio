@@ -33,3 +33,9 @@ void NetHack::MainPage::Button_Click(Platform::Object^ sender, Windows::UI::Xaml
 {
     this->Frame->Navigate(TypeName(PlayPage::typeid));
 }
+
+
+void NetHack::MainPage::PlayList_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e)
+{
+    this->Frame->Navigate(TypeName(PlayPage::typeid));
+}

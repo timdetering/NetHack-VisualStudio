@@ -18,7 +18,7 @@ namespace NetHack
 	public:
 		PlayPage();
     private:
-        void Quit_PointerPressed(Platform::Object^ sender, Windows::UI::Xaml::Input::PointerRoutedEventArgs^ e);
-        void DoQuit(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void ScrollViewer_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
+        void LayoutMiddle_SizeChanged(Platform::Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
     };
 }

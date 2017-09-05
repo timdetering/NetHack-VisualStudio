@@ -19,5 +19,6 @@ namespace NetHack
 
     private:
         void Button_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void PlayList_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e);
     };
 }

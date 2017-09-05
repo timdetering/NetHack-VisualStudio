@@ -20,44 +20,61 @@
         </Style>
     </Page.Resources>
     <Grid x:Name="LayoutRoot" Background="Black" >
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="2*"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-        <Grid x:Name="LayoutRight" Grid.Row="0" Grid.Column="1">
-            <ScrollViewer>
-                <StackPanel x:Name="LayoutInventory">
-                    <TextBlock Text="First Inventory"/>
-                    <TextBlock Text="Second Inventory"/>
-                </StackPanel>
-            </ScrollViewer>
-        </Grid>
-        <Grid x:Name="LayoutLeft" Grid.Row="0" Grid.Column="0">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="3*"/>
-                <RowDefinition Height="8*"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-            <ScrollViewer Grid.Row="0" Grid.Column="0">
-                <StackPanel x:Name="LayoutMessages" >
-                    <TextBlock Text="First Message"/>
-                    <TextBlock Text="Second Message"/>
-                    <TextBlock Text="Third Message"/>
-                    <TextBlock Text="Fourth Message"/>
-                    <TextBlock Text="Fifth Message"/>
-                    <TextBlock Text="Six Message"/>
-                    <TextBlock Text="Seven Message"/>
-                    <TextBlock Text="Eight Message"/>
-                    <TextBlock Text="Nine Message"/>
-                </StackPanel>
-            </ScrollViewer>
-            <Canvas x:Name="LayoutMap" Grid.Row="1" Grid.Column="0">
-                <Button x:Name="Quit" Content="Quit" Click="DoQuit" />
-            </Canvas>
-            <StackPanel x:Name="LayoutStatus" Grid.Row="2" Grid.Column="0">
-                <TextBlock Text="First Status"/>
-                <TextBlock Text="Second Status"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="3*"/>
+            <RowDefinition Height="8*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <ScrollViewer Grid.Row="0" Grid.Column="0">
+            <StackPanel x:Name="LayoutMessages" >
+                <TextBlock Text="First Message"/>
+                <TextBlock Text="Second Message"/>
+                <TextBlock Text="Third Message"/>
+                <TextBlock Text="Fourth Message"/>
+                <TextBlock Text="Fifth Message"/>
+                <TextBlock Text="Six Message"/>
+                <TextBlock Text="Seven Message"/>
+                <TextBlock Text="Eight Message"/>
+                <TextBlock Text="Nine Message"/>
             </StackPanel>
-        </Grid>
+        </ScrollViewer>
+        <StackPanel x:Name="LayoutStatus" Grid.Row="2" Grid.Column="0">
+            <TextBlock Text="First Status"/>
+            <TextBlock Text="Second Status"/>
+        </StackPanel>
+        <RelativePanel x:Name="LayoutMiddle" Grid.Row="1" Grid.Column="0" SizeChanged="LayoutMiddle_SizeChanged">
+            <TextBlock x:Name="TestText" Text="foo" />
+            <ScrollViewer x:Name="InventoryScrollViewer" RelativePanel.AlignRightWithPanel="True" Background="Black">
+                <StackPanel x:Name="LayoutInventory">
+                    <TextBlock Text="a - some food"/>
+                    <TextBlock Text="b - a really complicated description of food"/>
+                </StackPanel>
+            </ScrollViewer>
+            <ScrollViewer x:Name="MapScrollViewer" KeyDown="ScrollViewer_KeyDown" IsTabStop="True" RelativePanel.AlignLeftWithPanel="True">
+                <StackPanel x:Name="LayoutMap" >
+                    <TextBlock Text="ROW_00_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_01_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_02_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_03_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_04_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_05_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_05_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_07_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_08_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_09_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_10_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_11_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_12_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_13_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_14_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_15_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_15_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_17_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_18_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_19_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                    <TextBlock Text="ROW_20_7890123456789012345678901234567890123456789012345678901234567890123456789" />
+                </StackPanel>
+            </ScrollViewer>
+        </RelativePanel>
     </Grid>
 </Page>

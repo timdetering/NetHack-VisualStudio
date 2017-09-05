@@ -28,15 +28,49 @@ PlayPage::PlayPage()
 	InitializeComponent();
 }
 
-
-
-void NetHack::PlayPage::Quit_PointerPressed(Platform::Object^ sender, Windows::UI::Xaml::Input::PointerRoutedEventArgs^ e)
+void NetHack::PlayPage::ScrollViewer_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
 {
+    if (e->Key == Windows::System::VirtualKey::I)
+    {
+        if (InventoryScrollViewer->Visibility == Windows::UI::Xaml::Visibility::Collapsed) {
+            InventoryScrollViewer->Visibility = Windows::UI::Xaml::Visibility::Visible;
+            MapScrollViewer->Width = LayoutMiddle->ActualWidth - InventoryScrollViewer->ActualWidth;
+        }
+        else {
+            InventoryScrollViewer->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+            MapScrollViewer->Width = LayoutMiddle->ActualWidth;
+        }
 
+    }
+
+    if (e->Key == Windows::System::VirtualKey::Q)
+    {
+        this->Frame->Navigate(TypeName(MainPage::typeid));
+    }
+
+    if (e->Key == Windows::System::VirtualKey::X)
+    {
+        static boolean toggle = 0;
+        String ^ text;
+        if (toggle) text = "AAAAAAAAAABBBBBBBBBBCCCCCCCCCCDDDDDDDDDDEEEEEEEEEEFFFFFFFFFFGGGGGGGGGGHHHHHHHHHH";
+        else text = "00000000001111111111222222222233333333334444444444555555555566666666667777777777";
+        TestText->Text = "test";
+        for (unsigned int i = 0; i < LayoutMap->Children->Size; i++)
+        {
+            TextBlock ^ textBlock = (TextBlock ^)LayoutMap->Children->GetAt(i);
+            textBlock->Text = text;
+        }
+        toggle = !toggle;
+    }
 }
 
 
-void NetHack::PlayPage::DoQuit(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void NetHack::PlayPage::LayoutMiddle_SizeChanged(Platform::Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e)
 {
-    this->Frame->Navigate(TypeName(MainPage::typeid));
+    if (InventoryScrollViewer->Visibility == Windows::UI::Xaml::Visibility::Collapsed) {
+        MapScrollViewer->Width = LayoutMiddle->ActualWidth;
+    }
+    else {
+        MapScrollViewer->Width = LayoutMiddle->ActualWidth - InventoryScrollViewer->ActualWidth;
+    }
 }
