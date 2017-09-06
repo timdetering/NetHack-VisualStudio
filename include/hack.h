@@ -1,4 +1,4 @@
-/* NetHack 3.6	hack.h	$NHDT-Date: 1451683048 2016/01/01 21:17:28 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.68 $ */
+/* NetHack 3.6	hack.h	$NHDT-Date: 1490908464 2017/03/30 21:14:24 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.76 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -33,6 +33,9 @@ enum encumbrance_types {
 
 /* weight increment of heavy iron ball */
 #define IRON_BALL_W_INCR 160
+
+/* number of turns it takes for vault guard to show up */
+#define VAULT_GUARD_TIME 30
 
 /* hunger states - see hu_stat in eat.c */
 enum hunger_state_types {
@@ -280,6 +283,7 @@ enum hmon_atkmode_types {
 #define BUC_UNCURSED 0x200
 #define BUC_UNKNOWN 0x400
 #define BUC_ALLBKNOWN (BUC_BLESSED | BUC_CURSED | BUC_UNCURSED)
+#define BUCX_TYPES (BUC_ALLBKNOWN | BUC_UNKNOWN)
 #define ALL_TYPES_SELECTED -2
 
 /* Flags to control find_mid() */
@@ -358,6 +362,12 @@ enum explosion_types {
 #define XKILL_NOMSG     1
 #define XKILL_NOCORPSE  2
 #define XKILL_NOCONDUCT 4
+
+/* pline_flags; mask values for custompline()'s first argument */
+/* #define PLINE_ORDINARY 0 */
+#define PLINE_NOREPEAT   1
+#define OVERRIDE_MSGTYPE 2
+#define SUPPRESS_HISTORY 4
 
 /* Macros for messages referring to hands, eyes, feet, etc... */
 enum bodypart_types {

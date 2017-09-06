@@ -1,4 +1,4 @@
-/* NetHack 3.6	options.c	$NHDT-Date: 1470357737 2016/08/05 00:42:17 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.279 $ */
+/* NetHack 3.6	options.c	$NHDT-Date: 1498078876 2017/06/21 21:01:16 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.288 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -126,6 +126,7 @@ static struct Bool_Opt {
     { "flush", (boolean *) 0, FALSE, SET_IN_FILE },
 #endif
     { "fullscreen", &iflags.wc2_fullscreen, FALSE, SET_IN_FILE },
+    { "goldX", &iflags.goldX, FALSE, SET_IN_GAME },
     { "help", &flags.help, TRUE, SET_IN_GAME },
     { "hilite_pet", &iflags.wc_hilite_pet, FALSE, SET_IN_GAME }, /*WC*/
     { "hilite_pile", &iflags.hilite_pile, FALSE, SET_IN_GAME },
@@ -208,6 +209,7 @@ static struct Bool_Opt {
 #else
     { "statushilites", &iflags.use_status_hilites, FALSE, DISP_IN_GAME },
 #endif
+    { "status_updates", &iflags.status_updates, TRUE, DISP_IN_GAME },
     { "tiled_map", &iflags.wc_tiled_map, PREFER_TILED, DISP_IN_GAME }, /*WC*/
     { "time", &flags.time, FALSE, SET_IN_GAME },
 #ifdef TIMED_DELAY
@@ -231,7 +233,7 @@ static struct Bool_Opt {
     { "vt_tiledata", (boolean *) 0, FALSE, SET_IN_FILE },
 #endif
     { "whatis_menu", &iflags.getloc_usemenu, FALSE, SET_IN_GAME },
-    { "whatis_inview", &iflags.getloc_limitview, FALSE, SET_IN_GAME },
+    { "whatis_moveskip", &iflags.getloc_moveskip, FALSE, SET_IN_GAME },
     { "wizweight", &iflags.wizweight, FALSE, SET_IN_WIZGAME },
     { "wraptext", &iflags.wc2_wraptext, FALSE, SET_IN_GAME },
 #ifdef ZEROCOMP
@@ -264,7 +266,7 @@ static struct Comp_Opt {
     { "altkeyhandler", "alternate key handler", 20, DISP_IN_GAME },
 #ifdef BACKWARD_COMPAT
     { "boulder", "deprecated (use S_boulder in sym file instead)", 1,
-      SET_IN_FILE },
+      SET_IN_GAME },
 #endif
     { "catname", "the name of your (first) cat (e.g., catname:Tabby)",
       PL_PSIZ, DISP_IN_GAME },
@@ -401,6 +403,8 @@ static struct Comp_Opt {
 #endif
     { "whatis_coord", "show coordinates when auto-describing cursor position",
       1, SET_IN_GAME },
+    { "whatis_filter", "filter coordinate locations when targeting next or previous",
+            1, SET_IN_GAME },
     { "windowcolors", "the foreground/background colors of windows", /*WC*/
       80, DISP_IN_GAME },
     { "windowtype", "windowing system to use", WINTYPELEN, DISP_IN_GAME },
@@ -481,7 +485,7 @@ static const menu_cmd_t default_menu_cmd_info[] = {
  { "menu_previous_page", MENU_PREVIOUS_PAGE, "Go to previous page" },
  { "menu_select_all", MENU_SELECT_ALL, "Select all items" },
  { "menu_deselect_all", MENU_UNSELECT_ALL, "Unselect all items" },
- { "menu_invert_all", MENU_INVERT_ALL, "Insert selection" },
+ { "menu_invert_all", MENU_INVERT_ALL, "Invert selection" },
  { "menu_select_page", MENU_SELECT_PAGE, "Select items in current page" },
  { "menu_deselect_page", MENU_UNSELECT_PAGE, "Unselect items in current page" },
  { "menu_invert_page", MENU_INVERT_PAGE, "Invert current page selection" },
@@ -638,7 +642,7 @@ initoptions()
     /* ... and _must_ parse correctly. */
     if (!read_config_file(SYSCF_FILE, SET_IN_SYS)) {
         raw_printf("Error(s) found in SYSCF_FILE, quitting.");
-        terminate(EXIT_FAILURE);
+        nh_terminate(EXIT_FAILURE);
     }
     /*
      * TODO [maybe]: parse the sysopt entries which are space-separated
@@ -2365,32 +2369,32 @@ boolean tinitial, tfrom_file;
             return;
         if (!initial) {
             struct fruit *f;
+            int fnum = 0;
 
-            num = 0;
-            for (f = ffruit; f; f = f->nextf) {
-                if (!strcmp(op, f->fname))
-                    break;
-                num++;
-            }
-            if (!flags.made_fruit) {
-                for (forig = ffruit; forig; forig = forig->nextf) {
-                    if (!strcmp(pl_fruit, forig->fname)) {
-                        break;
-                    }
+            /* count number of named fruits; if 'op' is found among them,
+               then the count doesn't matter because we won't be adding it */
+            f = fruit_from_name(op, FALSE, &fnum);
+            if (!f) {
+                if (!flags.made_fruit)
+                    forig = fruit_from_name(pl_fruit, FALSE, (int *) 0);
+
+                if (!forig && fnum >= 100) {
+                    pline("Doing that so many times isn't very fruitful.");
+                    return;
                 }
-            }
-            if (!forig && num >= 100) {
-                pline("Doing that so many times isn't very fruitful.");
-                return;
             }
         }
     goodfruit:
         nmcpy(pl_fruit, op, PL_FSIZ);
         sanitize_name(pl_fruit);
-        /* OBJ_NAME(objects[SLIME_MOLD]) won't work after initialization */
+        /* OBJ_NAME(objects[SLIME_MOLD]) won't work for this after
+           initialization; it gets changed to generic "fruit" */
         if (!*pl_fruit)
             nmcpy(pl_fruit, "slime mold", PL_FSIZ);
         if (!initial) {
+            /* if 'forig' is nonNull, we replace it rather than add
+               a new fruit; it can only be nonNull if no fruits have
+               been created since the previous name was put in place */
             (void) fruitadd(pl_fruit, forig);
             pline("Fruit is now \"%s\".", pl_fruit);
         }
@@ -2403,7 +2407,7 @@ boolean tinitial, tfrom_file;
     }
 
     fullname = "whatis_coord";
-    if (match_optname(opts, fullname, 6, TRUE)) {
+    if (match_optname(opts, fullname, 8, TRUE)) {
         if (duplicate)
             complain_about_duplicate(opts, 1);
         if (negated) {
@@ -2419,6 +2423,33 @@ boolean tinitial, tfrom_file;
                 iflags.getpos_coords = c;
             else
                 badoption(opts);
+        }
+        return;
+    }
+
+    fullname = "whatis_filter";
+    if (match_optname(opts, fullname, 8, TRUE)) {
+        if (duplicate)
+            complain_about_duplicate(opts, 1);
+        if (negated) {
+            iflags.getloc_filter = GFILTER_NONE;
+            return;
+        } else if ((op = string_for_env_opt(fullname, opts, FALSE)) != 0) {
+            char c = lowc(*op);
+
+            switch (c) {
+            case 'n':
+                iflags.getloc_filter = GFILTER_NONE;
+                break;
+            case 'v':
+                iflags.getloc_filter = GFILTER_VIEW;
+                break;
+            case 'a':
+                iflags.getloc_filter = GFILTER_AREA;
+                break;
+            default:
+                badoption(opts);
+            }
         }
         return;
     }
@@ -2467,8 +2498,12 @@ boolean tinitial, tfrom_file;
              */
             iflags.bouldersym = (uchar) opts[0];
         }
-        if (!initial)
+        /* for 'initial', update_bouldersym() is done in initoptions_finish(),
+           after all symset options have been processed */
+        if (!initial) {
+            update_bouldersym();
             need_redraw = TRUE;
+        }
         return;
     }
 #endif
@@ -2611,7 +2646,7 @@ boolean tinitial, tfrom_file;
                     op = pp + 1;
                 else
                     break; /* no next token */
-            }              /* for(;;) */
+            } /* for(;;) */
         }
         return;
     }
@@ -3525,7 +3560,8 @@ char* bindings;
     }
 
     /* parse a single binding: first split around : */
-    if (! (bind = index(bindings, ':'))) return; /* it's not a binding */
+    if (! (bind = index(bindings, ':')))
+        return; /* it's not a binding */
     *bind++ = 0;
 
     /* read the key to be bound */
@@ -4306,6 +4342,37 @@ boolean setinitial, setfromfile;
             free((genericptr_t) window_pick);
         }
         destroy_nhwindow(tmpwin);
+    } else if (!strcmp("whatis_filter", optname)) {
+        menu_item *window_pick = (menu_item *) 0;
+        int pick_cnt;
+        char gf = iflags.getloc_filter;
+
+        tmpwin = create_nhwindow(NHW_MENU);
+        start_menu(tmpwin);
+        any = zeroany;
+        any.a_char = (GFILTER_NONE + 1);
+        add_menu(tmpwin, NO_GLYPH, &any, 'n',
+                 0, ATR_NONE, "no filtering",
+                 (gf == GFILTER_NONE) ? MENU_SELECTED : MENU_UNSELECTED);
+        any.a_char = (GFILTER_VIEW + 1);
+        add_menu(tmpwin, NO_GLYPH, &any, 'v',
+                 0, ATR_NONE, "in view only",
+                 (gf == GFILTER_VIEW) ? MENU_SELECTED : MENU_UNSELECTED);
+        any.a_char = (GFILTER_AREA + 1);
+        add_menu(tmpwin, NO_GLYPH, &any, 'a',
+                 0, ATR_NONE, "in same area",
+                 (gf == GFILTER_AREA) ? MENU_SELECTED : MENU_UNSELECTED);
+        end_menu(tmpwin,
+            "Select location filtering when going for next/previous map position:");
+        if ((pick_cnt = select_menu(tmpwin, PICK_ONE, &window_pick)) > 0) {
+            iflags.getloc_filter = (window_pick[0].item.a_char - 1);
+            /* PICK_ONE doesn't unselect preselected entry when
+               selecting another one */
+            if (pick_cnt > 1 && iflags.getloc_filter == gf)
+                iflags.getloc_filter = (window_pick[1].item.a_char - 1);
+            free((genericptr_t) window_pick);
+        }
+        destroy_nhwindow(tmpwin);
     } else if (!strcmp("msg_window", optname)) {
 #if defined(TTY_GRAPHICS) || defined(UWP_GRAPHICS)
         /* by Christian W. Cooper */
@@ -4720,7 +4787,8 @@ boolean setinitial, setfromfile;
                 }
                 sl = sl->next;
             }
-            Sprintf(buf, "Select %ssymbol set:", rogueflag ? "rogue level " : "");
+            Sprintf(buf, "Select %ssymbol set:",
+                    rogueflag ? "rogue level " : "");
             end_menu(tmpwin, buf);
             if (select_menu(tmpwin, PICK_ONE, &symset_pick) > 0) {
                 chosen = symset_pick->item.a_int - 2;
@@ -5079,6 +5147,11 @@ char *buf;
                 : (iflags.getpos_coords == GPCOORDS_COMFULL) ? "full compass"
                 : (iflags.getpos_coords == GPCOORDS_SCREEN) ? "screen"
                 : "none");
+    } else if (!strcmp(optname, "whatis_filter")) {
+        Sprintf(buf, "%s",
+                (iflags.getloc_filter == GFILTER_VIEW) ? "view"
+                : (iflags.getloc_filter == GFILTER_AREA) ? "area"
+                : "none");
     } else if (!strcmp(optname, "scores")) {
         Sprintf(buf, "%d top/%d around%s", flags.end_top, flags.end_around,
                 flags.end_own ? "/own" : "");
@@ -5364,7 +5437,8 @@ register char *opts;
 
     if ((op = index(opts, ',')) != 0) {
         *op++ = 0;
-        if (!parsesymbols(op)) return FALSE;
+        if (!parsesymbols(op))
+            return FALSE;
     }
 
     /* S_sample:string */
@@ -5596,7 +5670,6 @@ struct fruit *replace_fruit;
         /* disallow naming after other foods (since it'd be impossible
          * to tell the difference)
          */
-
         for (i = bases[FOOD_CLASS]; objects[i].oc_class == FOOD_CLASS; i++) {
             if (!strcmp(OBJ_NAME(objects[i]), pl_fruit)) {
                 found = TRUE;
@@ -5606,15 +5679,15 @@ struct fruit *replace_fruit;
         {
             char *c;
 
-            c = pl_fruit;
-
             for (c = pl_fruit; *c >= '0' && *c <= '9'; c++)
-                ;
+                continue;
             if (isspace((uchar) *c) || *c == 0)
                 numeric = TRUE;
         }
-        if (found || numeric || !strncmp(str, "cursed ", 7)
-            || !strncmp(str, "uncursed ", 9) || !strncmp(str, "blessed ", 8)
+        if (found || numeric
+            || !strncmp(str, "cursed ", 7)
+            || !strncmp(str, "uncursed ", 9)
+            || !strncmp(str, "blessed ", 8)
             || !strncmp(str, "partly eaten ", 13)
             || (!strncmp(str, "tin of ", 7)
                 && (!strcmp(str + 7, "spinach")
@@ -5637,42 +5710,39 @@ struct fruit *replace_fruit;
          */
         flags.made_fruit = FALSE;
         if (replace_fruit) {
-            for (f = ffruit; f; f = f->nextf) {
-                if (f == replace_fruit) {
-                    copynchars(f->fname, str, PL_FSIZ - 1);
-                    goto nonew;
-                }
-            }
+            /* replace_fruit is already part of the fruit chain;
+               update it in place rather than looking it up again */
+            f = replace_fruit;
+            copynchars(f->fname, str, PL_FSIZ - 1);
+            goto nonew;
         }
     } else {
         /* not user_supplied, so assumed to be from bones */
         copynchars(altname, str, PL_FSIZ - 1);
         sanitize_name(altname);
         flags.made_fruit = TRUE; /* for safety.  Any fruit name added from a
-                                    bones level should exist anyway. */
+                                  * bones level should exist anyway. */
     }
-    for (f = ffruit; f; f = f->nextf) {
-        if (f->fid > highest_fruit_id)
-            highest_fruit_id = f->fid;
-        if (!strncmp(str, f->fname, PL_FSIZ - 1)
-            || (*altname && !strcmp(altname, f->fname)))
-            goto nonew;
-    }
-    /* if adding another fruit would overflow spe, use a random
-       fruit instead... we've got a lot to choose from.
+    f = fruit_from_name(*altname ? altname : str, FALSE, &highest_fruit_id);
+    if (f)
+        goto nonew;
+
+    /* Maximum number of named fruits is 127, even if obj->spe can
+       handle bigger values.  If adding another fruit would overflow,
+       use a random fruit instead... we've got a lot to choose from.
        current_fruit remains as is. */
     if (highest_fruit_id >= 127)
         return rnd(127);
 
     f = newfruit();
-    (void) memset((genericptr_t)f, 0, sizeof(struct fruit));
+    (void) memset((genericptr_t) f, 0, sizeof (struct fruit));
     copynchars(f->fname, *altname ? altname : str, PL_FSIZ - 1);
     f->fid = ++highest_fruit_id;
     /* we used to go out of our way to add it at the end of the list,
        but the order is arbitrary so use simpler insertion at start */
     f->nextf = ffruit;
     ffruit = f;
-nonew:
+ nonew:
     if (user_specified)
         context.current_fruit = f->fid;
     return f->fid;

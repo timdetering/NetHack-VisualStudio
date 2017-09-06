@@ -1,4 +1,4 @@
-/* NetHack 3.6	dungeon.c	$NHDT-Date: 1470275509 2016/08/04 01:51:49 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.76 $ */
+/* NetHack 3.6	dungeon.c	$NHDT-Date: 1491958681 2017/04/12 00:58:01 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.79 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -247,7 +247,7 @@ dlb *stream;
         panic(
   "Premature EOF on dungeon description file!\r\nExpected %d bytes - got %d.",
               (size * nitems), (size * cnt));
-        terminate(EXIT_FAILURE);
+        nh_terminate(EXIT_FAILURE);
     }
 }
 
@@ -1639,7 +1639,7 @@ lev_by_name(nam)
 const char *nam;
 {
     schar lev = 0;
-    s_level *slev = NULL;
+    s_level *slev = (s_level *)0;
     d_level dlev;
     const char *p;
     int idx, idxtoo;
@@ -2952,8 +2952,6 @@ boolean printdun;
         Sprintf(buf, "%sA very big room.", PREFIX);
     } else if (mptr->flags.roguelevel) {
         Sprintf(buf, "%sA primitive area.", PREFIX);
-    } else if (mptr->flags.quest_summons) {
-        Sprintf(buf, "%sSummoned by %s.", PREFIX, ldrname());
     } else if (on_level(&mptr->lev, &qstart_level)) {
         Sprintf(buf, "%sHome%s.", PREFIX,
                 mptr->flags.unreachable ? " (no way back...)" : "");
@@ -2975,6 +2973,11 @@ boolean printdun;
     }
     if (*buf)
         putstr(win, 0, buf);
+    /* quest entrance is not mutually-exclusive with bigroom or rogue level */
+    if (mptr->flags.quest_summons) {
+        Sprintf(buf, "%sSummoned by %s.", PREFIX, ldrname());
+        putstr(win, 0, buf);
+    }
 
     /* print out branches */
     if (mptr->br) {

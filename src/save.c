@@ -1,4 +1,4 @@
-/* NetHack 3.6	save.c	$NHDT-Date: 1450231175 2015/12/16 01:59:35 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.98 $ */
+/* NetHack 3.6	save.c	$NHDT-Date: 1489192905 2017/03/11 00:41:45 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.101 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -95,7 +95,7 @@ dosave()
             /* make sure they see the Saving message */
             display_nhwindow(WIN_MESSAGE, TRUE);
             exit_nhwindows("Be seeing you...");
-            terminate(EXIT_SUCCESS);
+            nh_terminate(EXIT_SUCCESS);
         } else
             (void) doredraw();
     }
@@ -726,7 +726,7 @@ register unsigned num;
     if (failed) {
 #if defined(UNIX) || defined(VMS) || defined(__EMX__)
         if (program_state.done_hup)
-            terminate(EXIT_FAILURE);
+            nh_terminate(EXIT_FAILURE);
         else
 #endif
             panic("cannot write %u bytes to file #%d", num, fd);
@@ -832,7 +832,7 @@ register int fd;
         if (write(fd, outbuf, outbufp) != outbufp) {
 #if defined(UNIX) || defined(VMS) || defined(__EMX__)
             if (program_state.done_hup)
-                terminate(EXIT_FAILURE);
+                nh_terminate(EXIT_FAILURE);
             else
 #endif
                 zerocomp_bclose(fd); /* panic (outbufp != 0) */
@@ -858,7 +858,7 @@ register unsigned num;
         if ((unsigned) write(fd, loc, num) != num) {
 #if defined(UNIX) || defined(VMS) || defined(__EMX__)
             if (program_state.done_hup)
-                terminate(EXIT_FAILURE);
+                nh_terminate(EXIT_FAILURE);
             else
 #endif
                 panic("cannot write %u bytes to file #%d", num, fd);
@@ -1410,6 +1410,9 @@ freedynamicdata()
 #endif /* FREE_ALL_MEMORY */
 #ifdef STATUS_VIA_WINDOWPORT
     status_finish();
+#endif
+#ifdef DUMPLOG
+    dumplogfreemessages();
 #endif
 
     /* last, because it frees data that might be used by panic() to provide

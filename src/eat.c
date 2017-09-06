@@ -1,4 +1,4 @@
-/* NetHack 3.6	eat.c	$NHDT-Date: 1470272344 2016/08/04 00:59:04 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.172 $ */
+/* NetHack 3.6	eat.c	$NHDT-Date: 1502754159 2017/08/14 23:42:39 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.179 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -6,7 +6,7 @@
 
 STATIC_PTR int NDECL(eatmdone);
 STATIC_PTR int NDECL(eatfood);
-STATIC_PTR void FDECL(costly_tin, (int));
+STATIC_PTR struct obj *FDECL(costly_tin, (int));
 STATIC_PTR int NDECL(opentin);
 STATIC_PTR int NDECL(unfaint);
 
@@ -980,6 +980,7 @@ register int pm;
             u.mh = u.mhmax;
         else
             u.uhp = u.uhpmax;
+        make_blinded(0L, !u.ucreamed);
         context.botl = 1;
         break;
     case PM_STALKER:
@@ -1153,7 +1154,7 @@ violated_vegetarian()
 
 /* common code to check and possibly charge for 1 context.tin.tin,
  * will split() context.tin.tin if necessary */
-STATIC_PTR void
+STATIC_PTR struct obj *
 costly_tin(alter_type)
 int alter_type; /* COST_xxx */
 {
@@ -1167,6 +1168,7 @@ int alter_type; /* COST_xxx */
         }
         costly_alteration(tin, alter_type);
     }
+    return tin;
 }
 
 int
@@ -1294,7 +1296,7 @@ const char *mesg;
     r = tin_variety(tin, FALSE);
     if (tin->otrapped || (tin->cursed && r != HOMEMADE_TIN && !rn2(8))) {
         b_trapped("tin", 0);
-        costly_tin(COST_DSTROY);
+        tin = costly_tin(COST_DSTROY);
         goto use_up_tin;
     }
 
@@ -1305,7 +1307,7 @@ const char *mesg;
         if (mnum == NON_PM) {
             pline("It turns out to be empty.");
             tin->dknown = tin->known = 1;
-            costly_tin(COST_OPEN);
+            tin = costly_tin(COST_OPEN);
             goto use_up_tin;
         }
 
@@ -1334,7 +1336,7 @@ const char *mesg;
                 You("discard the open tin.");
             if (!Hallucination)
                 tin->dknown = tin->known = 1;
-            costly_tin(COST_OPEN);
+            tin = costly_tin(COST_OPEN);
             goto use_up_tin;
         }
 
@@ -1353,7 +1355,7 @@ const char *mesg;
         cpostfx(mnum);
 
         /* charge for one at pre-eating cost */
-        costly_tin(COST_OPEN);
+        tin = costly_tin(COST_OPEN);
 
         if (tintxts[r].nut < 0) /* rotten */
             make_vomiting((long) rn1(15, 10), FALSE);
@@ -1379,7 +1381,7 @@ const char *mesg;
         if (yn("Eat it?") == 'n') {
             if (flags.verbose)
                 You("discard the open tin.");
-            costly_tin(COST_OPEN);
+            tin = costly_tin(COST_OPEN);
             goto use_up_tin;
         }
 
@@ -1387,14 +1389,13 @@ const char *mesg;
          * Same order as with non-spinach above:
          * conduct update, side-effects, shop handling, and nutrition.
          */
-        u.uconduct
-            .food++; /* don't need vegan/vegetarian checks for spinach */
+        u.uconduct.food++; /* don't need vegetarian checks for spinach */
         if (!tin->cursed)
             pline("This makes you feel like %s!",
                   Hallucination ? "Swee'pea" : "Popeye");
         gainstr(tin, 0, FALSE);
 
-        costly_tin(COST_OPEN);
+        tin = costly_tin(COST_OPEN);
 
         lesshungry(tin->blessed
                       ? 600                   /* blessed */
@@ -1708,8 +1709,7 @@ struct obj *otmp;
 {
     const char *old_nomovemsg, *save_nomovemsg;
 
-    debugpline2("start_eating: %lx (victual = %lx)", (unsigned long) otmp,
-                (unsigned long) context.victual.piece);
+    debugpline2("start_eating: %p (victual = %p)", otmp, context.victual.piece);
     debugpline1("reqtime = %d", context.victual.reqtime);
     debugpline1("(original reqtime = %d)", objects[otmp->otyp].oc_delay);
     debugpline1("nmod = %d", context.victual.nmod);

@@ -1,4 +1,4 @@
-/* NetHack 3.6	end.c	$NHDT-Date: 1461919723 2016/04/29 08:48:43 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.116 $ */
+/* NetHack 3.6	end.c	$NHDT-Date: 1495232357 2017/05/19 22:19:17 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.131 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -56,6 +56,10 @@ STATIC_DCL int NDECL(set_vanq_order);
 STATIC_DCL void FDECL(list_vanquished, (CHAR_P, BOOLEAN_P));
 STATIC_DCL void FDECL(list_genocided, (CHAR_P, BOOLEAN_P));
 STATIC_DCL boolean FDECL(should_query_disclose_option, (int, char *));
+#ifdef DUMPLOG
+STATIC_DCL void NDECL(dump_plines);
+#endif
+STATIC_DCL void FDECL(dump_everything, (int, time_t));
 STATIC_DCL int NDECL(num_extinct);
 
 #if defined(__BEOS__) || defined(MICRO) || defined(WIN32) || defined(OS2)
@@ -667,6 +671,101 @@ char *defquery;
     return TRUE;
 }
 
+#ifdef DUMPLOG
+STATIC_OVL void
+dump_plines()
+{
+    int i, j;
+    char buf[BUFSZ], **strp;
+    extern char *saved_plines[];
+    extern unsigned saved_pline_index;
+
+    Strcpy(buf, " "); /* one space for indentation */
+    putstr(0, 0, "Latest messages:");
+    for (i = 0, j = (int) saved_pline_index; i < DUMPLOG_MSG_COUNT;
+         ++i, j = (j + 1) % DUMPLOG_MSG_COUNT) {
+        strp = &saved_plines[j];
+        if (*strp) {
+            copynchars(&buf[1], *strp, BUFSZ - 1 - 1);
+            putstr(0, 0, buf);
+#ifdef FREE_ALL_MEMORY
+            free(*strp), *strp = 0;
+#endif
+        }
+    }
+}
+#endif
+
+/*ARGSUSED*/
+STATIC_OVL void
+dump_everything(how, when)
+int how;
+time_t when; /* date+time at end of game */
+{
+#ifdef DUMPLOG
+    char pbuf[BUFSZ], datetimebuf[24]; /* [24]: room for 64-bit bogus value */
+
+    dump_redirect(TRUE);
+    if (!iflags.in_dumplog)
+        return;
+
+    init_symbols(); /* revert to default symbol set */
+
+    /* one line version ID, which includes build date+time;
+       it's conceivable that the game started with a different
+       build date+time or even with an older nethack version,
+       but we only have access to the one it finished under */
+    putstr(0, 0, getversionstring(pbuf));
+    putstr(0, 0, "");
+
+    /* game start and end date+time to disambiguate version date+time */
+    Strcpy(datetimebuf, yyyymmddhhmmss(ubirthday));
+    Sprintf(pbuf, "Game began %4.4s-%2.2s-%2.2s %2.2s:%2.2s:%2.2s",
+            &datetimebuf[0], &datetimebuf[4], &datetimebuf[6],
+            &datetimebuf[8], &datetimebuf[10], &datetimebuf[12]);
+    Strcpy(datetimebuf, yyyymmddhhmmss(when));
+    Sprintf(eos(pbuf), ", ended %4.4s-%2.2s-%2.2s %2.2s:%2.2s:%2.2s.",
+            &datetimebuf[0], &datetimebuf[4], &datetimebuf[6],
+            &datetimebuf[8], &datetimebuf[10], &datetimebuf[12]);
+    putstr(0, 0, pbuf);
+    putstr(0, 0, "");
+
+    /* character name and basic role info */
+    Sprintf(pbuf, "%s, %s %s %s %s", plname,
+            aligns[1 - u.ualign.type].adj,
+            genders[flags.female].adj,
+            urace.adj,
+            (flags.female && urole.name.f) ? urole.name.f : urole.name.m);
+    putstr(0, 0, pbuf);
+    putstr(0, 0, "");
+
+    dump_map();
+    putstr(0, 0, do_statusline1());
+    putstr(0, 0, do_statusline2());
+    putstr(0, 0, "");
+
+    dump_plines();
+    putstr(0, 0, "");
+    putstr(0, 0, "Inventory:");
+    display_inventory((char *) 0, TRUE);
+    container_contents(invent, TRUE, TRUE, FALSE);
+    enlightenment((BASICENLIGHTENMENT | MAGICENLIGHTENMENT),
+                  (how >= PANICKED) ? ENL_GAMEOVERALIVE : ENL_GAMEOVERDEAD);
+    putstr(0, 0, "");
+    list_vanquished('d', FALSE); /* 'd' => 'y' */
+    putstr(0, 0, "");
+    list_genocided('d', FALSE); /* 'd' => 'y' */
+    putstr(0, 0, "");
+    show_conduct((how >= PANICKED) ? 1 : 2);
+    putstr(0, 0, "");
+    show_overview((how >= PANICKED) ? 1 : 2, how);
+    putstr(0, 0, "");
+    dump_redirect(FALSE);
+#else
+    nhUse(how);
+#endif
+}
+
 STATIC_OVL void
 disclose(how, taken)
 int how;
@@ -686,14 +785,7 @@ boolean taken;
         ask = should_query_disclose_option('i', &defquery);
         c = ask ? yn_function(qbuf, ynqchars, defquery) : defquery;
         if (c == 'y') {
-            struct obj *obj;
-
-            for (obj = invent; obj; obj = obj->nobj) {
-                makeknown(obj->otyp);
-                obj->known = obj->bknown = obj->dknown = obj->rknown = 1;
-                if (Is_container(obj) || obj->otyp == STATUE)
-                    obj->cknown = obj->lknown = 1;
-            }
+            /* caller has already ID'd everything */
             (void) display_inventory((char *) 0, TRUE);
             container_contents(invent, TRUE, TRUE, FALSE);
         }
@@ -1016,6 +1108,7 @@ int how;
     urealtime.finish_time = endtime = getnow();
     urealtime.realtime += (long) (endtime - urealtime.start_timing);
 
+    dump_open_log(endtime);
     /* Sometimes you die on the first move.  Life's not fair.
      * On those rare occasions you get hosed immediately, go out
      * smiling... :-)  -3.
@@ -1079,8 +1172,26 @@ int how;
     if (have_windows)
         display_nhwindow(WIN_MESSAGE, FALSE);
 
-    if (strcmp(flags.end_disclose, "none") && how != PANICKED)
-        disclose(how, taken);
+    if (how != PANICKED) {
+        struct obj *obj;
+
+        /*
+         * This is needed for both inventory disclosure and dumplog.
+         * Both are optional, so do it once here instead of duplicating
+         * it in both of those places.
+         */
+        for (obj = invent; obj; obj = obj->nobj) {
+            makeknown(obj->otyp);
+            obj->known = obj->bknown = obj->dknown = obj->rknown = 1;
+            if (Is_container(obj) || obj->otyp == STATUE)
+                obj->cknown = obj->lknown = 1;
+        }
+
+        if (strcmp(flags.end_disclose, "none"))
+            disclose(how, taken);
+
+        dump_everything(how, endtime);
+    }
 
     /* finish_paybill should be called after disclosure but before bones */
     if (bones_ok && taken)
@@ -1179,6 +1290,15 @@ int how;
     } else
         done_stopprint = 1; /* just avoid any more output */
 
+#ifdef DUMPLOG
+    /* 'how' reasons beyond genocide shouldn't show tombstone;
+       for normal end of game, genocide doesn't either */
+    if (how <= GENOCIDED) {
+        dump_redirect(TRUE);
+        genl_outrip(0, how, endtime);
+        dump_redirect(FALSE);
+    }
+#endif
     if (u.uhave.amulet) {
         Strcat(killer.name, " (with the Amulet)");
     } else if (how == ESCAPED) {
@@ -1189,16 +1309,14 @@ int how;
         /* don't bother counting to see whether it should be plural */
     }
 
-    if (!done_stopprint) {
-        Sprintf(pbuf, "%s %s the %s...", Goodbye(), plname,
-                (how != ASCENDED)
-                 ? (const char *) ((flags.female && urole.name.f)
-                                      ? urole.name.f
-                                      : urole.name.m)
-                 : (const char *) (flags.female ? "Demigoddess" : "Demigod"));
-        putstr(endwin, 0, pbuf);
-        putstr(endwin, 0, "");
-    }
+    Sprintf(pbuf, "%s %s the %s...", Goodbye(), plname,
+            (how != ASCENDED)
+                ? (const char *) ((flags.female && urole.name.f)
+                    ? urole.name.f
+                    : urole.name.m)
+            : (const char *) (flags.female ? "Demigoddess" : "Demigod"));
+    dump_forward_putstr(endwin, 0, pbuf, done_stopprint);
+    dump_forward_putstr(endwin, 0, "", done_stopprint);
 
     if (how == ESCAPED || how == ASCENDED) {
         struct monst *mtmp;
@@ -1226,42 +1344,40 @@ int how;
 
         viz_array[0][0] |= IN_SIGHT; /* need visibility for naming */
         mtmp = mydogs;
-        if (!done_stopprint)
-            Strcpy(pbuf, "You");
+        Strcpy(pbuf, "You");
         if (!Schroedingers_cat) /* check here in case disclosure was off */
             Schroedingers_cat = odds_and_ends(invent, CAT_CHECK);
         if (Schroedingers_cat) {
             int mhp, m_lev = adj_lev(&mons[PM_HOUSECAT]);
             mhp = d(m_lev, 8);
             nowrap_add(u.urexp, mhp);
-            if (!done_stopprint)
-                Strcat(eos(pbuf), " and Schroedinger's cat");
+            Strcat(eos(pbuf), " and Schroedinger's cat");
         }
         if (mtmp) {
             while (mtmp) {
-                if (!done_stopprint)
-                    Sprintf(eos(pbuf), " and %s", mon_nam(mtmp));
+                Sprintf(eos(pbuf), " and %s", mon_nam(mtmp));
                 if (mtmp->mtame)
                     nowrap_add(u.urexp, mtmp->mhp);
                 mtmp = mtmp->nmon;
             }
-            if (!done_stopprint)
-                putstr(endwin, 0, pbuf);
+            dump_forward_putstr(endwin, 0, pbuf, done_stopprint);
             pbuf[0] = '\0';
         } else {
-            if (!done_stopprint)
-                Strcat(pbuf, " ");
+            Strcat(pbuf, " ");
         }
-        if (!done_stopprint) {
-            Sprintf(eos(pbuf), "%s with %ld point%s,",
-                    how == ASCENDED ? "went to your reward"
-                                    : "escaped from the dungeon",
-                    u.urexp, plur(u.urexp));
-            putstr(endwin, 0, pbuf);
-        }
+        Sprintf(eos(pbuf), "%s with %ld point%s,",
+                how == ASCENDED ? "went to your reward"
+                                 : "escaped from the dungeon",
+                u.urexp, plur(u.urexp));
+        dump_forward_putstr(endwin, 0, pbuf, done_stopprint);
 
         if (!done_stopprint)
             artifact_score(invent, FALSE, endwin); /* list artifacts */
+#ifdef DUMPLOG
+        dump_redirect(TRUE);
+        artifact_score(invent, FALSE, 0);
+        dump_redirect(FALSE);
+#endif
 
         /* list valuables here */
         for (val = valuables; val->list; val++) {
@@ -1288,11 +1404,11 @@ int how;
                     Sprintf(pbuf, "%8ld worthless piece%s of colored glass,",
                             count, plur(count));
                 }
-                putstr(endwin, 0, pbuf);
+                dump_forward_putstr(endwin, 0, pbuf, 0);
             }
         }
 
-    } else if (!done_stopprint) {
+    } else {
         /* did not escape or ascend */
         if (u.uz.dnum == 0 && u.uz.dlevel <= 0) {
             /* level teleported out of the dungeon; `how' is DIED,
@@ -1312,26 +1428,23 @@ int how;
         }
 
         Sprintf(eos(pbuf), " with %ld point%s,", u.urexp, plur(u.urexp));
-        putstr(endwin, 0, pbuf);
+        dump_forward_putstr(endwin, 0, pbuf, done_stopprint);
     }
 
-    if (!done_stopprint) {
-        Sprintf(pbuf, "and %ld piece%s of gold, after %ld move%s.", umoney,
-                plur(umoney), moves, plur(moves));
-        putstr(endwin, 0, pbuf);
-    }
-    if (!done_stopprint) {
-        Sprintf(pbuf,
+    Sprintf(pbuf, "and %ld piece%s of gold, after %ld move%s.", umoney,
+            plur(umoney), moves, plur(moves));
+    dump_forward_putstr(endwin, 0, pbuf, done_stopprint);
+    Sprintf(pbuf,
             "You were level %d with a maximum of %d hit point%s when you %s.",
-                u.ulevel, u.uhpmax, plur(u.uhpmax), ends[how]);
-        putstr(endwin, 0, pbuf);
-        putstr(endwin, 0, "");
-    }
+            u.ulevel, u.uhpmax, plur(u.uhpmax), ends[how]);
+    dump_forward_putstr(endwin, 0, pbuf, done_stopprint);
+    dump_forward_putstr(endwin, 0, "", done_stopprint);
     if (!done_stopprint)
         display_nhwindow(endwin, TRUE);
     if (endwin != WIN_ERR)
         destroy_nhwindow(endwin);
 
+    dump_close_log();
     /* "So when I die, the first thing I will see in Heaven is a
      * score list?" */
     if (have_windows && !iflags.toptenwin)
@@ -1344,7 +1457,7 @@ int how;
         raw_print("");
         raw_print("");
     }
-    terminate(EXIT_SUCCESS);
+    nh_terminate(EXIT_SUCCESS);
 }
 
 void
@@ -1419,7 +1532,7 @@ boolean identified, all_containers, reportempty;
 
 /* should be called with either EXIT_SUCCESS or EXIT_FAILURE */
 void
-terminate(status)
+nh_terminate(status)
 int status;
 {
     program_state.in_moveloop = 0; /* won't be returning to normal play */
@@ -1436,7 +1549,7 @@ int status;
 #ifdef VMS
     /*
      *  This is liable to draw a warning if compiled with gcc, but it's
-     *  more important to flag panic() -> really_done() -> terminate()
+     *  more important to flag panic() -> really_done() -> nh_terminate()
      *  as __noreturn__ then to avoid the warning.
      */
     /* don't call exit() if already executing within an exit handler;
@@ -1594,7 +1707,7 @@ dovanquished()
 
 /* high priests aren't unique but are flagged as such to simplify something */
 #define UniqCritterIndx(mndx) ((mons[mndx].geno & G_UNIQ) \
-                             && mndx != PM_HIGH_PRIEST)
+                               && mndx != PM_HIGH_PRIEST)
 
 STATIC_OVL void
 list_vanquished(defquery, ask)
@@ -1608,6 +1721,11 @@ boolean ask;
     winid klwin;
     short mindx[NUMMONS];
     char c, buf[BUFSZ], buftoo[BUFSZ];
+    boolean dumping; /* for DUMPLOG; doesn't need to be conditional */
+
+    dumping = (defquery == 'd');
+    if (dumping)
+        defquery = 'y';
 
     /* get totals first */
     ntypes = 0;
@@ -1644,7 +1762,8 @@ boolean ask;
 
             klwin = create_nhwindow(NHW_MENU);
             putstr(klwin, 0, "Vanquished creatures:");
-            putstr(klwin, 0, "");
+            if (!dumping)
+                putstr(klwin, 0, "");
 
             qsort((genericptr_t) mindx, ntypes, sizeof *mindx, vanqsort_cmp);
             for (ni = 0; ni < ntypes; ni++) {
@@ -1703,7 +1822,8 @@ boolean ask;
              *     putstr(klwin, 0, "and a partridge in a pear tree");
              */
             if (ntypes > 1) {
-                putstr(klwin, 0, "");
+                if (!dumping)
+                    putstr(klwin, 0, "");
                 Sprintf(buf, "%ld creatures vanquished.", total_killed);
                 putstr(klwin, 0, buf);
             }
@@ -1712,7 +1832,11 @@ boolean ask;
         }
     } else if (defquery == 'a') {
         /* #dovanquished rather than final disclosure, so pline() is ok */
-        pline("No monsters have been vanquished.");
+        pline("No creatures have been vanquished.");
+#ifdef DUMPLOG
+    } else if (dumping) {
+        putstr(0, 0, "No creatures were vanquished."); /* not pline() */
+#endif
     }
 }
 
@@ -1733,7 +1857,7 @@ num_genocides()
     return n;
 }
 
-int
+STATIC_OVL int
 num_extinct()
 {
     int i, n = 0;
@@ -1757,6 +1881,11 @@ boolean ask;
     char c;
     winid klwin;
     char buf[BUFSZ];
+    boolean dumping; /* for DUMPLOG; doesn't need to be conditional */
+
+    dumping = (defquery == 'd');
+    if (dumping)
+        defquery = 'y';
 
     ngenocided = num_genocides();
     nextinct = num_extinct();
@@ -1776,7 +1905,8 @@ boolean ask;
                     (ngenocided) ? "Genocided" : "Extinct",
                     (nextinct && ngenocided) ? " or extinct" : "");
             putstr(klwin, 0, buf);
-            putstr(klwin, 0, "");
+            if (!dumping)
+                putstr(klwin, 0, "");
 
             for (i = LOW_PM; i < NUMMONS; i++) {
                 /* uniques can't be genocided but can become extinct;
@@ -1784,7 +1914,7 @@ boolean ask;
                 if (UniqCritterIndx(i))
                     continue;
                 if (mvitals[i].mvflags & G_GONE) {
-                    Strcpy(buf, makeplural(mons[i].mname));
+                    Sprintf(buf, " %s", makeplural(mons[i].mname));
                     /*
                      * "Extinct" is unfortunate terminology.  A species
                      * is marked extinct when its birth limit is reached,
@@ -1796,7 +1926,8 @@ boolean ask;
                     putstr(klwin, 0, buf);
                 }
             }
-            putstr(klwin, 0, "");
+            if (!dumping)
+                putstr(klwin, 0, "");
             if (ngenocided > 0) {
                 Sprintf(buf, "%d species genocided.", ngenocided);
                 putstr(klwin, 0, buf);
@@ -1809,6 +1940,10 @@ boolean ask;
             display_nhwindow(klwin, TRUE);
             destroy_nhwindow(klwin);
         }
+#ifdef DUMPLOG
+    } else if (dumping) {
+        putstr(0, 0, "No species were genocided or became extinct.");
+#endif
     }
 }
 
@@ -1824,6 +1959,7 @@ const char *killername;
     if (k == (struct kinfo *) 0) {
         /* no match, add a new delayed killer to the list */
         k = (struct kinfo *) alloc(sizeof(struct kinfo));
+        (void) memset((genericptr_t)k, 0, sizeof(struct kinfo));
         k->id = id;
         k->next = killer.next;
         killer.next = k;

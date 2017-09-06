@@ -1,4 +1,4 @@
-/* NetHack 3.6	trap.c	$NHDT-Date: 1473665044 2016/09/12 07:24:04 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.274 $ */
+/* NetHack 3.6	trap.c	$NHDT-Date: 1494107206 2017/05/06 21:46:46 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.278 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -2795,6 +2795,9 @@ float_up()
     if (Flying)
         You("are no longer able to control your flight.");
     BFlying |= I_SPECIAL;
+    /* levitation gives maximum carrying capacity, so encumbrance
+       state might be reduced */
+    (void) encumber_msg();
     return;
 }
 
@@ -2838,12 +2841,14 @@ long hmask, emask; /* might cancel timeout */
         BFlying &= ~I_SPECIAL;
         if (Flying) {
             You("have stopped levitating and are now flying.");
+            (void) encumber_msg(); /* carrying capacity might have changed */
             return 1;
         }
     }
     if (u.uswallow) {
         You("float down, but you are still %s.",
             is_animal(u.ustuck->data) ? "swallowed" : "engulfed");
+        (void) encumber_msg();
         return 1;
     }
 
@@ -2924,6 +2929,11 @@ long hmask, emask; /* might cancel timeout */
             }
         }
     }
+
+    /* levitation gives maximum carrying capacity, so having it end
+       potentially triggers greater encumbrance; do this after
+       'come down' messages, before trap activation or autopickup */
+    (void) encumber_msg();
 
     /* can't rely on u.uz0 for detecting trap door-induced level change;
        it gets changed to reflect the new level before we can check it */
@@ -4421,6 +4431,8 @@ boolean *noticed; /* set to true iff hero notices the effect; */
     const char *trapdescr, *which;
     boolean ishero = (mon == &youmonst);
 
+    if (!mon)
+        return FALSE;
     if (mon == u.usteed)
         ishero = TRUE;
     t = t_at(ishero ? u.ux : mon->mx, ishero ? u.uy : mon->my);
@@ -4479,6 +4491,8 @@ boolean *noticed; /* set to true iff hero notices the effect; */
     unsigned dotrapflags;
     boolean ishero = (mon == &youmonst), result;
 
+    if (!mon)
+        return FALSE;
     if (mon == u.usteed)
         ishero = TRUE;
     t = t_at(ishero ? u.ux : mon->mx, ishero ? u.uy : mon->my);
@@ -4522,6 +4536,8 @@ boolean *noticed; /* set to true iff hero notices the effect; */
     struct trap *t;
     boolean ishero = (mon == &youmonst), result;
 
+    if (!mon)
+        return FALSE;
     if (mon == u.usteed)
         ishero = TRUE;
     t = t_at(ishero ? u.ux : mon->mx, ishero ? u.uy : mon->my);
