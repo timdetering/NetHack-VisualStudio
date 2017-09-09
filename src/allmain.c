@@ -28,7 +28,6 @@ first_init()
     pickup_first_init();
     sp_lev_first_init(); /* re-visit */
     uinit_first_init();
-
 }
 
 void

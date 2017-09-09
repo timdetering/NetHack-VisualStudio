@@ -24,7 +24,7 @@ STATIC_DCL void FDECL(use_candelabrum, (struct obj *));
 STATIC_DCL void FDECL(use_candle, (struct obj **));
 STATIC_DCL void FDECL(use_lamp, (struct obj *));
 STATIC_DCL void FDECL(light_cocktail, (struct obj **));
-STATIC_PTR void FDECL(display_jump_positions, (int));
+STATIC_PTR void FDECL(display_jump_positions, (int,void*));
 STATIC_DCL void FDECL(use_tinning_kit, (struct obj *));
 STATIC_DCL void FDECL(use_figurine, (struct obj **));
 STATIC_DCL void FDECL(use_grease, (struct obj *));
@@ -32,7 +32,7 @@ STATIC_DCL void FDECL(use_trap, (struct obj *));
 STATIC_DCL void FDECL(use_stone, (struct obj *));
 STATIC_PTR int NDECL(set_trap); /* occupation callback */
 STATIC_DCL int FDECL(use_whip, (struct obj *));
-STATIC_PTR void FDECL(display_polearm_positions, (int));
+STATIC_PTR void FDECL(display_polearm_positions, (int,void*));
 STATIC_DCL int FDECL(use_pole, (struct obj *));
 STATIC_DCL int FDECL(use_cream_pie, (struct obj *));
 STATIC_DCL int FDECL(use_grapple, (struct obj *));
@@ -43,7 +43,7 @@ STATIC_DCL void FDECL(add_class, (char *, CHAR_P));
 STATIC_DCL void FDECL(setapplyclasses, (char *));
 STATIC_PTR boolean FDECL(check_jump, (genericptr_t, int, int));
 STATIC_DCL boolean FDECL(is_valid_jump_pos, (int, int, int, BOOLEAN_P));
-STATIC_DCL boolean FDECL(get_valid_jump_position, (int, int));
+STATIC_DCL boolean FDECL(get_valid_jump_position, (int, int,void*));
 STATIC_DCL boolean FDECL(get_valid_polearm_position, (int, int, polearm_range *));
 STATIC_DCL boolean FDECL(find_poleable_mon, (coord *, int, int));
 
@@ -1574,17 +1574,20 @@ boolean showmsg;
 static int jumping_is_magic;
 
 STATIC_OVL boolean
-get_valid_jump_position(x,y)
+get_valid_jump_position(x,y,p)
 int x,y;
+void *p;
 {
+    p;
     return (isok(x, y)
             && (ACCESSIBLE(levl[x][y].typ) || Passes_walls)
             && is_valid_jump_pos(x, y, jumping_is_magic, FALSE));
 }
 
 void
-display_jump_positions(state)
+display_jump_positions(state,p)
 int state;
+void *p;
 {
     if (state == 0) {
         tmp_at(DISP_BEAM, cmap_to_glyph(S_goodpos));
@@ -1595,7 +1598,7 @@ int state;
             for (dy = -4; dy <= 4; dy++) {
                 x = dx + (int) u.ux;
                 y = dy + (int) u.uy;
-                if (get_valid_jump_position(x, y))
+                if (get_valid_jump_position(x, y, p))
                     tmp_at(x, y);
             }
     } else {
@@ -1694,7 +1697,7 @@ int magic; /* 0=Physical, otherwise skill level */
     cc.x = u.ux;
     cc.y = u.uy;
     jumping_is_magic = magic;
-    getpos_sethilite(display_jump_positions, NULL);
+    getpos_sethilite(display_jump_positions, get_valid_jump_position, NULL);
     if (getpos(&cc, TRUE, "the desired position") < 0)
         return 0; /* user pressed ESC */
     if (!is_valid_jump_pos(cc.x, cc.y, magic, TRUE)) {
@@ -2890,7 +2893,7 @@ void * params;
                 x = dx + (int) u.ux;
                 y = dy + (int) u.uy;
 
-                if (get_valid_polearm_position(x,y,pr) {
+                if (get_valid_polearm_position(x,y,pr)) {
                     tmp_at(x, y);
                 }
             }
@@ -2961,7 +2964,7 @@ struct obj *obj;
         cc.x = hitm->mx;
         cc.y = hitm->my;
     }
-    getpos_sethilite(display_polearm_positions, &pr);
+    getpos_sethilite(display_polearm_positions, get_valid_polearm_position, &pr);
     if (getpos(&cc, TRUE, "the spot to hit") < 0)
         return res; /* ESC; uses turn iff polearm became wielded */
 

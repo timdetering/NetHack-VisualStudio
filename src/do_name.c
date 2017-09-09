@@ -36,15 +36,20 @@ nextmbuf()
 /* function for getpos() to highlight desired map locations.
  * parameter value 0 = initialize, 1 = highlight, 2 = done
  */
-static void FDECL((*getpos_hilitefunc), (int)) = (void FDECL((*), (int))) 0;
+static void FDECL((*getpos_hilitefunc), (int, void *)) =
+    (void FDECL((*), (int, void*))) 0;
+static boolean FDECL((*getpos_getvalid), (int, int, void *)) = 
+    (boolean FDECL((*), (int, int, void*))) 0;
 static void * getpos_hiliteparams = NULL;
 
 void
-getpos_sethilite(f,p)
+getpos_sethilite(f,d,p)
 void FDECL((*f), (int, void*));
+boolean FDECL((*d), (int, int, void*));
 void * p;
 {
     getpos_hilitefunc = f;
+    getpos_getvalid = d;
     getpos_hiliteparams = p;
 }
 
@@ -396,7 +401,7 @@ int x,y, gloc;
                      || glyph_to_cmap(glyph) == S_corr
                      || glyph_to_cmap(glyph) == S_litcorr));
     case GLOC_VALID:
-        return (getpos_getvalid && getpos_getvalid(x,y));
+        return (getpos_getvalid && getpos_getvalid(x,y, getpos_hiliteparams));
     }
     /*NOTREACHED*/
     return FALSE;
@@ -544,7 +549,7 @@ int cx, cy;
         (void) coord_desc(cx, cy, tmpbuf, iflags.getpos_coords);
         custompline(SUPPRESS_HISTORY,
                     "%s%s%s%s%s", firstmatch, *tmpbuf ? " " : "", tmpbuf,
-                    (iflags.autodescribe && getpos_getvalid && !getpos_getvalid(cx,cy))
+                    (iflags.autodescribe && getpos_getvalid && !getpos_getvalid(cx,cy, getpos_hiliteparams))
                     ? " (illegal)" : "",
                     (iflags.getloc_travelmode && !is_valid_travelpt(cx, cy))
                       ? " (no travel path)" : "");
@@ -965,7 +970,8 @@ const char *goal;
     for (i = 0; i < NUM_GLOCS; i++)
         if (garr[i])
             free((genericptr_t) garr[i]);
-    getpos_hilitefunc = (void FDECL((*), (int))) 0;
+    getpos_hilitefunc = (void FDECL((*), (int, void*))) 0;
+    getpos_getvalid = (boolean FDECL((*), (int, int, void*))) 0;
     getpos_hiliteparams = NULL;
     return result;
 }

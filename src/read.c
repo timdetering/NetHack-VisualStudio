@@ -28,8 +28,8 @@ STATIC_DCL void FDECL(forget_single_object, (int));
 STATIC_DCL void FDECL(forget, (int));
 STATIC_DCL int FDECL(maybe_tame, (struct monst *, struct obj *));
 STATIC_DCL boolean FDECL(is_valid_stinking_cloud_pos, (int, int, BOOLEAN_P));
-STATIC_DCL void FDECL(display_stinking_cloud_positions, (int));
-STATIC_DCL boolean FDECL(get_valid_stinking_cloud_pos, (int, int));
+STATIC_DCL void FDECL(display_stinking_cloud_positions, (int,void*));
+STATIC_DCL boolean FDECL(get_valid_stinking_cloud_pos, (int, int,void*));
 STATIC_PTR void FDECL(set_lit, (int, int, genericptr));
 
 STATIC_OVL boolean
@@ -917,9 +917,11 @@ struct obj *sobj;
 }
 
 STATIC_OVL boolean
-get_valid_stinking_cloud_pos(x,y)
+get_valid_stinking_cloud_pos(x,y,p)
 int x,y;
+void *p;
 {
+    p;
     return (!(!isok(x,y) || !cansee(x, y)
               || !ACCESSIBLE(levl[x][y].typ)
               || distu(x, y) >= 32));
@@ -930,7 +932,7 @@ is_valid_stinking_cloud_pos(x, y, showmsg)
 int x, y;
 boolean showmsg;
 {
-    if (!get_valid_stinking_cloud_pos(x,y)) {
+    if (!get_valid_stinking_cloud_pos(x,y,NULL)) {
         if (showmsg)
             You("smell rotten eggs.");
         return FALSE;
@@ -939,8 +941,9 @@ boolean showmsg;
 }
 
 void
-display_stinking_cloud_positions(state)
+display_stinking_cloud_positions(state, p)
 int state;
+void * p;
 {
     if (state == 0) {
         tmp_at(DISP_BEAM, cmap_to_glyph(S_goodpos));
@@ -952,7 +955,7 @@ int state;
             for (dy = -dist; dy <= dist; dy++) {
                 x = u.ux + dx;
                 y = u.uy + dy;
-                if (get_valid_stinking_cloud_pos(x,y))
+                if (get_valid_stinking_cloud_pos(x,y,p))
                     tmp_at(x, y);
             }
     } else {
@@ -1592,7 +1595,7 @@ struct obj *sobj; /* scroll, or fake spellbook object for scroll-like spell */
                     pline("This is a scroll of fire!");
                 dam *= 5;
                 pline("Where do you want to center the explosion?");
-                getpos_sethilite(display_stinking_cloud_positions, get_valid_stinking_cloud_pos);
+                getpos_sethilite(display_stinking_cloud_positions, get_valid_stinking_cloud_pos, NULL);
                 (void) getpos(&cc, TRUE, "the desired position");
                 if (!is_valid_stinking_cloud_pos(cc.x, cc.y, FALSE)) {
                     /* try to reach too far, get burned */
@@ -1664,7 +1667,7 @@ struct obj *sobj; /* scroll, or fake spellbook object for scroll-like spell */
               already_known ? "stinking " : "");
         cc.x = u.ux;
         cc.y = u.uy;
-        getpos_sethilite(display_stinking_cloud_positions, get_valid_stinking_cloud_pos);
+        getpos_sethilite(display_stinking_cloud_positions, get_valid_stinking_cloud_pos, NULL);
         if (getpos(&cc, TRUE, "the desired position") < 0) {
             pline1(Never_mind);
             break;
