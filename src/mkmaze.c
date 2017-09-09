@@ -1744,11 +1744,4 @@ boolean ini;
     }
 }
 
-void
-mkmaze_first_init()
-{
-    const static lev_region const_bughack = { { COLNO, ROWNO, 0, 0 },{ COLNO, ROWNO, 0, 0 } };
-
-    bughack = const_bughack;
-}
 /*mkmaze.c*/

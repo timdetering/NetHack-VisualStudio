@@ -737,10 +737,4 @@ wiz_light_sources()
     return 0;
 }
 
-void
-light_first_init()
-{
-    light_base = 0;
-}
-
 /*light.c*/

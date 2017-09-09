@@ -1093,10 +1093,4 @@ region_safety()
         make_blinded(0L, TRUE);
 }
 
-void
-region_first_init()
-{
-    n_regions = 0;
-    max_regions = 0;
-}
 /*region.c*/

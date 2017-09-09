@@ -478,8 +478,6 @@ boolean extract_first;
     }
 }
 
-static int s_branch_id = 0;
-
 /* Add a dungeon branch to the branch list. */
 STATIC_OVL branch *
 add_branch(dgn, child_entry_level, pd)
@@ -487,6 +485,7 @@ int dgn;
 int child_entry_level;
 struct proto_dungeon *pd;
 {
+    static int branch_id = 0;
     int branch_num;
     branch *new_branch;
 
@@ -494,7 +493,7 @@ struct proto_dungeon *pd;
     new_branch = (branch *) alloc(sizeof(branch));
     (void) memset((genericptr_t)new_branch, 0, sizeof(branch));
     new_branch->next = (branch *) 0;
-    new_branch->id = s_branch_id++;
+    new_branch->id = branch_id++;
     new_branch->type = correct_branch_type(&pd->tmpbranch[branch_num]);
     new_branch->end1.dnum = parent_dnum(dungeons[dgn].dname, pd);
     new_branch->end1.dlevel = parent_dlevel(dungeons[dgn].dname, pd);
@@ -3024,15 +3023,6 @@ boolean printdun;
             }
         }
     }
-}
-
-void
-dungeon_first_init()
-{
-    // TODO(bhouse) Do these need to be initialized?
-    branches = (branch *)0;
-    mapseenchn = (struct mapseen *) 0;
-    s_branch_id = 0;
 }
 
 /*dungeon.c*/

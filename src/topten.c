@@ -1253,10 +1253,4 @@ char *p;
 }
 #endif /* NO_SCAN_BRACK */
 
-void
-topten_first_init()
-{
-    toptenwin = WIN_ERR;
-}
-
 /*topten.c*/

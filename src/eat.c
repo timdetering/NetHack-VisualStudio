@@ -630,21 +630,20 @@ int *dmg_p; /* for dishing out extra damage in lieu of Int loss */
 }
 
 /* eating a corpse or egg of one's own species is usually naughty */
-static NEARDATA long s_ate_brains = 0L;
-
 STATIC_OVL boolean
 maybe_cannibal(pm, allowmsg)
 int pm;
 boolean allowmsg;
 {
+    static NEARDATA long ate_brains = 0L;
     struct permonst *fptr = &mons[pm]; /* food type */
 
     /* when poly'd into a mind flayer, multiple tentacle hits in one
        turn cause multiple digestion checks to occur; avoid giving
        multiple luck penalties for the same attack */
-    if (moves == s_ate_brains)
+    if (moves == ate_brains)
         return FALSE;
-    s_ate_brains = moves; /* ate_anything, not just brains... */
+    ate_brains = moves; /* ate_anything, not just brains... */
 
     if (!CANNIBAL_ALLOWED()
         /* non-cannibalistic heroes shouldn't eat own species ever
@@ -2866,14 +2865,13 @@ reset_faint()
 }
 
 /* compute and comment on your (new?) hunger status */
-static boolean s_saved_hs = FALSE;
-
 void
 newuhs(incr)
 boolean incr;
 {
     unsigned newhs;
     static unsigned save_hs;
+    static boolean saved_hs = FALSE;
     int h = u.uhunger;
 
     newhs = (h > 1000)
@@ -2904,16 +2902,16 @@ boolean incr;
      * gap to fit two bites.
      */
     if (occupation == eatfood || force_save_hs) {
-        if (!s_saved_hs) {
+        if (!saved_hs) {
             save_hs = u.uhs;
-            s_saved_hs = TRUE;
+            saved_hs = TRUE;
         }
         u.uhs = newhs;
         return;
     } else {
-        if (s_saved_hs) {
+        if (saved_hs) {
             u.uhs = save_hs;
-            s_saved_hs = FALSE;
+            saved_hs = FALSE;
         }
     }
 
@@ -3264,14 +3262,5 @@ int threat;
     return FALSE;
 }
 
-void
-eat_first_init()
-{
-    // TODO(bhouse) Does this need to be initialized?
-    force_save_hs = FALSE;
-    eatmbuf = 0;
-    s_saved_hs = FALSE;
-    s_ate_brains = 0L;
-}
 
 /*eat.c*/

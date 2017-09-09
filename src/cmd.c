@@ -3717,10 +3717,11 @@ boolean initial;
     const struct ext_func_tab *cmdtmp;
     boolean flagtemp;
     int c, i, updated = 0;
-    static boolean s_backed_dir_cmd;
+    static boolean backed_dir_cmd;
 
     if (initial) {
-        s_backed_dir_cmd = FALSE;
+        memset(&Cmd, 0, sizeof(Cmd));
+        backed_dir_cmd = FALSE;
         updated = 1;
         Cmd.num_pad = FALSE;
         Cmd.pcHack_compat = Cmd.phone_layout = Cmd.swap_yz = FALSE;
@@ -3729,7 +3730,7 @@ boolean initial;
         commands_init();
     } else {
 
-        if (s_backed_dir_cmd) {
+        if (backed_dir_cmd) {
             for (i = 0; i < 8; i++) {
                 Cmd.commands[(uchar) Cmd.dirchars[i]] = back_dir_cmd[i];
             }
@@ -3810,7 +3811,7 @@ boolean initial;
                 (struct ext_func_tab *) Cmd.commands[(uchar) Cmd.dirchars[i]];
             Cmd.commands[(uchar) Cmd.dirchars[i]] = (struct ext_func_tab *) 0;
         }
-        s_backed_dir_cmd = TRUE;
+        backed_dir_cmd = TRUE;
         for (i = 0; i < 8; i++)
             bind_key(Cmd.dirchars[i], "nothing");
     }
@@ -4878,14 +4879,6 @@ dosuspend_core()
 #endif
         Norep("Suspend command not available.");
     return 0;
-}
-
-void
-cmd_first_init()
-{
-    // TODO(bhouse) Does this need to be initialized?
-    memset(&Cmd, 0, sizeof(Cmd));
-    en_win = WIN_ERR;
 }
 
 /*cmd.c*/

@@ -1352,9 +1352,4 @@ boolean give_feedback;
     return TRUE;
 }
 
-void
-teleport_first_init()
-{
-    telescroll = 0;
-}
 /*teleport.c*/

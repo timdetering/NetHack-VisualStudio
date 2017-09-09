@@ -1983,13 +1983,11 @@ boolean drop_untouchable;
 }
 
 /* check all items currently in use (mostly worn) for touchability */
-
-static int s_nesting = 0; /* recursion control */
-
 void
 retouch_equipment(dropflag)
 int dropflag; /* 0==don't drop, 1==drop all, 2==drop weapon */
 {
+    static int nesting = 0; /* recursion control */
     struct obj *obj;
     boolean dropit, had_gloves = (uarmg != 0);
     int had_rings = (!!uleft + !!uright);
@@ -2005,7 +2003,7 @@ int dropflag; /* 0==don't drop, 1==drop all, 2==drop weapon */
      * using the non-helm alignment rather than the helm alignment
      * which triggered this in the first place.
      */
-    if (!s_nesting++)
+    if (!nesting++)
         clear_bypasses(); /* init upon initial entry */
 
     dropit = (dropflag > 0); /* drop all or drop weapon */
@@ -2045,14 +2043,8 @@ int dropflag; /* 0==don't drop, 1==drop all, 2==drop weapon */
     if (had_gloves && !uarmg)
         selftouch("After losing your gloves, you");
 
-    if (!--s_nesting)
+    if (!--nesting)
         clear_bypasses(); /* reset upon final exit */
-}
-
-void artifact_first_init()
-{
-    spec_dbon_applies = 0;
-    s_nesting = 0;
 }
 
 /*artifact.c*/

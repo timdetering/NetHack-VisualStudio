@@ -1811,10 +1811,4 @@ polysense()
     }
 }
 
-void
-polyself_first_init()
-{
-    sex_change_ok = 0;
-}
-
 /*polyself.c*/

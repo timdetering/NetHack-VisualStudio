@@ -146,8 +146,6 @@ boolean quietly;
     return mtmp;
 }
 
-static int s_petname_used = 0;
-
 struct monst *
 makedog()
 {
@@ -192,7 +190,7 @@ makedog()
         put_saddle_on_mon(otmp, mtmp);
     }
 
-    if (!s_petname_used++ && *petname)
+    if (*petname)
         mtmp = christen_monst(mtmp, petname);
 
     initedog(mtmp);
@@ -1055,10 +1053,5 @@ struct monst *mtmp;
     }
 }
 
-void
-dog_first_init()
-{
-    s_petname_used = 0;
-}
 
 /*dog.c*/

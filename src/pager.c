@@ -1585,21 +1585,20 @@ char *cbuf;
 #endif /* 0 */
 }
 
-static boolean s_once = FALSE;
-
 int
 dowhatdoes()
 {
+    static boolean once = FALSE;
     char bufr[BUFSZ];
     char q, *reslt;
 
-    if (!s_once) {
+    if (!once) {
         pline("Ask about '&' or '?' to get more info.%s",
 #ifdef ALTMETA
               iflags.altmeta ? "  (For ESC, type it twice.)" :
 #endif
               "");
-        s_once = TRUE;
+        once = TRUE;
     }
 #if defined(UNIX) || defined(VMS)
     introff(); /* disables ^C but not ^\ */
@@ -1800,12 +1799,6 @@ dohistory()
 {
     display_file(HISTORY, TRUE);
     return 0;
-}
-
-void
-pager_first_init()
-{
-    s_once = FALSE;
 }
 
 /*pager.c*/

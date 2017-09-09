@@ -3733,13 +3733,4 @@ int bufsz;
 
 /* ----------  END TRIBUTE ----------- */
 
-void
-files_first_init()
-{
-    nesting = 0;
-    symset_count = 0;
-    chosen_symset_start = FALSE;
-    chosen_symset_end = FALSE;
-}
-
 /*files.c*/

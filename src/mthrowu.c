@@ -1171,11 +1171,4 @@ int whodidit;   /* 1==hero, 0=other, -1==just check whether it'll pass thru */
     return hits;
 }
 
-void
-mthrowu_first_init()
-{
-    target = 0;
-    target = 0;
-}
-
 /*mthrowu.c*/

@@ -838,8 +838,6 @@ struct trap *trap;
     return FALSE;
 }
 
-static boolean s_recursive_mine = FALSE;
-
 void
 dotrap(trap, trflags)
 register struct trap *trap;
@@ -1432,17 +1430,18 @@ unsigned trflags;
              * the ground, and you being affected again by the same
              * mine because it hasn't been deleted yet
              */
+            static boolean recursive_mine = FALSE;
 
-            if (s_recursive_mine)
+            if (recursive_mine)
                 break;
             feeltrap(trap);
             pline("KAABLAMM!!!  You triggered %s land mine!",
                   a_your[trap->madeby_u]);
             if (u.usteed)
                 steed_mid = u.usteed->m_id;
-            s_recursive_mine = TRUE;
+            recursive_mine = TRUE;
             (void) steedintrap(trap, (struct obj *) 0);
-            s_recursive_mine = FALSE;
+            recursive_mine = FALSE;
             saddle = sobj_at(SADDLE, u.ux, u.uy);
             set_wounded_legs(LEFT_SIDE, rn1(35, 41));
             set_wounded_legs(RIGHT_SIDE, rn1(35, 41));
@@ -5201,13 +5200,6 @@ maybe_finish_sokoban()
                (perhaps say "congratulations" in Japanese?) */
         }
     }
-}
-
-void trap_first_init()
-{
-    force_mintrap = 0;
-    memset(&acid_ctx, 0, sizeof(acid_ctx));
-    s_recursive_mine = FALSE;
 }
 
 /*trap.c*/

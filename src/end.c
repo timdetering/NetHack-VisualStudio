@@ -1980,7 +1980,6 @@ void
 end_first_init()
 {
     Schroedingers_cat = FALSE;
-    vanq_sortmode = VANQ_MLVL_MNDX;
 }
 
 /*end.c*/

@@ -1032,7 +1032,7 @@ void uwp_main(std::wstring & localDirW, std::wstring & installDirW)
          */
         choose_windows(DEFAULT_WINDOW_SYS);
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && 0
         unit_test_error_output(false);
 #endif
 
@@ -1046,7 +1046,7 @@ void uwp_main(std::wstring & localDirW, std::wstring & installDirW)
          */
         uwp_init_options();
 
-#ifdef _DEBUG
+#if defined _DEBUG && 0
         unit_tests();
 #endif
 

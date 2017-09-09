@@ -3918,10 +3918,4 @@ struct permonst *mdat;
     return msg_given ? TRUE : FALSE;
 }
 
-void
-mon_first_init()
-{
-    animal_list = 0;
-}
-
 /*mon.c*/

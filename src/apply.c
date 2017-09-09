@@ -1676,7 +1676,7 @@ int magic; /* 0=Physical, otherwise skill level */
     cc.x = u.ux;
     cc.y = u.uy;
     jumping_is_magic = magic;
-    getpos_sethilite(display_jump_positions);
+    getpos_sethilite(display_jump_positions, NULL);
     if (getpos(&cc, TRUE, "the desired position") < 0)
         return 0; /* user pressed ESC */
     if (!is_valid_jump_pos(cc.x, cc.y, magic, TRUE)) {
@@ -2848,10 +2848,17 @@ int min_range, max_range;
 static int polearm_range_min = -1;
 static int polearm_range_max = -1;
 
+typedef struct polearm_range {
+    int min;
+    int max;
+} polearm_range;
+
 void
-display_polearm_positions(state)
+display_polearm_positions(state, params)
 int state;
+void * params;
 {
+    polearm_range * pr = (polearm_range *)params;
     if (state == 0) {
         tmp_at(DISP_BEAM, cmap_to_glyph(S_goodpos));
     } else if (state == 1) {
@@ -2862,8 +2869,8 @@ int state;
                 x = dx + (int) u.ux;
                 y = dy + (int) u.uy;
                 if (isok(x, y) && ACCESSIBLE(levl[x][y].typ)
-                    && distu(x, y) >= polearm_range_min
-                    && distu(x, y) <= polearm_range_max) {
+                    && distu(x, y) >= pr->min
+                    && distu(x, y) <= pr->max) {
                     tmp_at(x, y);
                 }
             }
@@ -2881,6 +2888,7 @@ struct obj *obj;
     coord cc;
     struct monst *mtmp;
     struct monst *hitm = context.polearm.hitmon;
+    polearm_range pr;
 
     /* Are you allowed to use the pole? */
     if (u.uswallow) {
@@ -2919,8 +2927,8 @@ struct obj *obj;
     else
         max_range = 8; /* (P_SKILL(typ) >= P_EXPERT) */
 
-    polearm_range_min = min_range;
-    polearm_range_max = max_range;
+    pr.min = min_range;
+    pr.max = max_range;
 
     /* Prompt for a location */
     pline(where_to_hit);
@@ -2933,7 +2941,7 @@ struct obj *obj;
         cc.x = hitm->mx;
         cc.y = hitm->my;
     }
-    getpos_sethilite(display_polearm_positions);
+    getpos_sethilite(display_polearm_positions, &pr);
     if (getpos(&cc, TRUE, "the spot to hit") < 0)
         return res; /* ESC; uses turn iff polearm became wielded */
 
@@ -3686,14 +3694,6 @@ boolean is_horn;
         unfixable_trbl++;
 
     return unfixable_trbl;
-}
-
-void
-apply_first_init(void)
-{
-    // TODO(bhouse) Do these values need to be initialized?
-    polearm_range_min = -1;
-    polearm_range_max = -1;
 }
 
 /*apply.c*/

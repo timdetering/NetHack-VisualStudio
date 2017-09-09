@@ -18,53 +18,15 @@ STATIC_DCL void FDECL(interrupt_multi, (const char *));
 void
 first_init()
 {
-    apply_first_init();
-    artifact_first_init();
-    botl_first_init();
-    cmd_first_init();
-    display_first_init();
-    do_first_init();
-    do_wear_first_init();
-    dog_first_init();
-    dothrow_first_init();
-    drawing_first_init();
-    dungeon_first_init();
-    eat_first_init();
     end_first_init();
-    files_first_init();
-    hack_first_init();
     invent_first_init();
-    light_first_init();
     makemone_first_init();
-    mhitu_first_init();
-    mkmaze_first_init();
-    mon_first_init();
     monst_first_init();
-    mthrowu_first_init();
-    muse_first_init();
     oinit_first_init();
     objects_first_init();
-    options_first_init();
-    pager_first_init();
     pickup_first_init();
-    pline_first_init();
-    polyself_first_init();
-    potion_first_init();
-    read_first_init();
-    region_first_init();
-    restore_first_init();
-    rumors_first_init();
-    save_first_init();
-    shk_first_init();
-    sp_lev_first_init();
-    spell_first_init();
-    teleport_first_init();
-    timeout_first_init();
-    topten_first_init();
-    trap_first_init();
+    sp_lev_first_init(); /* re-visit */
     uinit_first_init();
-    uhitm_first_init();
-    worm_first_init();
 
 }
 

@@ -36,12 +36,15 @@ nextmbuf()
  * parameter value 0 = initialize, 1 = highlight, 2 = done
  */
 static void FDECL((*getpos_hilitefunc), (int)) = (void FDECL((*), (int))) 0;
+static void * getpos_hiliteparams = NULL;
 
 void
-getpos_sethilite(f)
-void FDECL((*f), (int));
+getpos_sethilite(f,p)
+void FDECL((*f), (int, void*));
+void * p;
 {
     getpos_hilitefunc = f;
+    getpos_hiliteparams = p;
 }
 
 const char *const gloc_descr[NUM_GLOCS][4] = {
@@ -556,7 +559,7 @@ const char *goal;
         c = nh_poskey(&tx, &ty, &sidx);
 
         if (hilite_state) {
-            (*getpos_hilitefunc)(2);
+            (*getpos_hilitefunc)(2, getpos_hiliteparams);
             hilite_state = FALSE;
             curs(WIN_MAP, cx, cy);
             flush_screen(0);
@@ -630,8 +633,8 @@ const char *goal;
         } else if (c == Cmd.spkeys[NHKF_GETPOS_SHOWVALID]
                    && getpos_hilitefunc) {
             if (!hilite_state) {
-                (*getpos_hilitefunc)(0);
-                (*getpos_hilitefunc)(1);
+                (*getpos_hilitefunc)(0, getpos_hiliteparams);
+                (*getpos_hilitefunc)(1, getpos_hiliteparams);
                 hilite_state = TRUE;
             }
             goto nxtc;
@@ -807,6 +810,7 @@ const char *goal;
         if (garr[i])
             free((genericptr_t) garr[i]);
     getpos_hilitefunc = (void FDECL((*), (int))) 0;
+    getpos_hiliteparams = NULL;
     return result;
 }
 

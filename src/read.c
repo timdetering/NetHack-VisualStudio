@@ -2494,10 +2494,4 @@ create_particular()
     return madeany;
 }
 
-void
-read_first_init()
-{
-    gremlins = 0;
-}
-
 /*read.c*/

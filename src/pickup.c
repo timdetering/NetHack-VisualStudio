@@ -325,18 +325,17 @@ struct obj *obj;
 static char valid_menu_classes[MAXOCLASSES + 1 + 4 + 1];
 static boolean class_filter, bucx_filter, shop_filter;
 
-static int s_vmc_count = 0;
-
 void
 add_valid_menu_class(c)
 int c;
 {
+    static int vmc_count = 0;
 
     if (c == 0) { /* reset */
-        s_vmc_count = 0;
+        vmc_count = 0;
         class_filter = bucx_filter = shop_filter = FALSE;
     } else {
-        valid_menu_classes[s_vmc_count++] = (char) c;
+        valid_menu_classes[vmc_count++] = (char) c;
         /* categorize the new class */
         switch (c) {
         case 'B':
@@ -353,7 +352,7 @@ int c;
             break;
         }
     }
-    valid_menu_classes[s_vmc_count] = '\0';
+    valid_menu_classes[vmc_count] = '\0';
 }
 
 /* query_objlist callback: return TRUE if not uchain */
@@ -702,23 +701,22 @@ boolean grab; /* forced pickup, rather than forced leave behind? */
     return FALSE;
 }
 
-static boolean s_costly = FALSE;
-
 STATIC_OVL boolean
 autopick_testobj(otmp, calc_costly)
 struct obj *otmp;
 boolean calc_costly;
 {
+    static boolean costly = FALSE;
     const char *otypes = flags.pickup_types;
     boolean pickit;
 
     /* calculate 'costly' just once for a given autopickup operation */
     if (calc_costly)
-        s_costly = (otmp->where == OBJ_FLOOR
+        costly = (otmp->where == OBJ_FLOOR
                   && costly_spot(otmp->ox, otmp->oy));
 
     /* first check: reject if an unpaid item in a shop */
-    if (s_costly && !otmp->no_charge)
+    if (costly && !otmp->no_charge)
         return FALSE;
 
     /* check for pickup_types */
@@ -1480,14 +1478,14 @@ struct obj *otmp;
  * prints a message if encumbrance changed since the last check and
  * returns the new encumbrance value (from near_capacity()).
  */
-static int s_oldcap = UNENCUMBERED;
+static int oldcap = UNENCUMBERED;
 
 int
 encumber_msg()
 {
     int newcap = near_capacity();
 
-    if (s_oldcap < newcap) {
+    if (oldcap < newcap) {
         switch (newcap) {
         case 1:
             Your("movements are slowed slightly because of your load.");
@@ -1505,7 +1503,7 @@ encumber_msg()
             break;
         }
         context.botl = 1;
-    } else if (s_oldcap > newcap) {
+    } else if (oldcap > newcap) {
         switch (newcap) {
         case 0:
             Your("movements are now unencumbered.");
@@ -1524,7 +1522,7 @@ encumber_msg()
         context.botl = 1;
     }
 
-    s_oldcap = newcap;
+    oldcap = newcap;
     return newcap;
 }
 
@@ -3070,9 +3068,7 @@ struct obj *box; /* or bag */
 void
 pickup_first_init()
 {
-    s_vmc_count = 0;
-    s_costly = FALSE;
-    s_oldcap = UNENCUMBERED;
+    oldcap = UNENCUMBERED;
 }
 
 /*pickup.c*/

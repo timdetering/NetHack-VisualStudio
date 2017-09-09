@@ -1598,12 +1598,4 @@ register unsigned int len;
     }
 }
 
-void
-restore_first_init()
-{
-    n_ids_mapped = 0;
-    id_map = 0;
-    restoring = FALSE;
-}
-
 /*restore.c*/

@@ -1449,18 +1449,17 @@ int mndx;
  *      comparing the dungeon alignment and monster alignment.
  *      return an integer in the range of 0-5.
  */
-static NEARDATA long s_oldmoves = 0L; /* != 1, starting value of moves */
-
 STATIC_OVL int
 align_shift(ptr)
 register struct permonst *ptr;
 {
+    static NEARDATA long oldmoves = 0L; /* != 1, starting value of moves */
     static NEARDATA s_level *lev;
     register int alshift;
 
-    if (s_oldmoves != moves) {
+    if (oldmoves != moves) {
         lev = Is_special(&u.uz);
-        s_oldmoves = moves;
+        oldmoves = moves;
     }
     switch ((lev) ? lev->flags.align : dungeons[u.uz.dnum].flags.align) {
     default: /* just in case */
@@ -2231,7 +2230,6 @@ makemone_first_init()
 {
     rndmonst_state.choice_count = -1;
     memset(rndmonst_state.mchoices, 0, sizeof(rndmonst_state.mchoices));
-    s_oldmoves = 0L;
 }
 
 /*makemon.c*/

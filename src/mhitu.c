@@ -2847,10 +2847,4 @@ cloneu()
     return mon;
 }
 
-void
-mhitu_first_init()
-{
-    mon_currwep = (struct obj *) 0;
-}
-
 /*mhitu.c*/

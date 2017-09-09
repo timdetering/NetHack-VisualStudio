@@ -344,6 +344,8 @@ char ch;
 void
 init_symbols()
 {
+    currentgraphics = 0;
+
     init_l_symbols();
     init_showsyms();
     init_r_symbols();
@@ -752,16 +754,5 @@ struct symparse loadsyms[] = {
     { SYM_OTH, SYM_INVISIBLE + SYM_OFF_X, "S_invisible" },
     { 0, 0, (const char *) 0 } /* fence post */
 };
-
-void
-drawing_first_init()
-{
-    // TOOD(bhouse) Do we need to initialize these?
-    currentgraphics = 0;
-    memset(showsyms, 0, sizeof(showsyms));
-    memset(l_syms, 0, sizeof(l_syms));
-    memset(r_syms, 0, sizeof(r_syms));
-    memset(warnsyms, 0, sizeof(warnsyms));
-}
 
 /*drawing.c*/
