@@ -735,7 +735,7 @@ support, the command is also invoked when a mouse-click takes place on a
 location other than the current position.
 %.lp
 \item[\tb{.}]
-Rest, do nothing for one turn.
+Wait or rest, do nothing for one turn.
 %.lp
 \item[\tb{a}]
 Apply (use) a tool (pick-axe, key, lamp \ldots).
@@ -1113,6 +1113,8 @@ and '{\tt \^{}N}' if {\it number\verb+_+pad\/} is on.
 \item[\tb{\#apply}]
 Apply (use) a tool such as a pick-axe, a key, or a lamp.
 Default key is '{\tt a}'.
+If the tool used acts on items on the floor, using the `{\tt m}' prefix
+skips those items.
 %.lp
 \item[\tb{\#attributes}]
 Show your attributes. Default key is '{\tt \^{}X}'.\\
@@ -1154,6 +1156,7 @@ Drop specific item types. Default key is '{\tt D}'.
 %.lp
 \item[\tb{\#eat}]
 Eat something. Default key is '{\tt e}'.
+The `{\tt m}' prefix skips eating items on the floor.
 %.lp
 \item[\tb{\#engrave}]
 Engrave writing on the floor. Default key is '{\tt E}'.
@@ -1230,6 +1233,7 @@ Autocompletes. Default keys are '{\tt N}', '{\tt M-n}', and '{\tt M-N}'.
 %.lp
 \item[\tb{\#offer}]
 Offer a sacrifice to the gods. Autocompletes. Default key is '{\tt M-o}'.\\
+The `{\tt m}' prefix skips offering items on the altar.
 %.lp ""
 You'll need to find an altar to have any chance at success.
 Corpses of recently killed monsters are the fodder of choice.
@@ -1257,6 +1261,7 @@ Pay your shopping bill. Default key is '{\tt p}'.
 %.lp
 \item[\tb{\#pickup}]
 Pick up things at the current location. Default key is '{\tt ,}'.
+The `{\tt m}' prefix forces use of a menu.
 %.lp
 \item[\tb{\#polyself}]
 Polymorph self. Autocompletes. Wizard-mode only.
@@ -1384,11 +1389,14 @@ Look at the timeout queue. Autocompletes. Wizard-mode only.
 \item[\tb{\#tip}]
 Tip over a container (bag or box) to pour out its contents.
 Autocompletes. Default key is '{\tt M-T}'.
+The `{\tt m}' prefix makes the command use a menu.
 %.lp
 \item[\tb{\#travel}]
 Travel to a specific location on the map. Default key is '{\tt _}'.
 Using the ``request menu'' prefix shows a menu of interesting targets in sight
-without asking to move the cursor.
+without asking to move the cursor. When picking a target with cursor and
+the {\it autodescribe\/}-option is on, the top line will show "(no travel path)" if
+your character does not know of a path to that location.
 %.lp
 \item[\tb{\#turn}]
 Turn undead away. Autocompletes. Default key is '{\tt M-t}'.
@@ -1668,6 +1676,7 @@ complete all of the levels according to the traditional rules of
 Sokoban.  Some allowances are permitted in case the player gets stuck;
 however, they will lower your luck.
 
+%.hn 2
 \subsection*{Stairs (`{\tt <}', `{\tt >}')}
 
 %.pg
@@ -1701,6 +1710,7 @@ you travel up or down stairs, and occasionally one of these creatures
 will displace you during the climb.  When that occurs, the pet or other
 monster will arrive on the staircase and you will end up nearby.
 
+%.hn 2
 \subsection*{Ladders (`{\tt <}', `{\tt >}')}
 
 %.pg
@@ -1786,8 +1796,8 @@ very well).
 %.pg
 The commands `{\tt /}' and `{\tt ;}' may be used to obtain information
 about those
-monsters who are displayed on the screen.  The command ``{\tt \#name}'', or
-its synonym `{\tt C}', allows you
+monsters who are displayed on the screen.  The command ``{\tt \#name}''
+(by default bound to `{\tt C}'), allows you
 to assign a name to a monster, which may be useful to help distinguish
 one from another when multiple monsters are present.  Assigning a name
 which is just a space will remove any prior name.
@@ -1939,7 +1949,7 @@ When you use one of these objects, if its effect is obvious, {\it NetHack\/}
 will remember what it is for you.  If its effect isn't extremely
 obvious, you will be asked what you want to call this type of object
 so you will recognize it later.  You can also use the ``{\tt \#name}''
-command, or its synonym `{\tt C}', for the same purpose at any time, to name
+command, for the same purpose at any time, to name
 all objects of a particular type or just an individual object.
 When you use ``{\tt \#name}'' on an object which has already been named,
 specifying a space as the value will remove the prior name instead
@@ -2676,7 +2686,14 @@ can be created with any text editor.
 
 %.pg
 Any line in the configuration file starting with `{\tt \#}' is treated as a comment.
-Empty lines are ignore.
+Empty lines are ignored.
+
+%.pg
+Any line beginning with `{\tt [}' and ending in `{\tt ]}' is considered a section
+marker. The text between the square brackets is the section name.
+Lines after a section marker belong to that section, and are
+ignored unless a CHOOSE -statement was used to select that section.
+Section names are case insensitive.
 
 %.pg
 You can use different configuration statements in the file, some
@@ -2763,6 +2780,24 @@ Example:
 %.sd
 \begin{verbatim}
    BIND=^X:getpos.autodescribe
+\end{verbatim}
+%.ed
+
+%.lp
+\item[\bb{CHOOSE}]
+Chooses at random one of the comma-separated parameters as an active
+section name. Lines in other sections are ignored.
+
+%.pg
+Example:
+%.sd
+\begin{verbatim}
+   OPTIONS=color
+   CHOOSE=char A,char B
+   [char A]
+   OPTIONS=role:arc,race:dwa,align:law,gender:fem
+   [char B]
+   OPTIONS=role:wiz,race:elf,align:cha,gender:mal
 \end{verbatim}
 %.ed
 
@@ -3065,6 +3100,13 @@ If you prefix the value with `{\tt !}' or ``{\tt no}'', you will
 exclude that gender from being picked randomly. 
 Cannot be set with the `{\tt O}' command.  Persistent.
 %.lp
+\item[\ib{goldX}]
+When filtering objects based on bless/curse state (BUCX), whether to
+treat gold pieces as {\tt X} (unknown bless/curse state, when `on')
+or {\tt U} (known to be uncursed, when `off', the default).
+Gold is never blessed or cursed, but it is not described as ``uncursed''
+even when the {\it implicit\verb+_+uncursed\/} option is `off'.
+%.lp
 \item[\ib{help}]
 If more information is available for an object looked at
 with the `{\tt /}' command, ask if you want to see it (default on).
@@ -3308,6 +3350,8 @@ require ``{\tt yes}'' rather than `{\tt y}' to confirm breaking
 a wand;
 \item[{\tt Remove~}] require selection from inventory for `{\tt R}' and `{\tt T}'
 commands even when wearing just one applicable item.
+\item[{\tt all~~~~}]
+turn on all of the above.
 \elist
 %.ei
 %.ed
@@ -3380,7 +3424,7 @@ exclude that race from being picked randomly.
 Cannot be set with the `{\tt O}' command.  Persistent.
 %.lp
 \item[\ib{rest\verb+_+on\verb+_+space}]
-Make the space bar a synonym for the `{\tt .}' (rest) command (default off).
+Make the space bar a synonym for the `{\tt .}' (\#wait) command (default off).
 Persistent.
 %.lp
 \item[\ib{role}]
@@ -3479,6 +3523,9 @@ Boldface monsters and ``{\tt --More--}'' (default off).  Persistent.
 Enable coloring of status fields (default off).
 See ``{\it Configuring Status Hilites\/}'' for further information.
 %.lp
+\item[\ib{status\verb+_+updates}]
+Allow updates to the status lines at the bottom of the screen (default true).
+%.lp
 \item[\ib{suppress\verb+_+alert}]
 This option may be set to a NetHack version level to suppress
 alert notification messages about feature changes for that 
@@ -3543,13 +3590,36 @@ the `{\tt /m}', `{\tt /M}', `{\tt /o}', and `{\tt /O}' sub-commands
 of `{\tt /}',
 where the `{\it none\/}' setting is overridden with `{\it map}'.
 %.lp
-\item[\ib{whatis\verb+_+inview}]
+\item[\ib{whatis\verb+_+filter}]
 When getting a location on the map, and using the keys to cycle through
-next and previous targets, limit the possible targets to those in view.
-(default off)
+next and previous targets, allows filtering the possible targets.
+(default none)
+%.lp ""
+The possible settings are:
+
+%.sd
+%.si
+{\tt n} --- \verb#no filtering#;\\
+{\tt v} --- \verb#in view only#;\\
+{\tt a} --- \verb#in same area (room, corridor, etc)#.
+%.ei
+%.ed
+%.lp ""
+The area-filter tries to be slightly predictive - if you're standing on a doorway,
+it will consider the area on the side of the door you were last moving towards.
+%.lp ""
+Filtering can also be changed when getting a location with the ``getpos.filter''
+key.
+%.lp
 \item[\ib{whatis\verb+_+menu}]
 When getting a location on the map, and using a key to cycle through
 next and previous targets, use a menu instead to pick a target.
+(default off)
+%.lp
+\item[\ib{whatis\verb+_+moveskip}]
+When getting a location on the map, and using shifted movement keys or
+meta-digit keys to fast-move, instead of moving 8 units at a time,
+move by skipping the same glyphs.
 (default off)
 %.lp
 \item[\ib{windowtype}]
@@ -3956,8 +4026,11 @@ When asked for a location, the key to go to previous closest object. Default is 
 \item{\bb{getpos.menu}}
 When asked for a location, and using one of the next or previous keys to cycle through targets, toggle showing a menu instead. Default is '{\tt !}'.
 %.lp
-\item{\bb{getpos.inview}}
-When asked for a location, and using one of the next or previous keys to cycle through targets, toggle limiting possible targets to those in view only. Default is '{\tt "}'.
+\item{\bb{getpos.moveskip}}
+When asked for a location, and using the shifted movement keys or meta-digit keys to fast-move around, move by skipping the same glyphs instead of by 8 units. Default is ``{\tt *}''.
+%.lp
+\item{\bb{getpos.filter}}
+When asked for a location, change the filtering mode when using one of the next or previous keys to cycle through targets. Toggles between no filtering, in view only, and in the same area only. Default is '{\tt "}'.
 %.lp
 \item{\bb{getpos.pick}}
 When asked for a location, the key to choose the location, and possibly ask for more info. Default is ``{\tt .}''.
@@ -3982,6 +4055,12 @@ When asked for a location, the key to go to previous closest unexplored location
 %.lp
 \item{\bb{getpos.valid}}
 When asked for a location, the key to go to show valid target locations. Default is ``{\tt \$}''.
+%.lp
+\item{\bb{getpos.valid.next}}
+When asked for a location, the key to go to next closest valid location. Default is ``{\tt z}''.
+%.lp
+\item{\bb{getpos.valid.prev}}
+When asked for a location, the key to go to previous closest valid location. Default is ``{\tt Z}''.
 %.lp
 \item{\bb{nopickup}}
 Prefix key to move without picking up items. Default is ``{\tt m}''.
@@ -4509,6 +4588,19 @@ was interrupted.
 \item[\ib{whatis\verb+_+coord:compass}]
 When targeting with cursor, describe the cursor position with coordinates
 relative to your character.
+%.lp
+\item[\ib{whatis\verb+_+filter:area}]
+When targeting with cursor, filter possible locations so only those in
+the same area (eg. same room, or same corridor) are considered.
+%.lp
+\item[\ib{whatis\verb+_+moveskip}]
+When targeting with cursor and using fast-move, skip the same glyphs instead
+of moving 8 units at a time.
+%.lp
+\item[\ib{nostatus\verb+_+updates}]
+Prevent updates to the status lines at the bottom of the screen, if
+your screen-reader reads those lines. The same information can be
+seen via the {\tt \#attributes} command.
 \elist
 
 %.hn2
@@ -4579,6 +4671,24 @@ Minimum number of points to get an entry in the score file.
 \item[\ib{PERS\verb+_+IS\verb+_+UID}]
 0 or 1 to use user names or numeric userids, respectively, to identify
 unique people for the score file
+%.lp
+\item[\ib{DUMPLOGFILE}]
+A filename where the end-of-game dumplog is saved.
+Not defining this will prevent dumplog from being created. Only available
+if your game is compiled with DUMPLOG. Allows the following placeholders:
+%.sd
+%.si
+{\tt \%\%}  --- literal `{\tt \%}'\\
+{\tt \%v}  --- version (eg. "3.6.1-0")\\
+{\tt \%u}  --- game UID\\
+{\tt \%t}  --- game start time, UNIX timestamp format\\
+{\tt \%T}  --- current time, UNIX timestamp format\\
+{\tt \%d}  --- game start time, YYYYMMDDhhmmss format\\
+{\tt \%D}  --- current time, YYYYMMDDhhmmss format\\
+{\tt \%n}  --- player name\\
+{\tt \%N}  --- first character of player name
+%.ei
+%.ed
 \elist
 
 %.hn 1

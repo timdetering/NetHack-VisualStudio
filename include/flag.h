@@ -1,4 +1,4 @@
-/* NetHack 3.6	flag.h	$NHDT-Date: 1461102045 2016/04/19 21:40:45 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.103 $ */
+/* NetHack 3.6	flag.h	$NHDT-Date: 1498078871 2017/06/21 21:01:11 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.119 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -176,6 +176,14 @@ struct sysflag {
 #define GPCOORDS_COMFULL 'f'
 #define GPCOORDS_SCREEN  's'
 
+enum getloc_filters {
+    GFILTER_NONE = 0,
+    GFILTER_VIEW,
+    GFILTER_AREA,
+
+    NUM_GFILTER
+};
+
 struct instance_flags {
     /* stuff that really isn't option or platform related. They are
      * set and cleared during the game to control the internal
@@ -194,13 +202,15 @@ struct instance_flags {
 #define TER_MON    0x08
 #define TER_DETECT 0x10    /* detect_foo magic rather than #terrain */
     boolean getloc_travelmode;
-    boolean getloc_limitview;
+    int getloc_filter;     /* GFILTER_foo */
     boolean getloc_usemenu;
+    boolean getloc_moveskip;
     coord travelcc;        /* coordinates for travel_cache */
     boolean window_inited; /* true if init_nhwindows() completed */
     boolean vision_inited; /* true if vision is ready */
     boolean sanity_check;  /* run sanity checks */
     boolean mon_polycontrol; /* debug: control monster polymorphs */
+    boolean in_dumplog;    /* doing the dumplog right now? */
 
     /* stuff that is related to options and/or user or platform preferences
      */
@@ -210,32 +220,39 @@ struct instance_flags {
     int *opt_booldup;     /* for duplication of boolean opts in config file */
     int *opt_compdup;     /* for duplication of compound opts in conf file */
 #ifdef ALTMETA
-    boolean altmeta; /* Alt-c sends ESC c rather than M-c */
+    boolean altmeta;      /* Alt-c sends ESC c rather than M-c */
 #endif
+    boolean autodescribe;     /* autodescribe mode in getpos() */
     boolean cbreak;           /* in cbreak mode, rogue format */
     boolean deferred_X;       /* deferred entry into explore mode */
-    boolean num_pad;          /* use numbers for movement commands */
-    boolean news;             /* print news */
+    boolean echo;             /* 1 to echo characters */
+    /* FIXME: goldX belongs in flags, but putting it in iflags avoids
+       breaking 3.6.[01] save files */
+    boolean goldX;            /* for BUCX filtering, whether gold is X or U */
+    boolean hilite_pile;      /* mark piles of objects with a hilite */
     boolean implicit_uncursed; /* maybe omit "uncursed" status in inventory */
     boolean mention_walls;    /* give feedback when bumping walls */
-    boolean menu_tab_sep;     /* Use tabs to separate option menu fields */
     boolean menu_head_objsym; /* Show obj symbol in menu headings */
     boolean menu_overlay;     /* Draw menus over the map */
     boolean menu_requested;   /* Flag for overloaded use of 'm' prefix
                                * on some non-move commands */
+    boolean menu_tab_sep;     /* Use tabs to separate option menu fields */
+    boolean news;             /* print news */
+    boolean num_pad;          /* use numbers for movement commands */
     boolean renameallowed;    /* can change hero name during role selection */
     boolean renameinprogress; /* we are changing hero name */
+    boolean status_updates;   /* allow updates to bottom status lines;
+                               * disable to avoid excessive noise when using
+                               * a screen reader (use ^X to review status) */
     boolean toptenwin;        /* ending list in window instead of stdout */
-    boolean zerocomp;         /* write zero-compressed save files */
-    boolean rlecomp; /* run-length comp of levels when writing savefile */
-    uchar num_pad_mode;
-    boolean echo;             /* 1 to echo characters */
-    boolean use_menu_color;       /* use color in menus; only if wc_color */
-    boolean use_status_hilites;   /* use color in status line */
     boolean use_background_glyph; /* use background glyph when appropriate */
-    boolean hilite_pile;          /* mark piles of objects with a hilite */
-    boolean autodescribe;     /* autodescribe mode in getpos() */
-#if 0
+    boolean use_menu_color;   /* use color in menus; only if wc_color */
+    boolean use_status_hilites; /* use color in status line */
+    boolean zerocomp;         /* write zero-compressed save files */
+    boolean rlecomp;          /* alternative to zerocomp; run-length encoding
+                               * compression of levels when writing savefile */
+    uchar num_pad_mode;
+#if 0   /* XXXgraphics superseded by symbol sets */
     boolean  DECgraphics;       /* use DEC VT-xxx extended character set */
     boolean  IBMgraphics;       /* use IBM extended character set */
 #ifdef MAC_GRAPHICS_ENV
@@ -475,9 +492,12 @@ enum nh_keyfunc {
     NHKF_GETPOS_UNEX_PREV,
     NHKF_GETPOS_INTERESTING_NEXT,
     NHKF_GETPOS_INTERESTING_PREV,
+    NHKF_GETPOS_VALID_NEXT,
+    NHKF_GETPOS_VALID_PREV,
     NHKF_GETPOS_HELP,
     NHKF_GETPOS_MENU,
     NHKF_GETPOS_LIMITVIEW,
+    NHKF_GETPOS_MOVESKIP,
 
     NUM_NHKF
 };
@@ -488,6 +508,7 @@ enum gloctypes {
     GLOC_DOOR,
     GLOC_EXPLORE,
     GLOC_INTERESTING,
+    GLOC_VALID,
 
     NUM_GLOCS
 };

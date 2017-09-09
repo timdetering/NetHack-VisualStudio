@@ -32,11 +32,15 @@ sys_early_init()
 #else
     sysopt.debugfiles = dupstr(DEBUGFILES);
 #endif
+#ifdef DUMPLOG
+    sysopt.dumplogfile = (char *) 0;
+#endif
     sysopt.env_dbgfl = 0; /* haven't checked getenv("DEBUGFILES") yet */
     sysopt.shellers = (char *) 0;
     sysopt.explorers = (char *) 0;
     sysopt.genericusers = (char *) 0;
     sysopt.maxplayers = 0; /* XXX eventually replace MAX_NR_OF_PLAYERS */
+    sysopt.bones_pools = 0;
 
     /* record file */
     sysopt.persmax = PERSMAX;
@@ -95,6 +99,10 @@ sysopt_release()
     if (sysopt.debugfiles)
         free((genericptr_t) sysopt.debugfiles),
         sysopt.debugfiles = (char *) 0;
+#ifdef DUMPLOG
+    if (sysopt.dumplogfile)
+        free((genericptr_t)sysopt.dumplogfile), sysopt.dumplogfile=(char *)0;
+#endif
     if (sysopt.genericusers)
         free((genericptr_t) sysopt.genericusers),
         sysopt.genericusers = (char *) 0;

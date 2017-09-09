@@ -1,8 +1,13 @@
-/* NetHack 3.6	apply.c	$NHDT-Date: 1457397477 2016/03/08 00:37:57 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.224 $ */
+/* NetHack 3.6	apply.c	$NHDT-Date: 1496619131 2017/06/04 23:32:11 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.232 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /* NetHack may be freely redistributed.  See license for details. */
 
 #include "hack.h"
+
+typedef struct polearm_range {
+    int min;
+    int max;
+} polearm_range;
 
 extern boolean notonhead; /* for long worms */
 
@@ -18,7 +23,7 @@ STATIC_DCL void FDECL(use_bell, (struct obj **));
 STATIC_DCL void FDECL(use_candelabrum, (struct obj *));
 STATIC_DCL void FDECL(use_candle, (struct obj **));
 STATIC_DCL void FDECL(use_lamp, (struct obj *));
-STATIC_DCL void FDECL(light_cocktail, (struct obj *));
+STATIC_DCL void FDECL(light_cocktail, (struct obj **));
 STATIC_PTR void FDECL(display_jump_positions, (int));
 STATIC_DCL void FDECL(use_tinning_kit, (struct obj *));
 STATIC_DCL void FDECL(use_figurine, (struct obj **));
@@ -38,6 +43,8 @@ STATIC_DCL void FDECL(add_class, (char *, CHAR_P));
 STATIC_DCL void FDECL(setapplyclasses, (char *));
 STATIC_PTR boolean FDECL(check_jump, (genericptr_t, int, int));
 STATIC_DCL boolean FDECL(is_valid_jump_pos, (int, int, int, BOOLEAN_P));
+STATIC_DCL boolean FDECL(get_valid_jump_position, (int, int));
+STATIC_DCL boolean FDECL(get_valid_polearm_position, (int, int, polearm_range *));
 STATIC_DCL boolean FDECL(find_poleable_mon, (coord *, int, int));
 
 #ifdef AMIGA
@@ -445,6 +452,8 @@ struct obj *obj;
     } else {
         You(whistle_str, obj->cursed ? "shrill" : "high");
         wake_nearby();
+        if (obj->cursed)
+            vault_summon_gd();
     }
 }
 
@@ -1339,9 +1348,10 @@ struct obj *obj;
 }
 
 STATIC_OVL void
-light_cocktail(obj)
-struct obj *obj; /* obj is a potion of oil */
+light_cocktail(optr)
+struct obj **optr;
 {
+    struct obj *obj = *optr; /* obj is a potion of oil */
     char buf[BUFSZ];
     boolean split1off;
 
@@ -1359,7 +1369,7 @@ struct obj *obj; /* obj is a potion of oil */
          * but its easy.
          */
         freeinv(obj);
-        (void) addinv(obj);
+        *optr = addinv(obj);
         return;
     } else if (Underwater) {
         There("is not enough oxygen to sustain a fire.");
@@ -1392,6 +1402,7 @@ struct obj *obj; /* obj is a potion of oil */
         if (obj)
             obj->nomerge = 0;
     }
+    *optr = obj;
 }
 
 static NEARDATA const char cuddly[] = { TOOL_CLASS, GEM_CLASS, 0 };
@@ -1562,6 +1573,15 @@ boolean showmsg;
 
 static int jumping_is_magic;
 
+STATIC_OVL boolean
+get_valid_jump_position(x,y)
+int x,y;
+{
+    return (isok(x, y)
+            && (ACCESSIBLE(levl[x][y].typ) || Passes_walls)
+            && is_valid_jump_pos(x, y, jumping_is_magic, FALSE));
+}
+
 void
 display_jump_positions(state)
 int state;
@@ -1575,9 +1595,7 @@ int state;
             for (dy = -4; dy <= 4; dy++) {
                 x = dx + (int) u.ux;
                 y = dy + (int) u.uy;
-                if (isok(x, y)
-                    && (ACCESSIBLE(levl[x][y].typ) || Passes_walls)
-                    && is_valid_jump_pos(x, y, jumping_is_magic, FALSE))
+                if (get_valid_jump_position(x, y))
                     tmp_at(x, y);
             }
     } else {
@@ -2058,6 +2076,7 @@ long timeout;
         char and_vanish[BUFSZ];
         struct obj *mshelter = level.objects[mtmp->mx][mtmp->my];
 
+        /* [m_monnam() yields accurate mon type, overriding hallucination] */
         Sprintf(monnambuf, "%s", an(m_monnam(mtmp)));
         and_vanish[0] = '\0';
         if ((mtmp->minvis && !See_invisible)
@@ -2845,13 +2864,15 @@ int min_range, max_range;
     return TRUE;
 }
 
-static int polearm_range_min = -1;
-static int polearm_range_max = -1;
-
-typedef struct polearm_range {
-    int min;
-    int max;
-} polearm_range;
+STATIC_OVL boolean
+get_valid_polearm_position(x,y,pr)
+int x,y;
+polearm_range * pr;
+{
+    return (isok(x, y) && ACCESSIBLE(levl[x][y].typ)
+            && distu(x, y) >= pr->min
+            && distu(x, y) <= pr->max);
+}
 
 void
 display_polearm_positions(state, params)
@@ -2868,9 +2889,8 @@ void * params;
             for (dy = -4; dy <= 4; dy++) {
                 x = dx + (int) u.ux;
                 y = dy + (int) u.uy;
-                if (isok(x, y) && ACCESSIBLE(levl[x][y].typ)
-                    && distu(x, y) >= pr->min
-                    && distu(x, y) <= pr->max) {
+
+                if (get_valid_polearm_position(x,y,pr) {
                     tmp_at(x, y);
                 }
             }
@@ -3594,7 +3614,7 @@ doapply()
         use_lamp(obj);
         break;
     case POT_OIL:
-        light_cocktail(obj);
+        light_cocktail(&obj);
         break;
     case EXPENSIVE_CAMERA:
         res = use_camera(obj);

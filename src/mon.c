@@ -1,4 +1,4 @@
-/* NetHack 3.6	mon.c	$NHDT-Date: 1466289475 2016/06/18 22:37:55 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.227 $ */
+/* NetHack 3.6	mon.c	$NHDT-Date: 1503355818 2017/08/21 22:50:18 $  $NHDT-Branch: NetHack-3.6.0 $:$NHDT-Revision: 1.243 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -11,7 +11,7 @@
 #include "mfndpos.h"
 #include <ctype.h>
 
-STATIC_VAR boolean vamp_rise_msg;
+STATIC_VAR boolean vamp_rise_msg, disintegested;
 
 STATIC_DCL void FDECL(sanity_check_single_mon, (struct monst *, BOOLEAN_P,
                                                 const char *));
@@ -93,6 +93,8 @@ mon_sanity_check()
         else if (level.monsters[x][y] != mtmp)
             impossible("mon (%s) at <%d,%d> is not there!",
                        fmt_ptr((genericptr_t) mtmp), x, y);
+        else if (mtmp->wormno)
+            sanity_check_worm(mtmp);
     }
 
     for (x = 0; x < COLNO; x++)
@@ -884,9 +886,9 @@ int
 meatobj(mtmp) /* for gelatinous cubes */
 struct monst *mtmp;
 {
-    register struct obj *otmp, *otmp2;
+    struct obj *otmp, *otmp2;
     struct permonst *ptr, *original_ptr = mtmp->data;
-    int poly, grow, heal, count = 0, ecount = 0;
+    int poly, grow, heal, eyes, count = 0, ecount = 0;
     char buf[BUFSZ];
 
     buf[0] = '\0';
@@ -929,7 +931,8 @@ struct monst *mtmp;
                        || otmp->otyp == RIN_SLOW_DIGESTION)
                    /* cockatrice corpses handled above; this
                       touch_petrifies() check catches eggs */
-                   || ((otmp->otyp == CORPSE || otmp->otyp == EGG)
+                   || ((otmp->otyp == CORPSE || otmp->otyp == EGG
+                        || otmp->globby)
                        && ((touch_petrifies(&mons[otmp->corpsenm])
                             && !resists_ston(mtmp))
                            || (otmp->corpsenm == PM_GREEN_SLIME
@@ -983,6 +986,7 @@ struct monst *mtmp;
             poly = polyfodder(otmp);
             grow = mlevelgain(otmp);
             heal = mhealup(otmp);
+            eyes = (otmp->otyp == CARROT);
             delobj(otmp); /* munch */
             ptr = mtmp->data;
             if (poly) {
@@ -993,6 +997,8 @@ struct monst *mtmp;
             } else if (heal) {
                 mtmp->mhp = mtmp->mhpmax;
             }
+            if ((eyes || heal) && !mtmp->mcansee)
+                mcureblindness(mtmp, canseemon(mtmp));
             /* in case it polymorphed or died */
             if (ptr != original_ptr)
                 return !ptr ? 2 : 1;
@@ -1825,16 +1831,20 @@ register struct monst *mtmp;
                 /* alternate message phrasing for some monster types */
                 spec_mon = (nonliving(mtmp->data)
                             || noncorporeal(mtmp->data)
-                            || amorphous(mtmp->data));
+                            || amorphous(mtmp->data)),
+                spec_death = (disintegested /* disintegrated or digested */
+                              || noncorporeal(mtmp->data)
+                              || amorphous(mtmp->data));
 
-            /* construct a format string before transformation */
-            Sprintf(buf, "The %s%s suddenly %s and rises as %%s!",
-                    spec_mon ? "" : "seemingly dead ",
-                    x_monnam(mtmp, ARTICLE_NONE, (char *) 0,
+            /* construct a format string before transformation;
+               will be capitalized when used, expects one %s arg */
+            Sprintf(buf, "%s suddenly %s and rises as %%s!",
+                    x_monnam(mtmp, ARTICLE_THE,
+                             spec_mon ? (char *) 0 : "seemingly dead",
                              SUPPRESS_SADDLE | SUPPRESS_HALLUCINATION
                                  | SUPPRESS_INVISIBLE | SUPPRESS_IT,
                              FALSE),
-                    spec_mon ? "reconstitutes" : "transforms");
+                    spec_death ? "reconstitutes" : "transforms");
             mtmp->mcanmove = 1;
             mtmp->mfrozen = 0;
             if (mtmp->mhpmax <= 0)
@@ -1856,7 +1866,9 @@ register struct monst *mtmp;
             else
                 mtmp->cham = mndx;
             if (canspotmon(mtmp)) {
-                pline(buf, a_monnam(mtmp));
+                /* was using a_monnam(mtmp) but that's weird if mtmp is named:
+                   "Dracula suddenly transforms and rises as Dracula" */
+                pline(upstart(buf), an(mtmp->data->mname));
                 vamp_rise_msg = TRUE;
             }
             newsym(x, y);
@@ -1886,9 +1898,7 @@ register struct monst *mtmp;
     else if (mtmp->data == &mons[PM_WERERAT])
         set_mon_data(mtmp, &mons[PM_HUMAN_WERERAT], -1);
 
-    /* if MAXMONNO monsters of a given type have died, and it
-     * can be done, extinguish that monster.
-     *
+    /*
      * mvitals[].died does double duty as total number of dead monsters
      * and as experience factor for the player killing more monsters.
      * this means that a dragon dying by other means reduces the
@@ -1984,6 +1994,8 @@ boolean was_swallowed; /* digestion */
             Sprintf(killer.name, "%s explosion", s_suffix(mdat->mname));
             killer.format = KILLED_BY_AN;
             explode(mon->mx, mon->my, -1, tmp, MON_EXPLODE, EXPL_NOXIOUS);
+            killer.name[0] = '\0';
+            killer.format = 0;
             return FALSE;
         }
     }
@@ -2144,7 +2156,8 @@ int how;
         be_sad = (mdef->mtame != 0);
 
     /* no corpses if digested or disintegrated */
-    if (how == AD_DGST || how == -AD_RBRE)
+    disintegested = (how == AD_DGST || how == -AD_RBRE);
+    if (disintegested)
         mondead(mdef);
     else
         mondied(mdef);
@@ -2240,16 +2253,18 @@ int xkill_flags; /* 1: suppress message, 2: suppress corpse, 4: pacifist */
         thrownobj = 0;
     }
 
-    vamp_rise_msg = FALSE; /* might get set in mondead() */
+    vamp_rise_msg = FALSE; /* might get set in mondead(); only checked below */
+    disintegested = nocorpse; /* alternate vamp_rise message needed if true */
     /* dispose of monster and make cadaver */
     if (stoned)
         monstone(mtmp);
     else
         mondead(mtmp);
+    disintegested = FALSE; /* reset */
 
     if (mtmp->mhp > 0) { /* monster lifesaved */
         /* Cannot put the non-visible lifesaving message in
-         * lifesaved_monster() since the message appears only when you
+         * lifesaved_monster() since the message appears only when _you_
          * kill it (as opposed to visible lifesaving which always appears).
          */
         stoned = FALSE;
@@ -2518,8 +2533,8 @@ struct monst *mtmp;
 /* mnearto()
  * Put monster near (or at) location if possible.
  * Returns:
- *      1 - if a monster was moved from x, y to put mtmp at x, y.
- *      0 - in most cases.
+ *  true if relocation was successful
+ *  false otherwise
  */
 boolean
 mnearto(mtmp, x, y, move_other)
@@ -2532,7 +2547,7 @@ boolean move_other; /* make sure mtmp gets to x, y! so move m_at(x, y) */
     coord mm;
 
     if (mtmp->mx == x && mtmp->my == y)
-        return FALSE;
+        return TRUE;
 
     if (move_other && (othermon = m_at(x, y)) != 0) {
         if (othermon->wormno)
@@ -2570,7 +2585,7 @@ boolean move_other; /* make sure mtmp gets to x, y! so move m_at(x, y) */
         }
     }
 
-    return FALSE;
+    return TRUE;
 }
 
 /* monster responds to player action; not the same as a passive attack;
@@ -2605,9 +2620,9 @@ struct monst *mtmp;
 
 /* Called whenever the player attacks mtmp; also called in other situations
    where mtmp gets annoyed at the player. Handles mtmp getting annoyed at the
-   attack and any ramifications that might have. Useful also in situations where
-   mtmp was already hostile; it checks for situations where the player shouldn't
-   be attacking and any ramifications /that/ might have. */
+   attack and any ramifications that might have. Useful also in situations
+   where mtmp was already hostile; it checks for situations where the player
+   shouldn't be attacking and any ramifications /that/ might have. */
 void
 setmangry(mtmp, via_attack)
 struct monst *mtmp;
@@ -2615,13 +2630,13 @@ boolean via_attack;
 {
     if (via_attack && sengr_at("Elbereth", u.ux, u.uy, TRUE)) {
         You_feel("like a hypocrite.");
-        /* AIS: Yes, I know alignment penalties and bonuses aren't balanced at
-           the moment. This is about correct relative to other "small"
-           penalties; it should be fairly large, as attacking while standing on
-           an Elbereth means that you're requesting peace and then violating
-           your own request. I know 5 isn't actually large, but it's
-           intentionally larger than the 1s and 2s that are normally given for
-           this sort of thing. */
+        /* AIS: Yes, I know alignment penalties and bonuses aren't balanced
+           at the moment. This is about correct relative to other "small"
+           penalties; it should be fairly large, as attacking while standing
+           on an Elbereth means that you're requesting peace and then
+           violating your own request. I know 5 isn't actually large, but
+           it's intentionally larger than the 1s and 2s that are normally
+           given for this sort of thing. */
         adjalign(-5);
 
         if (!Blind)
@@ -2667,20 +2682,30 @@ boolean via_attack;
                     ++got_mad;
             }
         }
-        if (got_mad && !Hallucination)
-            pline_The("%s appear%s to be angry too...",
-                      got_mad == 1 ? q_guardian->mname
-                                   : makeplural(q_guardian->mname),
-                      got_mad == 1 ? "s" : "");
+        if (got_mad && !Hallucination) {
+            const char *who = q_guardian->mname;
+
+            if (got_mad > 1)
+                who = makeplural(who);
+            pline_The("%s %s to be angry too...",
+                      who, vtense(who, "appear"));
+        }
     }
 
     /* make other peaceful monsters react */
     if (!context.mon_moving) {
+        static const char *const Exclam[] = {
+            "Gasp!", "Uh-oh.", "Oh my!", "What?", "Why?",
+        };
         struct monst *mon;
+        int mndx = monsndx(mtmp->data);
 
         for (mon = fmon; mon; mon = mon->nmon) {
             if (DEADMONSTER(mon))
                 continue;
+            if (mon == mtmp) /* the mpeaceful test catches this since mtmp */
+                continue;    /* is no longer peaceful, but be explicit...  */
+
             if (!mindless(mon->data) && mon->mpeaceful
                 && couldsee(mon->mx, mon->my) && !mon->msleeping
                 && mon->mcansee && m_canseeu(mon)) {
@@ -2691,32 +2716,38 @@ boolean via_attack;
                         verbalize("Halt!  You're under arrest!");
                         (void) angry_guards(!!Deaf);
                     } else {
-                        const char *exclam[] = {
-                            "Gasp!", "Uh-oh.", "Oh my!", "What?", "Why?"
-                        };
                         if (!rn2(5)) {
-                            verbalize("%s", exclam[mon->m_id % SIZE(exclam)]);
+                            verbalize("%s", Exclam[mon->m_id % SIZE(Exclam)]);
                             exclaimed = TRUE;
                         }
-                        if (!mon->isshk && !mon->ispriest
-                            && (mon->data->mlevel < rn2(10))) {
-                            monflee(mon, rn2(50)+25, TRUE, !exclaimed);
+                        /* shopkeepers and temple priests might gasp in
+                           surprise, but they won't become angry here */
+                        if (mon->isshk || mon->ispriest)
+                            continue;
+
+                        if (mon->data->mlevel < rn2(10)) {
+                            monflee(mon, rn2(50) + 25, TRUE, !exclaimed);
                             exclaimed = TRUE;
                         }
-                        if (!mon->isshk && !mon->ispriest) {
+                        if (mon->mtame) {
+                            /* mustn't set mpeaceful to 0 as below;
+                               perhaps reduce tameness? */
+                        } else {
                             mon->mpeaceful = 0;
                             adjalign(-1);
                             if (!exclaimed)
                                 pline("%s gets angry!", Monnam(mon));
                         }
                     }
-                } else if ((mtmp->data == mon->data) && !rn2(3)) {
+                } else if (mon->data->mlet == mtmp->data->mlet
+                           && big_little_match(mndx, monsndx(mon->data))
+                           && !rn2(3)) {
                     if (!rn2(4)) {
                         growl(mon);
                         exclaimed = TRUE;
                     }
                     if (rn2(6))
-                        monflee(mon, rn2(25)+15, TRUE, !exclaimed);
+                        monflee(mon, rn2(25) + 15, TRUE, !exclaimed);
                 }
             }
         }
@@ -3434,7 +3465,7 @@ boolean msg;      /* "The oldmon turns into a newmon!" */
 
                     if (is_vampshifter(mtmp)) {
                         Sprintf(msgtrail, " which was a shapeshifted %s",
-                                m_monnam(mtmp));
+                                noname_monnam(mtmp, ARTICLE_NONE));
                     } else if (is_animal(mdat)) {
                         Strcpy(msgtrail, "'s stomach");
                     } else {
@@ -3476,16 +3507,7 @@ boolean msg;      /* "The oldmon turns into a newmon!" */
     newsym(mtmp->mx, mtmp->my);
 
     if (msg) {
-        char *save_mname = 0;
-
-        if (has_mname(mtmp)) {
-            save_mname = MNAME(mtmp);
-            MNAME(mtmp) = (char *) 0;
-        }
-        Strcpy(newname, (mdat == &mons[PM_GREEN_SLIME])
-                            ? "slime"
-                            : x_monnam(mtmp, ARTICLE_A, (char *) 0,
-                                       SUPPRESS_SADDLE, FALSE));
+        Strcpy(newname, noname_monnam(mtmp, ARTICLE_A));
         /* oldname was capitalized above; newname will be lower case */
         if (!strcmpi(newname, "it")) { /* can't see or sense it now */
             if (!!strcmpi(oldname, "it")) /* could see or sense it before */
@@ -3497,8 +3519,6 @@ boolean msg;      /* "The oldmon turns into a newmon!" */
             else
                 pline("%s turns into %s!", oldname, newname);
         }
-        if (save_mname)
-            MNAME(mtmp) = save_mname;
     }
 
     /* when polymorph trap/wand/potion produces a vampire, turn in into

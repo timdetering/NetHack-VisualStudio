@@ -1440,6 +1440,9 @@ static const char *build_opts[] = {
 #ifdef DLB
     "data librarian",
 #endif
+#ifdef DUMPLOG
+    "end-of-game dumplogs",
+#endif
 #ifdef MFLOPPY
     "floppy drive support",
 #endif
@@ -2229,9 +2232,6 @@ do_permonst()
     }
     Fprintf(ofp, "%s", Dont_Edit_Code);
     Fprintf(ofp, "#ifndef PM_H\n#define PM_H\n");
-
-    if (strcmp(mons[0].mname, "playermon") != 0)
-        Fprintf(ofp, "\n#define\tPM_PLAYERMON\t(-1)");
 
     for (i = 0; mons[i].mlet; i++) {
         SpinCursor(3);
