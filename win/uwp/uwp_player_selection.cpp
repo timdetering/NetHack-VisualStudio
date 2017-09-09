@@ -787,7 +787,7 @@ give_up:
     if (iflags.window_inited)
         exit_nhwindows((char *)0);
     clearlocks();
-    terminate(EXIT_SUCCESS);
+    nh_terminate(EXIT_SUCCESS);
 
     /*NOTREACHED*/
 }

@@ -482,9 +482,4 @@ const char *line;
 }
 #endif /* defined(POSIX_TYPES) || defined(__GNUC__) */
 
-void pline_first_init()
-{
-    no_repeat = FALSE;
-}
-
 /*pline.c*/

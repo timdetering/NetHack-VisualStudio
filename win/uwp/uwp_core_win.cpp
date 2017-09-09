@@ -267,6 +267,6 @@ void CoreWindow::bail(const char *mesg)
 {
     clearlocks();
     tty_exit_nhwindows(mesg);
-    terminate(EXIT_SUCCESS);
+    nh_terminate(EXIT_SUCCESS);
     /*NOTREACHED*/
 }

@@ -48,7 +48,6 @@ first_init()
     options_first_init();
     pager_first_init();
     pickup_first_init();
-    pline_first_init();
     polyself_first_init();
     potion_first_init();
     read_first_init();
