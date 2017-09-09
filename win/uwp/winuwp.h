@@ -52,7 +52,7 @@ struct CoreWindow {
     xchar m_type;          /* type of window */
     bool m_active;      /* true if window is active */
     int m_offx, m_offy;    /* offset from topleft of display */
-    long m_rows, m_cols;     /* dimensions */
+    int m_rows, m_cols;     /* dimensions */
     long m_curx, m_cury;     /* current cursor position */
     std::string m_morestr;         /* string to display instead of default */
 

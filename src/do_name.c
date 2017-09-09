@@ -36,21 +36,18 @@ nextmbuf()
 /* function for getpos() to highlight desired map locations.
  * parameter value 0 = initialize, 1 = highlight, 2 = done
  */
-static void FDECL((*getpos_hilitefunc), (int, void *)) =
-    (void FDECL((*), (int, void*))) 0;
-static boolean FDECL((*getpos_getvalid), (int, int, void *)) = 
-    (boolean FDECL((*), (int, int, void*))) 0;
-static void * getpos_hiliteparams = NULL;
+static void FDECL((*getpos_hilitefunc), (int)) =
+    (void FDECL((*), (int))) 0;
+static boolean FDECL((*getpos_getvalid), (int, int)) = 
+    (boolean FDECL((*), (int, int))) 0;
 
 void
 getpos_sethilite(f,d,p)
-void FDECL((*f), (int, void*));
-boolean FDECL((*d), (int, int, void*));
-void * p;
+void FDECL((*f), (int));
+boolean FDECL((*d), (int, int));
 {
     getpos_hilitefunc = f;
     getpos_getvalid = d;
-    getpos_hiliteparams = p;
 }
 
 const char *const gloc_descr[NUM_GLOCS][4] = {
@@ -401,7 +398,7 @@ int x,y, gloc;
                      || glyph_to_cmap(glyph) == S_corr
                      || glyph_to_cmap(glyph) == S_litcorr));
     case GLOC_VALID:
-        return (getpos_getvalid && getpos_getvalid(x,y, getpos_hiliteparams));
+        return (getpos_getvalid && getpos_getvalid(x,y));
     }
     /*NOTREACHED*/
     return FALSE;
@@ -549,7 +546,7 @@ int cx, cy;
         (void) coord_desc(cx, cy, tmpbuf, iflags.getpos_coords);
         custompline(SUPPRESS_HISTORY,
                     "%s%s%s%s%s", firstmatch, *tmpbuf ? " " : "", tmpbuf,
-                    (iflags.autodescribe && getpos_getvalid && !getpos_getvalid(cx,cy, getpos_hiliteparams))
+                    (iflags.autodescribe && getpos_getvalid && !getpos_getvalid(cx,cy))
                     ? " (illegal)" : "",
                     (iflags.getloc_travelmode && !is_valid_travelpt(cx, cy))
                       ? " (no travel path)" : "");
@@ -697,7 +694,7 @@ const char *goal;
         c = nh_poskey(&tx, &ty, &sidx);
 
         if (hilite_state) {
-            (*getpos_hilitefunc)(2, getpos_hiliteparams);
+            (*getpos_hilitefunc)(2);
             hilite_state = FALSE;
             curs(WIN_MAP, cx, cy);
             flush_screen(0);
@@ -786,8 +783,8 @@ const char *goal;
         } else if (c == Cmd.spkeys[NHKF_GETPOS_SHOWVALID]
                    && getpos_hilitefunc) {
             if (!hilite_state) {
-                (*getpos_hilitefunc)(0, getpos_hiliteparams);
-                (*getpos_hilitefunc)(1, getpos_hiliteparams);
+                (*getpos_hilitefunc)(0);
+                (*getpos_hilitefunc)(1);
                 hilite_state = TRUE;
             }
             goto nxtc;
@@ -970,9 +967,8 @@ const char *goal;
     for (i = 0; i < NUM_GLOCS; i++)
         if (garr[i])
             free((genericptr_t) garr[i]);
-    getpos_hilitefunc = (void FDECL((*), (int, void*))) 0;
-    getpos_getvalid = (boolean FDECL((*), (int, int, void*))) 0;
-    getpos_hiliteparams = NULL;
+    getpos_hilitefunc = (void FDECL((*), (int))) 0;
+    getpos_getvalid = (boolean FDECL((*), (int, int))) 0;
     return result;
 }
 

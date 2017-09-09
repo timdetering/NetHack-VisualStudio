@@ -54,7 +54,7 @@ void TextWindow::Putstr(int attr, const char *str)
     do {
         std::string line;
 
-        if (input.size() > CO) {
+        if ((int) input.size() > CO) {
             int split = input.find_last_of(" \n", CO - 1);
             if (split == std::string::npos || split == 0)
                 split = CO - 1;

@@ -793,7 +793,7 @@ void uwp_render_windows()
     for (auto win : g_render_list)
         win->Render(cells);
 
-    for (int offset = 0; offset < g_textGrid.m_cells.size(); offset++) {
+    for (int offset = 0; offset < (int) g_textGrid.m_cells.size(); offset++) {
         g_textGrid.m_cells[offset] = cells[offset];
     }
 

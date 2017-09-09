@@ -148,7 +148,7 @@ void MessageWindow::Putstr(int attr, const char *str, bool isPrompt)
     /* But messages like "You die..." deserve their own line */
     n0 = input.size();
     if ((m_mustBeSeen || !m_outputMessages) && m_cury == 0
-        && n0 + m_toplines.size() + 3 < CO - 8 /* room for --More-- */
+        && n0 + (int) m_toplines.size() + 3 < CO - 8 /* room for --More-- */
         && !died) {
 
         /* why don't we just check that m_toplines is non-empty?
@@ -177,8 +177,8 @@ void MessageWindow::Putstr(int attr, const char *str, bool isPrompt)
     remember_topl();
 
     int offset = 0;
-    while (input.size() - offset > CO) {
-        size_t space_offset = input.find_last_of(' ', offset + CO);
+    while ((int) input.size() - offset > CO) {
+        int space_offset = (int) input.find_last_of(' ', offset + CO);
 
         if (space_offset <= offset || space_offset == std::string::npos) {
             offset += CO;
@@ -651,14 +651,14 @@ void MessageWindow::hooked_tty_getlin(const char *query, char *bufp, getlin_hook
         } else if (c == kNewline) {
             break;
         } else if (kSpace <= (unsigned char)c && c != kDelete
-            && (input.size() < bufSize - 1 && input.size() < COLNO)) {
+            && ((int) input.size() < (bufSize - 1) && (int) input.size() < COLNO)) {
 
             input += c;
             guess.clear();
             strcpy(obufp, input.c_str());
 
             if (hook && (*hook)(obufp))
-                guess = std::string(obufp + input.size());
+                guess = std::string(obufp + (int) input.size());
 
         } else
             tty_nhbell();

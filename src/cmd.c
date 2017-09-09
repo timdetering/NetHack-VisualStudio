@@ -3914,7 +3914,7 @@ boolean initial;
     const struct ext_func_tab *cmdtmp;
     boolean flagtemp;
     int c, i, updated = 0;
-    static boolean backed_dir_cmd;
+    static boolean backed_dir_cmd = FALSE;
 
     if (initial) {
         memset(&Cmd, 0, sizeof(Cmd));

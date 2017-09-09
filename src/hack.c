@@ -2075,8 +2075,8 @@ boolean pick;
             /*
              * dotrap on a fire trap calls melt_ice() which triggers
              * spoteffects() (again) which can trigger the same fire
-             * trap (again). Use static s_spottrap to prevent that.
-             * We track s_spottraptyp because some traps morph
+             * trap (again). Use static spottrap to prevent that.
+             * We track spottraptyp because some traps morph
              * (landmine to pit) and any new trap type
              * should get triggered.
              */

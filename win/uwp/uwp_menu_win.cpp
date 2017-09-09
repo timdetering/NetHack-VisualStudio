@@ -114,7 +114,7 @@ void MenuWindow::Putstr(int attr, const char *str)
     do {
         std::string line;
 
-        if (input.size() > CO) {
+        if ((int) input.size() > CO) {
             int split = input.find_last_of(" \n", CO - 1);
             if (split == std::string::npos || split == 0)
                 split = CO - 1;
@@ -132,7 +132,7 @@ void MenuWindow::Putstr(int attr, const char *str)
         m_cury = m_lines.size();
         m_rows = m_lines.size();
 
-        if (line.size() > m_cols)
+        if ((int) line.size() > m_cols)
             m_cols = line.size();
     } while (input.size() > 0);
 }
