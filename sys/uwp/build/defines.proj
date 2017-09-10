@@ -217,6 +217,9 @@
     <BmpFiles Include = "$(WinWin32Dir)splash.bmp"/>
   </ItemGroup>
   <ItemGroup>
+    <RecordFiles Include = "$(WinWin32Dir)record" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Should $(DatDir)symbols be in this list? If not, why not? -->
     <DlbList Include = "$(DatDir)data"/>
     <DlbList Include = "$(DatDir)oracles"/>
