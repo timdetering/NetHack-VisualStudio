@@ -89,7 +89,9 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine,
     UNREFERENCED_PARAMETER(lpCmdLine);
     UNREFERENCED_PARAMETER(nCmdShow);
 
+#ifdef ENGINE_IMPORT
 	setcallbacks();
+#endif
 
     sys_early_init();
 
@@ -399,6 +401,7 @@ _nhapply_image_transparent(HDC hDC, int x, int y, int width, int height,
     return TRUE;
 }
 
+#ifdef ENGINE_IMPORT
 void setcallbacks(void)
 {
 	engine_callbacks callbacks = { NULL };
@@ -408,3 +411,4 @@ void setcallbacks(void)
 
 	engine_setcallbacks(&callbacks);
 }
+#endif
