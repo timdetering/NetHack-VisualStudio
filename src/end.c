@@ -2127,4 +2127,10 @@ char *in;
     return out;
 }
 
+void
+end_early_init()
+{
+	Schroedingers_cat = FALSE;
+}
+
 /*end.c*/
