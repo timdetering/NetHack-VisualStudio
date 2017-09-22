@@ -8,10 +8,12 @@
 #include "func_tab.h"
 
 #ifdef ALTMETA
-STATIC_VAR boolean alt_esc = FALSE;
+STATIC_VAR boolean alt_esc = UNDEFINED;
 #endif
 
-struct cmd Cmd = { 0 }; /* flag.h */
+struct cmd Cmd = { UNDEFINED }; /* flag.h */
+
+static NEARDATA int last_multi = UNDEFINED;
 
 extern const char *hu_stat[];  /* hunger status from eat.c */
 extern const char *enc_stat[]; /* encumbrance status from botl.c */
@@ -182,7 +184,7 @@ STATIC_DCL void FDECL(status_enlightenment, (int, int));
 STATIC_DCL void FDECL(attributes_enlightenment, (int, int));
 
 static const char *readchar_queue = "";
-static coord clicklook_cc;
+static coord clicklook_cc = { UNDEFINED };
 
 STATIC_DCL void FDECL(add_herecmd_menuitem, (winid, int NDECL((*)),
                                              const char *));
@@ -3941,9 +3943,10 @@ boolean initial;
     static boolean backed_dir_cmd = FALSE;
 
     if (initial) {
+        phead = ptail = shead = stail = 0;
+        last_multi = 0;
         updated = 1;
-        Cmd.num_pad = FALSE;
-        Cmd.pcHack_compat = Cmd.phone_layout = Cmd.swap_yz = FALSE;
+        memset(&Cmd, 0, sizeof(Cmd));
         for (i = 0; i < SIZE(spkeys_binds); i++)
             Cmd.spkeys[spkeys_binds[i].nhkf] = spkeys_binds[i].key;
         commands_init();

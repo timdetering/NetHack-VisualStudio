@@ -854,7 +854,7 @@ int how;
     u.uswldtim = 0;
     if (u.uhunger < 500) {
         u.uhunger = 500;
-        newuhs(FALSE);
+        newuhs(FALSE, FALSE);
     }
     /* cure impending doom of sickness hero won't have time to fix */
     if ((Sick & TIMEOUT) == 1L) {
@@ -2125,6 +2125,12 @@ char *in;
         break;
     }
     return out;
+}
+
+void
+end_early_init()
+{
+	Schroedingers_cat = FALSE;
 }
 
 /*end.c*/

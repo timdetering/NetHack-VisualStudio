@@ -1796,7 +1796,7 @@ domenucontrols()
 }
 
 /* data for dohelp() */
-static struct {
+static const struct {
     void (*f)();
     const char *text;
 } help_menu_items[] = {

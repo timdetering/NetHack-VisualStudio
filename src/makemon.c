@@ -333,7 +333,8 @@ register struct monst *mtmp;
             /* maybe make it special */
             if (!rn2(20) || is_lord(ptr))
                 otmp = oname(otmp,
-                             artiname(rn2(2) ? ART_DEMONBANE : ART_SUNSWORD));
+                             artiname(rn2(2) ? ART_DEMONBANE : ART_SUNSWORD),
+                             FALSE);
             bless(otmp);
             otmp->oerodeproof = TRUE;
             spe2 = rn2(4);
@@ -2229,5 +2230,13 @@ int *seencount;  /* secondary output */
     }
     return moncount;
 }
+
+void
+makemon_early_init()
+{
+    rndmonst_state.choice_count = -1;
+    memset(rndmonst_state.mchoices, 0, sizeof(rndmonst_state.mchoices));
+}
+
 
 /*makemon.c*/

@@ -1140,7 +1140,7 @@ boolean atme;
     case SPE_CHARM_MONSTER:
     case SPE_MAGIC_MAPPING:
     case SPE_CREATE_MONSTER:
-        (void) seffects(pseudo);
+        (void) seffects(pseudo, NULL);
         break;
 
     /* these are all duplicates of potion effects */

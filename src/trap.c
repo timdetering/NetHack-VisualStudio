@@ -40,9 +40,6 @@ STATIC_DCL boolean FDECL(keep_saddle_with_steedcorpse, (unsigned,
                                                         struct obj *));
 STATIC_DCL void NDECL(maybe_finish_sokoban);
 
-/* mintrap() should take a flags argument, but for time being we use this */
-STATIC_VAR int force_mintrap = 0;
-
 STATIC_VAR const char *const a_your[2] = { "a", "your" };
 STATIC_VAR const char *const A_Your[2] = { "A", "Your" };
 STATIC_VAR const char tower_of_flame[] = "tower of flame";
@@ -1298,7 +1295,7 @@ unsigned trflags;
                 u.usteed->my = u.uy;
 
                 /* mintrap currently does not return 2(died) for webs */
-                if (mintrap(u.usteed)) {
+                if (mintrap(u.usteed, forcetrap)) {
                     u.usteed->mtrapped = 0;
                     if (strongmonst(u.usteed->data))
                         str = 17;
@@ -1816,7 +1813,7 @@ int style;
                 stop_occupation();
         }
         if (style == ROLL) {
-            if (down_gate(bhitpos.x, bhitpos.y) != -1) {
+            if (down_gate(bhitpos.x, bhitpos.y, NULL) != -1) {
                 if (ship_object(singleobj, bhitpos.x, bhitpos.y, FALSE)) {
                     used_up = TRUE;
                     launch_drop_spot((struct obj *) 0, 0, 0);
@@ -2063,8 +2060,9 @@ schar dx, dy;
 }
 
 int
-mintrap(mtmp)
+mintrap(mtmp, force_mintrap)
 register struct monst *mtmp;
+boolean force_mintrap;
 {
     register struct trap *trap = t_at(mtmp->mx, mtmp->my);
     boolean trapkilled = FALSE;
@@ -2601,7 +2599,7 @@ register struct monst *mtmp;
                 trapkilled = TRUE;
             } else {
                 /* monsters recursively fall into new pit */
-                if (mintrap(mtmp) == 2)
+                if (mintrap(mtmp, force_mintrap) == 2)
                     trapkilled = TRUE;
             }
             /* a boulder may fill the new pit, crushing monster */
@@ -2672,7 +2670,7 @@ const char *str;
 {
     if (Stone_resistance)
         return;
-    if (poly_when_stoned(youmonst.data) && polymon(PM_STONE_GOLEM))
+    if (poly_when_stoned(youmonst.data) && polymon(PM_STONE_GOLEM, FALSE))
         return;
     You("turn to stone...");
     killer.format = KILLED_BY;
@@ -3183,7 +3181,7 @@ domagictrap()
                                  and zero out oextra */
             pseudo.otyp = SCR_REMOVE_CURSE;
             HConfusion = 0L;
-            (void) seffects(&pseudo);
+            (void) seffects(&pseudo, NULL);
             HConfusion = save_conf;
             break;
         }
@@ -3949,7 +3947,7 @@ boolean force_failure;
     /* duplicate tight-space checks from test_move */
     if (u.dx && u.dy && bad_rock(youmonst.data, u.ux, ttmp->ty)
         && bad_rock(youmonst.data, ttmp->tx, u.uy)) {
-        if ((invent && (inv_weight() + weight_cap() > 600))
+        if ((invent && (player_weight() > 600))
             || bigmonst(youmonst.data)) {
             /* don't allow untrap if they can't get thru to it */
             You("are unable to reach the %s!",
@@ -4197,7 +4195,8 @@ struct trap *ttmp;
         You("grab the trapped %s using your bare %s.", mtmp->data->mname,
             makeplural(body_part(HAND)));
 
-        if (poly_when_stoned(youmonst.data) && polymon(PM_STONE_GOLEM)) {
+        if (poly_when_stoned(youmonst.data) 
+            && polymon(PM_STONE_GOLEM, FALSE)) {
             display_nhwindow(WIN_MESSAGE, FALSE);
         } else {
             char kbuf[BUFSZ];
@@ -4232,7 +4231,7 @@ struct trap *ttmp;
     }
 
     /* is the monster too heavy? */
-    wt = inv_weight() + mtmp->data->cwt;
+    wt = above_capacity() + mtmp->data->cwt;
     if (!try_lift(mtmp, ttmp, wt, FALSE))
         return 1;
 
@@ -4579,9 +4578,7 @@ boolean *noticed; /* set to true iff hero notices the effect; */
         /* dotrap calls mintrap when mounted hero encounters a web */
         if (u.usteed)
             dotrapflags |= NOWEBMSG;
-        ++force_mintrap;
         dotrap(t, dotrapflags);
-        --force_mintrap;
         result = (u.utrap != 0);
     } else {
         if (mon->mtrapped)
@@ -4589,9 +4586,7 @@ boolean *noticed; /* set to true iff hero notices the effect; */
         /* you notice it if you see the trap close/tremble/whatever
            or if you sense the monster who becomes trapped */
         *noticed = cansee(t->tx, t->ty) || canspotmon(mon);
-        ++force_mintrap;
-        result = (mintrap(mon) != 0);
-        --force_mintrap;
+        result = (mintrap(mon, TRUE) != 0);
     }
     return result;
 }
@@ -4633,9 +4628,7 @@ boolean *noticed; /* set to true iff hero notices the effect; */
         *noticed = cansee(t->tx, t->ty) || canspotmon(mon);
         /* monster will be angered; mintrap doesn't handle that */
         wakeup(mon, TRUE);
-        ++force_mintrap;
-        result = (mintrap(mon) != 0);
-        --force_mintrap;
+        result = (mintrap(mon, TRUE) != 0);
         /* mon might now be on the migrating monsters list */
     }
     return result;

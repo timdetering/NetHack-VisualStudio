@@ -68,6 +68,7 @@
         void            strbuf_empty    (strbuf *)
         void            strbuf_nl_to_crlf (strbuf_t *)
 =*/
+
 #ifdef LINT
 #define Static /* pacify lint */
 #else
