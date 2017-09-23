@@ -3,6 +3,8 @@
 /*-Copyright (c) Derek S. Ray, 2015. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/* NOTE: early initialization in this module is currently not needed */
+
 #define NEED_VARARGS
 
 #include "hack.h"
