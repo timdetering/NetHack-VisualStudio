@@ -69,8 +69,6 @@ STATIC_OVL NEARDATA const char allobj[] = {
     BALL_CLASS,   CHAIN_CLASS,  SPBOOK_CLASS, 0
 };
 
-STATIC_OVL boolean force_save_hs = FALSE;
-
 /* see hunger states in hack.h - texts used on bottom line */
 const char *hu_stat[] = { "Satiated", "        ", "Hungry  ", "Weak    ",
                           "Fainting", "Fainted ", "Starved " };
@@ -418,7 +416,7 @@ do_reset_eat()
      * canchoke always gets recalculated anyway.
      */
     stop_occupation();
-    newuhs(FALSE);
+    newuhs(FALSE, FALSE);
 }
 
 /* called each move during eating process */
@@ -453,7 +451,7 @@ boolean message;
 
     piece->in_use = TRUE;
     occupation = 0; /* do this early, so newuhs() knows we're done */
-    newuhs(FALSE);
+    newuhs(FALSE, FALSE);
     if (nomovemsg) {
         if (message)
             pline1(nomovemsg);
@@ -1363,7 +1361,7 @@ const char *mesg;
         if (tintxts[r].nut < 0) /* rotten */
             make_vomiting((long) rn1(15, 10), FALSE);
         else
-            lesshungry(tintxts[r].nut);
+            lesshungry(tintxts[r].nut, FALSE);
 
         if (tintxts[r].greasy) {
             /* Assume !Glib, because you can't open tins when Glib. */
@@ -1404,7 +1402,8 @@ const char *mesg;
                       ? 600                   /* blessed */
                       : !tin->cursed
                          ? (400 + rnd(200))   /* uncursed */
-                         : (200 + rnd(400))); /* cursed */
+                         : (200 + rnd(400)),  /* cursed */
+                   FALSE); 
     }
 
 use_up_tin:
@@ -2063,7 +2062,7 @@ eatspecial()
 
     /* lesshungry wants an occupation to handle choke messages correctly */
     set_occupation(eatfood, "eating non-food", 0);
-    lesshungry(context.victual.nmod);
+    lesshungry(context.victual.nmod, FALSE);
     occupation = 0;
     context.victual.piece = (struct obj *) 0;
     context.victual.o_id = 0;
@@ -2732,17 +2731,15 @@ bite()
         do_reset_eat();
         return 0;
     }
-    force_save_hs = TRUE;
     if (context.victual.nmod < 0) {
-        lesshungry(-context.victual.nmod);
+        lesshungry(-context.victual.nmod, TRUE);
         consume_oeaten(context.victual.piece,
                        context.victual.nmod); /* -= -nmod */
     } else if (context.victual.nmod > 0
                && (context.victual.usedtime % context.victual.nmod)) {
-        lesshungry(1);
+        lesshungry(1, TRUE);
         consume_oeaten(context.victual.piece, -1); /* -= 1 */
     }
-    force_save_hs = FALSE;
     recalc_wt();
     return 0;
 }
@@ -2801,7 +2798,7 @@ gethungry()
             break;
         }
     }
-    newuhs(TRUE);
+    newuhs(TRUE, FALSE);
 }
 
 /* called after vomiting and after performing feats of magic */
@@ -2810,16 +2807,17 @@ morehungry(num)
 int num;
 {
     u.uhunger -= num;
-    newuhs(TRUE);
+    newuhs(TRUE, FALSE);
 }
 
 /* called after eating (and after drinking fruit juice) */
 void
-lesshungry(num)
+lesshungry(num, bite)
 int num;
+boolean bite;
 {
-    /* See comments in newuhs() for discussion on force_save_hs */
-    boolean iseating = (occupation == eatfood) || force_save_hs;
+    /* See comments in newuhs() for discussion on bite */
+    boolean iseating = (occupation == eatfood) || bite;
 
     debugpline1("lesshungry(%d)", num);
     u.uhunger += num;
@@ -2859,7 +2857,7 @@ int num;
             }
         }
     }
-    newuhs(FALSE);
+    newuhs(FALSE, bite);
 }
 
 STATIC_PTR
@@ -2890,8 +2888,9 @@ reset_faint()
 
 /* compute and comment on your (new?) hunger status */
 void
-newuhs(incr)
+newuhs(incr, bite)
 boolean incr;
+boolean bite;
 {
     unsigned newhs;
     static unsigned save_hs;
@@ -2913,9 +2912,8 @@ boolean incr;
     /* It is normally possible to check if you are in the middle of a meal
      * by checking occupation == eatfood, but there is one special case:
      * start_eating() can call bite() for your first bite before it
-     * sets the occupation.
-     * Anyone who wants to get that case to work _without_ an ugly static
-     * force_save_hs variable, feel free.
+     * sets the occupation.  The paramter bite is used to indentify this
+     * case.
      */
     /* Note: If you become a certain hunger status in the middle of the
      * meal, and still have that same status at the end of the meal,
@@ -2925,7 +2923,7 @@ boolean incr;
      * were added or if HUNGRY and WEAK were separated by a big enough
      * gap to fit two bites.
      */
-    if (occupation == eatfood || force_save_hs) {
+    if (occupation == eatfood || bite) {
         if (!saved_hs) {
             save_hs = u.uhs;
             saved_hs = TRUE;
