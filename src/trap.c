@@ -1816,7 +1816,7 @@ int style;
                 stop_occupation();
         }
         if (style == ROLL) {
-            if (down_gate(bhitpos.x, bhitpos.y) != -1) {
+            if (down_gate(bhitpos.x, bhitpos.y, NULL) != -1) {
                 if (ship_object(singleobj, bhitpos.x, bhitpos.y, FALSE)) {
                     used_up = TRUE;
                     launch_drop_spot((struct obj *) 0, 0, 0);
