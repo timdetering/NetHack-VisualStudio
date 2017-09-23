@@ -5,6 +5,8 @@
 
 #include "hack.h"
 
+/* NOTE: early initialization in this module is currently not needed */
+
 STATIC_DCL int NDECL(pet_type);
 
 void
@@ -154,7 +156,6 @@ makedog()
     register struct obj *otmp;
     const char *petname;
     int pettype;
-    static int petname_used = 0;
 
     if (preferred_pet == 'n')
         return ((struct monst *) 0);
@@ -192,7 +193,7 @@ makedog()
         put_saddle_on_mon(otmp, mtmp);
     }
 
-    if (!petname_used++ && *petname)
+    if (*petname)
         mtmp = christen_monst(mtmp, petname);
 
     initedog(mtmp);
