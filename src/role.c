@@ -769,7 +769,7 @@ const struct Align aligns[] = {
 static struct {
     boolean roles[SIZE(roles)];
     short mask;
-} rfilter;
+} rfilter = { { UNDEFINED}, UNDEFINED };
 
 STATIC_DCL int NDECL(randrole_filtered);
 STATIC_DCL char *FDECL(promptsep, (char *, int));
@@ -1412,7 +1412,7 @@ clearrolefilter()
 #define BP_ROLE 3
 #define NUM_BP 4
 
-STATIC_VAR char pa[NUM_BP], post_attribs;
+STATIC_VAR char pa[NUM_BP] = { UNDEFINED }, post_attribs = UNDEFINED;
 
 STATIC_OVL char *
 promptsep(buf, num_post_attribs)
@@ -2155,6 +2155,12 @@ Goodbye()
     default:
         return "Goodbye";
     }
+}
+
+void
+role_early_init()
+{
+    memset(&rfilter, 0, sizeof(rfilter));
 }
 
 /* role.c */
