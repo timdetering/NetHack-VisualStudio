@@ -5,6 +5,8 @@
 
 #include "hack.h"
 
+/* NOTE: early initialization in this module is currently not needed */
+
 #ifdef TTY_GRAPHICS
 
 #if !defined(MAC)
