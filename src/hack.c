@@ -5,6 +5,8 @@
 
 #include "hack.h"
 
+/* NOTE: early initialization in this module is currently not needed */
+
 /* #define DEBUG */ /* uncomment for debugging */
 
 STATIC_DCL void NDECL(maybe_wail);
@@ -971,7 +973,7 @@ int mode;
                 int dir;
                 int x = travelstepx[set][i];
                 int y = travelstepy[set][i];
-                static int ordered[] = { 0, 2, 4, 6, 1, 3, 5, 7 };
+                static const int ordered[] = { 0, 2, 4, 6, 1, 3, 5, 7 };
                 /* no diagonal movement for grid bugs */
                 int dirmax = NODIAG(u.umonnum) ? 4 : 8;
                 boolean alreadyrepeated = FALSE;
