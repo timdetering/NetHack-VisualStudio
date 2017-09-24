@@ -3,6 +3,8 @@
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
 
+/* NOTE: early initialization in this module is currently not needed */
+
 #include "hack.h"
 
 /* monster mage spells */
