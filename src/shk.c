@@ -1667,7 +1667,7 @@ boolean itemize;
 static struct repo { /* repossession context */
     struct monst *shopkeeper;
     coord location;
-} repo;
+} repo = { UNDEFINED };
 
 /* routine called after dying (or quitting) */
 boolean
