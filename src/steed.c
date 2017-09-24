@@ -605,7 +605,7 @@ int reason; /* Player was thrown off etc. */
 
                 /* Put your steed in your trap */
                 if (save_utrap)
-                    (void) mintrap(mtmp);
+                    (void) mintrap(mtmp, FALSE);
             }
             /* Couldn't... try placing the steed */
         } else if (enexto(&cc, u.ux, u.uy, mtmp->data)) {
