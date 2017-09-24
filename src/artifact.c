@@ -1452,7 +1452,7 @@ struct obj *obj;
             pseudo =
                 zeroobj; /* neither cursed nor blessed, zero oextra too */
             pseudo.otyp = SCR_TAMING;
-            (void) seffects(&pseudo);
+            (void) seffects(&pseudo, NULL);
             break;
         }
         case HEALING: {
