@@ -1131,11 +1131,17 @@ tty_askname()
 {
     static const char who_are_you[] = "Who are you? ";
     register int c, ct, tryct = 0;
+#ifdef DO_NOT_EXIT
+            extern boolean exit_app;
+#endif
 
 #ifdef SELECTSAVED
     if (iflags.wc2_selectsaved && !iflags.renameinprogress)
         switch (restore_menu(BASE_WINDOW)) {
         case -1:
+#ifdef DO_NOT_EXIT
+            exit_app = TRUE;
+#endif
             bail("Until next time then..."); /* quit */
             /*NOTREACHED*/
         case 0:

@@ -1148,7 +1148,9 @@ get_saved_games()
                 ++n;
             } while (findnext());
         }
+#ifndef DO_NOT_EXIT
         if (n > 0) {
+#endif
             result = (char **) alloc((n + 1) * sizeof(char *)); /* at most */
             (void) memset((genericptr_t) result, 0, (n + 1) * sizeof(char *));
             if (findfirst((char *) fq_save)) {
@@ -1161,7 +1163,9 @@ get_saved_games()
                     ++n;
                 } while (findnext());
             }
+#ifndef DO_NOT_EXIT
         }
+#endif
     }
 #endif
 #if defined(UNIX) && defined(QT_GRAPHICS)
@@ -1209,14 +1213,18 @@ get_saved_games()
     j = vms_get_saved_games(SAVEF, &result);
 #endif /* VMS */
 
+#ifndef DO_NOT_EXIT
     if (j > 0) {
+#endif
         if (j > 1)
             qsort(result, j, sizeof (char *), strcmp_wrap);
         result[j] = 0;
         return result;
+#ifndef DO_NOT_EXIT
     } else if (result) { /* could happen if save files are obsolete */
         free_saved_games(result);
     }
+#endif
 #endif /* SELECTSAVED */
     return 0;
 }

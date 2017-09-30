@@ -516,6 +516,10 @@ typedef unsigned char uchar;
    but it isn't necessary for successful operation of the program */
 #define FREE_ALL_MEMORY             /* free all memory at exit */
 
+/* #define DO_NOT_EXIT */           /* don't exit the app when game is saved,
+                                       quit or ended. */
+#define DO_NOT_EXIT
+
 /* #define DUMPLOG */  /* End-of-game dump logs */
 #ifdef DUMPLOG
 

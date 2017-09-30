@@ -11,6 +11,10 @@
 #include <signal.h>
 #endif
 
+#ifdef DO_NOT_EXIT
+#include <setjmp.h>
+#endif
+
 #include <ctype.h>
 
 #if !defined(AMIGA) && !defined(GNUDOS)
@@ -80,6 +84,11 @@ void NDECL(startup);
 unsigned _stklen = STKSIZ;
 #endif
 
+#ifdef DO_NOT_EXIT
+jmp_buf main_jmp_buf;
+boolean exit_app;
+#endif
+
 /* If the graphics version is built, we don't need a main; it is skipped
  * to help MinGW decide which entry point to choose. If both main and
  * WinMain exist, the resulting executable won't work correctly.
@@ -92,6 +101,18 @@ char *argv[];
 {
     boolean resuming;
 
+#ifdef DO_NOT_EXIT
+    {
+        int jmp_code;
+
+        exit_app = FALSE;
+
+        jmp_code = setjmp(main_jmp_buf);
+
+        if (jmp_code == 2 || exit_app) return;
+    }
+#endif
+
     sys_early_init();
 #ifdef WIN32
     Strcpy(default_window_sys, "tty");
@@ -102,7 +123,9 @@ char *argv[];
     init_lan_features();
 #endif
     moveloop(resuming);
+
     nethack_exit(EXIT_SUCCESS);
+
     /*NOTREACHED*/
     return 0;
 }

@@ -11,6 +11,9 @@
 
 #include <ctype.h>
 #include <fcntl.h>
+#ifdef DO_NOT_EXIT
+#include <setjmp.h>
+#endif
 #if !defined(MSDOS) && !defined(WIN_CE) /* already done */
 #include <process.h>
 #endif
@@ -497,7 +500,12 @@ nethack_exit(code)
 int code;
 {
     msexit();
+#ifdef DO_NOT_EXIT
+    extern jmp_buf main_jmp_buf;
+    longjmp(main_jmp_buf, (code == 0 ? 1 : 2));
+#else
     exit(code);
+#endif
 }
 
 /* Chdir back to original directory

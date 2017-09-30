@@ -1294,7 +1294,11 @@ winid bannerwin; /* if not WIN_ERR, clear window and show copyright in menu */
 
     *plname = '\0';
     saved = get_saved_games(); /* array of character names */
+#ifdef DO_NOT_EXIT
+    if (saved) {
+#else
     if (saved && *saved) {
+#endif
         tmpwin = create_nhwindow(NHW_MENU);
         start_menu(tmpwin);
         any = zeroany; /* no selection */
