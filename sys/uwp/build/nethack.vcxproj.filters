@@ -352,18 +352,10 @@
     <ClCompile Include="$(WinTtyDir)getline.c">
       <Filter>win_tty</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\monstr.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\tile.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\sys.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\share\cppregex.cpp">
-      <Filter>sys_share</Filter>
-    </ClCompile>
+    <ClCompile Include="$(SrcDir)monstr.c" />
+    <ClCompile Include="$(SrcDir)sys.c" />
+    <ClCompile Include="$(SrcDir)tile.c" />
+    <ClCompile Include="$(SysShareDir)cppregex.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(IncDir)align.h">
