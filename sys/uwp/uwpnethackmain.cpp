@@ -488,7 +488,22 @@ void NethackMain::RunNethackMainLoop(void)
     while (1)
     {
         NethackMainLoopHold();
+#ifndef SHELL_ONLY
         uwp_main(localDirW, installDirW);
+#else
+        g_textGrid.Flush();
+        auto e = g_eventQueue.PopFront();
+
+        if (e.m_type == Event::Type::Char) {
+            if (e.m_char == kEscape)
+                g_textGrid.Clear();
+            else {
+                char str[20];
+                sprintf(str, "Input = %d , '%c'\n", (int) e.m_char,  e.m_char);
+                g_textGrid.Putstr(TextColor::NoColor, TextAttribute::None, str);
+            }
+        }
+#endif
     }
 
 }

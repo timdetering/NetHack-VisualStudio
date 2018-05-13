@@ -6,6 +6,8 @@
 
 #define _USE_MATH_DEFINES
 
+#define SHELL_ONLY
+
 #include <windows.h>
 #include <assert.h>
 #include <fstream>
