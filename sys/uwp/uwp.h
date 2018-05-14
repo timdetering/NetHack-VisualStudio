@@ -95,6 +95,11 @@
 #include "uwpdxhelper.h"
 #include "uwpglobals.h"
 
+const int kScreenWidth = 80;
+const int kScreenHeight = 24;
+
+#if 0
+
 extern"C" {
     #include "hack.h"
     #include "spell.h"
@@ -121,10 +126,6 @@ extern"C" {
 
     const winid BASE_WINDOW = 0;
 
-    const int kScreenWidth = 80;
-    const int kScreenHeight = 24;
 
 }
-
-void unit_test_error_output(bool windowing_initialized);
-void unit_tests();
+#endif

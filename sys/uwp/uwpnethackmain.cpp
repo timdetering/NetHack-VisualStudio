@@ -3,7 +3,7 @@
 /* Nethack for the Universal Windows Platform (UWP) */
 /* NetHack may be freely redistributed.  See license for details. */
 #include "uwp.h"
-#include "..\..\win\uwp\winuwp.h"
+//#include "..\..\win\uwp\winuwp.h"
 
 using namespace Nethack;
 using namespace Windows::Foundation;
@@ -488,7 +488,22 @@ void NethackMain::RunNethackMainLoop(void)
     while (1)
     {
         NethackMainLoopHold();
-        uwp_main(localDirW, installDirW);
+//        uwp_main(localDirW, installDirW);
+
+        g_textGrid.Flush();
+
+        auto e = g_eventQueue.PopFront();
+
+        if (e.m_type == Event::Type::Char) {
+
+            if (e.m_char == kEscape)
+                g_textGrid.Clear();
+            else {
+                char buf[128];
+                sprintf(buf, "Input = %c\n", e.m_char);
+                g_textGrid.Putstr(TextColor::White, TextAttribute::None, buf);
+            }
+        }
     }
 
 }

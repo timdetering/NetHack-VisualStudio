@@ -849,13 +849,13 @@ namespace Nethack
         if(takeLock) m_cellsLock.ReleaseExclusive();
     }
 
-    extern "C" { extern void uwp_render_windows(); }
+//    extern "C" { extern void uwp_render_windows(); }
 
     std::string TextGrid::ReadScreen(int x, int y)
     {
         std::string line;
 
-        uwp_render_windows();
+//        uwp_render_windows();
 
         int offset = (y * m_gridDimensions.m_x) + x;
         int sentinel = (y + 1) * m_gridDimensions.m_x;
