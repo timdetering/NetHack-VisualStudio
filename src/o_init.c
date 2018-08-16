@@ -5,6 +5,8 @@
 
 #include "hack.h"
 #include "lev.h" /* save & restore info */
+#include "onames.h"
+#include "pm.h"
 
 STATIC_DCL void FDECL(setgemprobs, (d_level *));
 STATIC_DCL void FDECL(shuffle, (int, int, BOOLEAN_P));

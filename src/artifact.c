@@ -6,6 +6,8 @@
 #include "hack.h"
 #include "artifact.h"
 #include "artilist.h"
+#include "onames.h"
+#include "pm.h"
 
 /*
  * Note:  both artilist[] and artiexist[] have a dummy element #0,

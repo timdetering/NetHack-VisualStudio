@@ -4,6 +4,7 @@
 /* NetHack may be freely redistributed.  See license for details. */
 
 #include "hack.h"
+#include "pm.h"
 
 STATIC_DCL int NDECL(pet_type);
 

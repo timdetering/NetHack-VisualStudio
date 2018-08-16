@@ -5,6 +5,7 @@
 
 #include "hack.h"
 #include "lev.h"
+#include "onames.h"
 
 STATIC_VAR NEARDATA struct engr *head_engr;
 
