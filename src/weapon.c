@@ -9,6 +9,7 @@
  *      code for monsters.
  */
 #include "hack.h"
+#include "onames.h"
 
 /* Categories whose names don't come from OBJ_NAME(objects[type])
  */

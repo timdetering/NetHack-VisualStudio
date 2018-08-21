@@ -6,6 +6,7 @@
 
 #include "hack.h"
 #include <ctype.h>
+#include "pm.h"
 #include "onames.h"
 
 /* part of the output on gain or loss of attribute */

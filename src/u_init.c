@@ -4,6 +4,8 @@
 /* NetHack may be freely redistributed.  See license for details. */
 
 #include "hack.h"
+#include "onames.h"
+#include "pm.h"
 
 struct trobj {
     short trotyp;

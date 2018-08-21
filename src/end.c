@@ -13,6 +13,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include "dlb.h"
+#include "onames.h"
 
 /* add b to long a, convert wraparound to max value */
 #define nowrap_add(a, b) (a = ((a + b) < 0 ? LONG_MAX : (a + b)))

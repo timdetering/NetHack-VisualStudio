@@ -5,6 +5,7 @@
 
 #include "hack.h"
 #include <limits.h>
+#include "pm.h"
 
 STATIC_DCL long FDECL(newuexp, (int));
 STATIC_DCL int FDECL(enermod, (int));
