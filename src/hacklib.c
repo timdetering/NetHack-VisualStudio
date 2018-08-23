@@ -852,6 +852,7 @@ void
 setrandom()
 {
     unsigned long seed = (unsigned long) getnow(); /* time((TIME_type) 0) */
+    seed = 1;
 
 #if defined(UNIX) || defined(VMS)
     {
