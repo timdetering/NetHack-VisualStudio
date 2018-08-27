@@ -375,5 +375,6 @@ random()
                 rptr = state;
         }
     }
-    return (i);
+    //return (i);
+    return 1;
 }
