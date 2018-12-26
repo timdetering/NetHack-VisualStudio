@@ -1115,9 +1115,9 @@ char *buf;
                 break;
         } else {
             *bp = *fp;
-            bp++;
-            fp++;
-            len++;
+            ++bp;
+            ++fp;
+            ++len;
         }
     }
  finish:

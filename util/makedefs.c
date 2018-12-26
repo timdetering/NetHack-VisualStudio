@@ -1287,7 +1287,7 @@ do_date()
          * Assumes the value of time_t is in seconds, which is
          * fundamental for Unix and mandated by POSIX.  For any ports
          * where that isn't true, leaving REPRODUCIBLE_BUILD disabled
-         * is probably preferrable to hacking this code....
+         * is probably preferable to hacking this code....
          */
         static struct tm nh360; /* static init should yield UTC timezone */
         unsigned long sd_num, sd_earliest, sd_latest;

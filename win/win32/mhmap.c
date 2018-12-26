@@ -460,7 +460,7 @@ onMSNHCommand(HWND hWnd, WPARAM wParam, LPARAM lParam)
             data->map[msg_data->x][msg_data->y] = msg_data->glyph;
             data->bkmap[msg_data->x][msg_data->y] = msg_data->bkglyph;
 
-            /* invalidate the update area. Erase backround if there 
+            /* invalidate the update area. Erase background if there
                is nothing to paint or we are in text mode */
             nhcoord2display(data, msg_data->x, msg_data->y, &rt);
             InvalidateRect(hWnd, &rt, 

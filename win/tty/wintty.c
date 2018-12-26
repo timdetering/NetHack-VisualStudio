@@ -338,7 +338,7 @@ char **argv UNUSED;
 #endif
     gettty();
 
-    /* to port dependant tty setup */
+    /* to port dependent tty setup */
     tty_startup(&wid, &hgt);
     setftty(); /* calls start_screen */
 
@@ -425,7 +425,7 @@ tty_player_selection()
                                                 ROLE, RACE, GEND, ALGN);
 
         /* this prompt string ends in "[ynaq]?":
-           y - game picks role,&c then asks player to confirm;
+           y - game picks role, and then asks player to confirm;
            n - player manually chooses via menu selections;
            a - like 'y', but skips confirmation and starts game;
            q - quit
@@ -1158,11 +1158,16 @@ tty_askname()
             tty_putstr(BASE_WINDOW, 0, "Enter a name for your character...");
             /* erase previous prompt (in case of ESC after partial response)
              */
-            tty_curs(BASE_WINDOW, 1, wins[BASE_WINDOW]->cury), cl_end();
+            tty_curs(BASE_WINDOW, 1, wins[BASE_WINDOW]->cury);
+            cl_end();
         }
         tty_putstr(BASE_WINDOW, 0, who_are_you);
         tty_curs(BASE_WINDOW, (int) (sizeof who_are_you),
                  wins[BASE_WINDOW]->cury - 1);
+
+        //
+        //  TODO: A character name of all whitespace/spaces is valid?
+        //
         ct = 0;
         while ((c = tty_nhgetch()) != '\n') {
             if (c == EOF)
@@ -1388,6 +1393,9 @@ int type;
         newwin->maxrow = newwin->maxcol = 0;
         break;
     default:
+        //
+        //  TODO: Fix newwin memory leak.
+        //
         panic("Tried to create window type %d\n", (int) type);
         return WIN_ERR;
     }
@@ -2624,8 +2632,12 @@ const char *str;
 
             cw->rows += 12;
             tmp = (char **) alloc(sizeof(char *) * (unsigned) cw->rows);
-            for (i = 0; i < cw->maxrow; i++)
+            for (i = 0; i < cw->maxrow; i++) {
+                //
+                //  TODO: Can this dereference a null pointer?
+                //
                 tmp[i] = cw->data[i];
+            }
             if (cw->data)
                 free((genericptr_t) cw->data);
             cw->data = tmp;

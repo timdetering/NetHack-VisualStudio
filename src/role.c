@@ -1628,6 +1628,9 @@ int buflen, rolenum, racenum, gendnum, alignnum;
     if (buflen < QBUFSZ)
         return (char *) defprompt;
 
+    //
+    //  TODO: Use safe string functions.
+    //
     Strcpy(tmpbuf, "Shall I pick ");
     if (racenum != ROLE_NONE || validrole(rolenum))
         Strcat(tmpbuf, "your ");
@@ -1703,14 +1706,14 @@ plnamesuffix()
 
     /* some generic user names will be ignored in favor of prompting */
     if (sysopt.genericusers) {
-	if (*sysopt.genericusers == '*') *plname = '\0';
-	else {
-	    i = (int)strlen(plname);
-	    if ((sptr = strstri(sysopt.genericusers, plname)) != 0
-		&& (sptr == sysopt.genericusers || sptr[-1] == ' ')
-		&& (sptr[i] == ' ' || sptr[i] == '\0'))
-		*plname = '\0'; /* call askname() */
-	}
+        if (*sysopt.genericusers == '*') *plname = '\0';
+        else {
+            i = (int)strlen(plname);
+            if ((sptr = strstri(sysopt.genericusers, plname)) != 0
+                && (sptr == sysopt.genericusers || sptr[-1] == ' ')
+                && (sptr[i] == ' ' || sptr[i] == '\0'))
+                *plname = '\0'; /* call askname() */
+        }
     }
 
     do {

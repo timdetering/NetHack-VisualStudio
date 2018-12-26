@@ -385,6 +385,9 @@ get_scr_size()
         newcoord.Y = LI;
         newcoord.X = CO;
 
+        //
+        //  TODO: Check return value.
+        //
         SetConsoleScreenBufferSize(hConOut, newcoord);
     }
 }
@@ -1521,6 +1524,9 @@ check_font_widths()
 {
     CONSOLE_FONT_INFOEX console_font_info;
     console_font_info.cbSize = sizeof(console_font_info);
+    //
+    //  TODO: Check the return value.
+    //
     BOOL success = GetCurrentConsoleFontEx(hConOut, FALSE,
                                             &console_font_info);
 
